@@ -18,7 +18,7 @@
 #include <random>
 #include <cmath>
 #include <memory>
-
+#include <immintrin.h>
 
 #include <mkl_vsl.h>
 
@@ -31,12 +31,12 @@
 static constexpr unsigned nThreads = 5;
 
 // Initialize global constants
-std::string inputparamfile = "C:\\Users\\Tolya\\Documents\\Visual Studio 2015\\Projects\\Langevien2_New\\Release\\config_new4.json";
+std::string inputparamfile = "C:\\Users\\Tolya\\Documents\\Visual Studio 2015\\Projects\\Langevien2_New\\Release\\config_debug.json";
 const double E = std::exp(1.0);
 const double kBoltz= 1.38064852e-5;// (*pN um *)
 
 
-
+/// ToDo try to use ofstream rawwrite
 
 class BinaryFileLogger 
 {
@@ -45,11 +45,14 @@ public:
 	FILE* pFile1;
 	FILE* pFile2;
 	FILE* pFile3;
+	std::vector <FILE*> files;
+
 	std::size_t const buffsize =128;
 	std::vector <double> buffer0;
 	std::vector <double> buffer1;
 	std::vector <double> buffer2;
 	std::vector <double> buffer3;
+	std::vector <std::vector <double>> buffers;
 	BinaryFileLogger(LoggerParameters loggerParams) {
 
 		pFile0 = fopen((loggerParams.filepath + loggerParams.name + std::string{ "_results_xMT.binary" }).c_str(), "wb");
@@ -238,12 +241,12 @@ int main(int argc, char *argv[])
 		std::vector <Configuration> conf = load_configuration(inputparamfile);
 
 		//const auto logger = createLogger(LoggerType::BINARY_FILE, lP);
+		std::vector <BinaryFileLogger> loggersvector;
+		for (int it = 0; it <= 4; it++) {
+			loggersvector.push_back(create_logger(conf.at(it).loggerParameters));
+		}
 
-		BinaryFileLogger logger0 = create_logger(conf.at(0).loggerParameters);
-		BinaryFileLogger logger1 = create_logger(conf.at(1).loggerParameters);
-		BinaryFileLogger logger2 = create_logger(conf.at(2).loggerParameters);
-		BinaryFileLogger logger3 = create_logger(conf.at(3).loggerParameters);
-		BinaryFileLogger logger4 = create_logger(conf.at(4).loggerParameters);
+		//		(*/),(+-)
 
 		///////////////////////////////
 		//////////////////////////////
@@ -277,7 +280,7 @@ int main(int argc, char *argv[])
 			for (int macrostep = 0; macrostep < (900'000 / 900'000); macrostep++) {
 				generateNumbers();
 				const auto buffData = buff.data();
-#pragma omp parallel num_threads(nThreads) shared(buffData, xcoords,configs)
+#pragma omp parallel num_threads(nThreads) shared(buffData, xcoords,configs,loggersvector)
 				{
 
 					int threadid = omp_get_thread_num();
@@ -339,29 +342,26 @@ int main(int argc, char *argv[])
 					xcoords[threadid][1] = xBeadl;
 					xcoords[threadid][2] = xBeadr;
 					xcoords[threadid][3] = xMol;
+					loggersvector.at(threadid).save(xcoords[threadid][0], xcoords[threadid][1], xcoords[threadid][2], xcoords[threadid][3]);
 				}
 			}
-
-			logger0.save(xcoords[0][0], xcoords[0][1], xcoords[0][2], xcoords[0][3]);
-			logger1.save(xcoords[1][0], xcoords[1][1], xcoords[1][2], xcoords[1][3]);
-			logger2.save(xcoords[2][0], xcoords[2][1], xcoords[2][2], xcoords[2][3]);
-			logger3.save(xcoords[3][0], xcoords[3][1], xcoords[3][2], xcoords[3][3]);
-			logger4.save(xcoords[4][0], xcoords[4][1], xcoords[4][2], xcoords[4][3]);
-
+			/*
+			for (int it = 0; it <= 4; it++) {
+				loggersvector.at(it).save(xcoords[it][0], xcoords[it][1], xcoords[it][2], xcoords[it][3]);
+			}
+			*/
 			//std::cout << xcoords[0][1] << std::endl;
 			if (savedstep % 100 == 0) {
 				double procent = round(100*100 * savedstep / (100'000))/100;
 				std::cout << procent << "%" << std::endl;
+				std::cout << __rdtsc() << std::endl;
 				//std::cout << nst << std::endl;
 			}
 		}
-
-		logger0.closeLogger();
-		logger1.closeLogger();
-		logger2.closeLogger();
-		logger3.closeLogger();
-		logger4.closeLogger();
-
+		for (int it = 0; it <= 4; it++) {
+			loggersvector.at(it).closeLogger();
+		}
+		
 		const auto deletionResult = vslDeleteStream(&stream);
 		if (deletionResult != VSL_STATUS_OK) {
 			throw std::runtime_error{ "error deleting stream" };
@@ -587,3 +587,6 @@ int main(int argc, char *argv[])
 		}
 return 0;
 }
+
+//std::chrono
+//_rdtscp  in #immintrin.h
