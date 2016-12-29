@@ -27,6 +27,7 @@
 #include "library.h"
 #include "configuration.h"
 #include "configuration_loader.h"
+#include "mkl_gaussian_parallel_generator.h"
 
 static constexpr unsigned nThreads = 5;
 
@@ -274,12 +275,13 @@ int main(int argc, char *argv[])
 		saved step range is 10'000 -> nTotal
 		microsteps is macrostep*(buffersize/3)
 		*/
-		
+		MklGaussianParallelGenerator generator1(0.0, 1.0, 900'000, 5);
+
 		for (int savedstep = 0; savedstep < (100'000); savedstep++) {
 
 			for (int macrostep = 0; macrostep < (900'000 / 900'000); macrostep++) {
-				generateNumbers();
-				const auto buffData = buff.data();
+				generator1.generateNumbers();
+				const auto buffData = generator1.getNumbersBuffer();
 #pragma omp parallel num_threads(nThreads) shared(buffData, xcoords,configs,loggersvector)
 				{
 
