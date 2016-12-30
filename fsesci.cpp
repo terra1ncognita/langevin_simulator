@@ -1,6 +1,5 @@
 #include <stdexcept>
 #include <omp.h>
-//#include <stdafx.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <malloc.h>
@@ -95,7 +94,7 @@ public:
 	double calc(double unmodvar) const
 	{
 		double var = mod(unmodvar, L);
-		return (G*(-L / 2.0 + var)) / (pow(E, pow(L - 2.0 * var, 2) / (8.0*powsigma))*powsigma);
+		return (G*(-L / 2.0 + var)) / (pow(E, pow(L - 2.0 * var, 2) / (8.0*powsigma))*powsigma);//l1d cache 4096 of doubles -> use 50% of it?
 		
 	}
 };
@@ -166,7 +165,7 @@ int main(int argc, char *argv[])
 			for (int macrostep = 0; macrostep < (900'000 / 900'000); macrostep++) {
 				generator1.generateNumbers();
 				const auto buffData = generator1.getNumbersBuffer();
-#pragma omp parallel num_threads(nThreads) shared(buffData, confs, loggersvector)
+#pragma omp parallel num_threads(nThreads) shared(buffData, confs)
 				{
 
 					int threadid = omp_get_thread_num();
@@ -198,14 +197,16 @@ int main(int argc, char *argv[])
 						dynC.xMol = next_xMol;
 					}
 					confs.at(threadid).dynamicCoordinates = dynC;
-					for (int it = 0; it < confs.size(); it++) {
-						loggersvector.at(4*it)->save(dynC.xMT);
-						loggersvector.at(4*it+1)->save(dynC.xBeadl);
-						loggersvector.at(4*it+2)->save(dynC.xBeadr);
-						loggersvector.at(4*it+3)->save(dynC.xMol);
-					}
+					
 
 					
+				}//end of openmp section
+				for (int it = 0; it < confs.size(); it++) {
+					DynamicCoordinates dynC = confs.at(it).dynamicCoordinates;
+					loggersvector.at(4 * it)->save(dynC.xMT);
+					loggersvector.at(4 * it + 1)->save(dynC.xBeadl);
+					loggersvector.at(4 * it + 2)->save(dynC.xBeadr);
+					loggersvector.at(4 * it + 3)->save(dynC.xMol);
 				}
 			}
 			
