@@ -10,12 +10,11 @@
 #include "json.hpp"
 # include <omp.h>
 #include "configuration.h"
+#include "library.h"
 
 using json = nlohmann::json;
 
-std::string readfile(std::string filename);
 
-json parse_json_string(std::string inputjsonstring);
 SimulationParameters assign_simulation_parameters_from_json(SimulationParameters simp, json jsonobjsimp);
 
 Configuration assign_config_from_json(Configuration conf, json jsonobj);

@@ -1,36 +1,12 @@
 #include "configuration_loader.h"
+#include "library.h"
+
 
 using json = nlohmann::json;
 const double E = std::exp(1.0);
 const double kBoltz = 1.38064852e-5;// (*pN um *)
 
-//// Assisting functions
-//function to read files
-std::string readfile(std::string filename) {
-	std::string filecontents = "";
-	std::string line;
-	std::ifstream myfile(filename);
-	if (myfile.is_open())
-	{
-		while (getline(myfile, line))
-		{
-			filecontents = filecontents + line;
-		}
-		myfile.close();
-	}
 
-	else std::cout << "Unable to open file";
-	return filecontents;
-}
-// function to parse json objects
-json parse_json_string(std::string inputjsonstring) {
-	std::stringstream ss;
-	ss << inputjsonstring;
-	json j = json::parse(ss);
-	//another way to do it is to use inputjsonstring.c_str()
-	return j;
-
-}
 
 /// Assign Simulation Parameters
 SimulationParameters assign_simulation_parameters_from_json(SimulationParameters simp, json jsonobjsimp) {
@@ -122,6 +98,20 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	if (!(jsonobj["InitialConditions"]["xTrapr"].empty())) {
 		conf.initialConditions.xTrapr = stod(jsonobj["InitialConditions"]["xTrapr"].get<std::string>());
 	}
+	//// Assign Dynamic Coordinates from json initial conditions
+	if (!(jsonobj["InitialConditions"]["xMol"].empty())) {
+		conf.dynamicCoordinates.xMol = stod(jsonobj["InitialConditions"]["xMol"].get<std::string>());
+	}
+	if (!(jsonobj["InitialConditions"]["xMT"].empty())) {
+		conf.dynamicCoordinates.xMT = stod(jsonobj["InitialConditions"]["xMT"].get<std::string>());
+	}
+	if (!(jsonobj["InitialConditions"]["xBeadl"].empty())) {
+		conf.dynamicCoordinates.xBeadl = stod(jsonobj["InitialConditions"]["xBeadl"].get<std::string>());
+	}
+	if (!(jsonobj["InitialConditions"]["xBeadr"].empty())) {
+		conf.dynamicCoordinates.xBeadr = stod(jsonobj["InitialConditions"]["xBeadr"].get<std::string>());
+	}
+	////
 	return conf;
 }
 
@@ -130,9 +120,9 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 SimulationParameters load_simulationparams(std::string paramInputFilename) {
 	json fulljson = parse_json_string(readfile(paramInputFilename));
 	json jsonsimp = fulljson["SimulationParameters"];
-	SimulationParameters simp;
-	simp=assign_simulation_parameters_from_json(simp, jsonsimp);
-	return simp;
+	SimulationParameters simp = {};
+	return assign_simulation_parameters_from_json(simp, jsonsimp);
+	 
 }
 
 //// Configuration creator
