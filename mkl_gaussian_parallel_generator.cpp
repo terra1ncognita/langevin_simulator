@@ -25,6 +25,7 @@ MklGaussianParallelGenerator::MklGaussianParallelGenerator(double mean, double s
 
 void MklGaussianParallelGenerator::generateNumbers()
 {
+	//// Strange that it works without shared! check this out.
 #pragma omp parallel num_threads(_threadNum) default(none)
 	{
 		const std::size_t threadId=omp_get_thread_num();
