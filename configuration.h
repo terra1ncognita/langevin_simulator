@@ -1,6 +1,8 @@
 #pragma once
 #include <string>
 # include <omp.h>
+#include <vector>
+#include <string>
 
 // Global parameters of simulations -> define iterations and steps
 struct SimulationParameters
@@ -60,10 +62,19 @@ struct InitialConditions
 	double xTrapl ;// Must be negative for prestretch ////////////// Is it really iC????
 	double xTrapr ;// Must be positive for prestretch ////////////// Is it really iC????
 };
+//
+struct DynamicCoordinates
+{
+	double xMol;
+	double xMT;
+	double xBeadl;
+	double xBeadr;
+};
 // Composition of parameters
 struct Configuration
 {
 	LoggerParameters loggerParameters;
 	ModelParameters modelParameters;
 	InitialConditions initialConditions;
+	DynamicCoordinates dynamicCoordinates;
 };
