@@ -178,18 +178,19 @@ int main(int argc, char *argv[])
 	char * output_filename = getCmdOption(argv, argv + argc, "-resultfile");
 
 	// Create and load simulation parameters and configuration, values are taken from json file
-	SimulationParameters sP = load_simulationparams(inputparamfile);
-	std::vector <Configuration> confs = load_configuration(inputparamfile);
-	// Check if number of configurations correspond to predefined threads number
-	if (confs.size() != nThreads) { throw std::runtime_error{ "Please check the number of configurations in json corresponds to the number of threads implemented in simulator" }; }
+	const auto simulationParameters = load_simulationparams(inputparamfile);
+	const auto configurations = load_configuration(inputparamfile);
 
-	// Create loggers for each configuration and define dynamic coordinates to be logged
-	std::vector <std::unique_ptr<BinaryFileLogger>> loggersvector;
-	for (int it = 0; it < confs.size(); it++) {
-		const auto& loggerParameters = confs.at(it).loggerParameters;
-		//TODO create tasks here
+	std::vector<std::unique_ptr<Task>> tasks;
+	for (const auto& configuration : configurations) {
+		auto task = std::make_unique<Task>(simulationParameters, configuration);
+		tasks.push_back(std::move(task));
 	}
-	///
+
+	// Check if number of configurations correspond to predefined threads number
+	if (configurations.size() != nThreads) {
+		throw std::runtime_error{ "Please check the number of configurations in json corresponds to the number of threads implemented in simulator" };
+	}
 
 	/*
 
@@ -223,49 +224,17 @@ int main(int argc, char *argv[])
 	for (int savedstep = 0; savedstep < (100'000); savedstep++) {
 
 		for (int macrostep = 0; macrostep < (900'000 / 900'000); macrostep++) {
+			
 			generator1.generateNumbers();
 			const auto buffData = generator1.getNumbersBuffer();
-#pragma omp parallel num_threads(nThreads) shared(buffData, confs)
+
+			#pragma omp parallel num_threads(nThreads) shared(buffData, tasks)
 			{
+				tasks[omp_get_thread_num()]->advanceState(900'000 / 3, buffData);
+			} // end of openmp section
 
-				int threadid = omp_get_thread_num();
-
-				const ModelParameters mP = confs.at(threadid).modelParameters;
-				const InitialConditions initC = confs.at(threadid).initialConditions;
-				auto currentState = confs.at(threadid).currentState;
-
-				// configurate force object
-				PotentialForce potentialForce;
-				potentialForce.E = E;
-				potentialForce.G = mP.G;
-				potentialForce.L = mP.L;
-				potentialForce.powsigma = pow(mP.sigma, 2.0);
-
-				for (int iter = 0; iter < 900'000 / 3; iter++) {
-
-					const double MT_Mol_force = potentialForce.calc(currentState.xMol - currentState.xMT);
-
-					const double next_xMT = currentState.xMT + (sP.expTime / mP.gammaMT)*(((-mP.MTstiffL)*(currentState.xMT - currentState.xBeadl)) + (mP.MTstiffR*(currentState.xBeadr - currentState.xMT)) - (MT_Mol_force));
-					const double next_xBeadl = currentState.xBeadl + (sP.expTime / mP.gammaBead)*(((-mP.trapstiff)*(currentState.xBeadl - initC.xTrapl)) + (mP.MTstiffL*(currentState.xMT - currentState.xBeadl))) + sqrt(2.0*mP.DBead*sP.expTime)*(buffData[iter]);
-					const double next_xBeadr = currentState.xBeadr + (sP.expTime / mP.gammaBead)*(((-mP.MTstiffR)*(currentState.xBeadr - currentState.xMT)) + ((-mP.trapstiff)*(currentState.xBeadr - initC.xTrapr))) + sqrt(2.0*mP.DBead*sP.expTime)*(buffData[iter + (900'000 / 3)]);
-					const double next_xMol = currentState.xMol + (sP.expTime / mP.gammaMol) *(MT_Mol_force + mP.molstiff*(initC.xPed - currentState.xMol)) + sqrt(2.0*mP.DMol*sP.expTime) *(buffData[iter + (2 * 900'000 / 3)]);
-
-					currentState.xMT = next_xMT;
-					currentState.xBeadl = next_xBeadl;
-					currentState.xBeadr = next_xBeadr;
-					currentState.xMol = next_xMol;
-				}
-				confs.at(threadid).currentState = currentState;
-
-
-
-			}//end of openmp section
-			for (int it = 0; it < confs.size(); it++) {
-				const auto currState = &confs.at(it).currentState;
-				loggersvector.at(4 * it)->save(currState);
-				loggersvector.at(4 * it + 1)->save(currState);
-				loggersvector.at(4 * it + 2)->save(currState);
-				loggersvector.at(4 * it + 3)->save(currState);
+			for (const auto& task : tasks) {
+				task->writeStateTolog();
 			}
 		}
 
