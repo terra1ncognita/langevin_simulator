@@ -57,6 +57,14 @@ struct SystemState
 	double xMT;
 	double xBeadl;
 	double xBeadr;
+
+	template <typename F>
+	static void iterateFields(F&& f) {
+		f(&SystemState::xMol, "xMol");
+		f(&SystemState::xMT, "xMT");
+		f(&SystemState::xBeadl, "xBeadl");
+		f(&SystemState::xBeadr, "xBeadr");
+	}
 };
 
 struct InitialConditions

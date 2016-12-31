@@ -43,7 +43,7 @@ const double kBoltz= 1.38064852e-5;// (*pN um *)
 class BinaryFileLogger 
 {
 public:
-	BinaryFileLogger(LoggerParameters loggerParams, std::string coordinateName, double (SystemState::* loggedField)):
+	BinaryFileLogger(LoggerParameters loggerParams, double (SystemState::* loggedField), std::string coordinateName):
 		_file{ loggerParams.filepath + loggerParams.name + "_results_" + coordinateName + ".binary", std::ios::binary },
 		_loggedField{ loggedField }
 	{
@@ -127,10 +127,10 @@ int main(int argc, char *argv[])
 		// Create loggers for each configuration and define dynamic coordinates to be logged
 		std::vector <std::unique_ptr<BinaryFileLogger>> loggersvector;
 		for (int it = 0; it < confs.size(); it++) {
-			loggersvector.push_back(std::make_unique<BinaryFileLogger>(confs.at(it).loggerParameters, "xMT", &SystemState::xMT));
-			loggersvector.push_back(std::make_unique<BinaryFileLogger>(confs.at(it).loggerParameters, "xBeadl", &SystemState::xBeadl));
-			loggersvector.push_back(std::make_unique<BinaryFileLogger>(confs.at(it).loggerParameters, "xBeadr", &SystemState::xBeadr));
-			loggersvector.push_back(std::make_unique<BinaryFileLogger>(confs.at(it).loggerParameters, "xMol", &SystemState::xMol));
+			const auto& loggerParameters = confs.at(it).loggerParameters;
+			SystemState::iterateFields([&loggersvector, &loggerParameters] (double (SystemState::* field), std::string fieldName) {
+				loggersvector.push_back(std::make_unique<BinaryFileLogger>(loggerParameters, field, fieldName));
+			});
 		}
 		///
 		
