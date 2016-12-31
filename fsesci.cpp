@@ -151,6 +151,12 @@ public:
 		}
 	}
 
+	void writeStateTolog() const {
+		for (const auto& logger : _loggers) {
+			logger->save(&_state);
+		}
+	}
+
 private:
 	const SimulationParameters _sP;
 	const ModelParameters _mP;
