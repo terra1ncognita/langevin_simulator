@@ -81,16 +81,16 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 		conf.initialConditions.xPed = stod(jsonobj["InitialConditions"]["xPed"].get<std::string>());
 	}
 	if (!(jsonobj["InitialConditions"]["xMol"].empty())) {
-		conf.initialConditions.xMol = stod(jsonobj["InitialConditions"]["xMol"].get<std::string>());
+		conf.initialConditions.initialState.xMol = stod(jsonobj["InitialConditions"]["xMol"].get<std::string>());
 	}
 	if (!(jsonobj["InitialConditions"]["xMT"].empty())) {
-		conf.initialConditions.xMT = stod(jsonobj["InitialConditions"]["xMT"].get<std::string>());
+		conf.initialConditions.initialState.xMT = stod(jsonobj["InitialConditions"]["xMT"].get<std::string>());
 	}
 	if (!(jsonobj["InitialConditions"]["xBeadl"].empty())) {
-		conf.initialConditions.xBeadl = stod(jsonobj["InitialConditions"]["xBeadl"].get<std::string>());
+		conf.initialConditions.initialState.xBeadl = stod(jsonobj["InitialConditions"]["xBeadl"].get<std::string>());
 	}
 	if (!(jsonobj["InitialConditions"]["xBeadr"].empty())) {
-		conf.initialConditions.xBeadr = stod(jsonobj["InitialConditions"]["xBeadr"].get<std::string>());
+		conf.initialConditions.initialState.xBeadr = stod(jsonobj["InitialConditions"]["xBeadr"].get<std::string>());
 	}
 	if (!(jsonobj["InitialConditions"]["xTrapl"].empty())) {
 		conf.initialConditions.xTrapl = stod(jsonobj["InitialConditions"]["xTrapl"].get<std::string>());
@@ -100,16 +100,16 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	}
 	//// Assign Dynamic Coordinates from json initial conditions
 	if (!(jsonobj["InitialConditions"]["xMol"].empty())) {
-		conf.dynamicCoordinates.xMol = stod(jsonobj["InitialConditions"]["xMol"].get<std::string>());
+		conf.currentState.xMol = stod(jsonobj["InitialConditions"]["xMol"].get<std::string>());
 	}
 	if (!(jsonobj["InitialConditions"]["xMT"].empty())) {
-		conf.dynamicCoordinates.xMT = stod(jsonobj["InitialConditions"]["xMT"].get<std::string>());
+		conf.currentState.xMT = stod(jsonobj["InitialConditions"]["xMT"].get<std::string>());
 	}
 	if (!(jsonobj["InitialConditions"]["xBeadl"].empty())) {
-		conf.dynamicCoordinates.xBeadl = stod(jsonobj["InitialConditions"]["xBeadl"].get<std::string>());
+		conf.currentState.xBeadl = stod(jsonobj["InitialConditions"]["xBeadl"].get<std::string>());
 	}
 	if (!(jsonobj["InitialConditions"]["xBeadr"].empty())) {
-		conf.dynamicCoordinates.xBeadr = stod(jsonobj["InitialConditions"]["xBeadr"].get<std::string>());
+		conf.currentState.xBeadr = stod(jsonobj["InitialConditions"]["xBeadr"].get<std::string>());
 	}
 	////
 	return conf;
