@@ -43,37 +43,40 @@ const double kBoltz= 1.38064852e-5;// (*pN um *)
 class BinaryFileLogger 
 {
 public:
-	std::ofstream file;
-	std::size_t const buffsize =4096/sizeof(double);
-	std::vector <double> buffer;
-	BinaryFileLogger(LoggerParameters loggerParams, std::string coordinateName) {
-		
-		buffer.reserve(buffsize);
-
-		file = std::ofstream(loggerParams.filepath + loggerParams.name + "_results_"+ coordinateName+".binary" , std::ios::binary);
-		if (!file) {
+	BinaryFileLogger(LoggerParameters loggerParams, std::string coordinateName, double (SystemState::* loggedField)):
+		_file{ loggerParams.filepath + loggerParams.name + "_results_" + coordinateName + ".binary", std::ios::binary },
+		_loggedField{ loggedField }
+	{
+		if (!_file) {
 			throw std::runtime_error{ "the file was not created" };
 		}
+		_buffer.reserve(_buffsize);
 	}
 	~BinaryFileLogger() {
-		if (buffer.size()>0) {
-			writeToFile();
-		};
+		writeToFile();
 	}
 	void writeToFile(){
-		file.write((const char*)buffer.data(), buffer.size() * sizeof(double));
-		if (!file.good()) {
+		if (_buffer.empty()) {
+			return;
+		}
+		_file.write(reinterpret_cast<const char*>(_buffer.data()), _buffer.size() * sizeof(double));
+		if (!_file.good()) {
 			throw std::runtime_error{ "not all data was written to file" };
 		};
-		buffer.clear();
+		_buffer.clear();
 	}
-	void save(double coordinate) {
-		buffer.push_back(coordinate);
-		if (buffer.size() == buffsize) {
+	void save(const SystemState* systemState) {
+		_buffer.push_back(systemState->*_loggedField);
+		if (_buffer.size() == _buffsize) {
 			writeToFile();
 		}
 	}
 
+private:
+	static constexpr std::size_t _buffsize = 4096 / sizeof(double);
+	std::ofstream _file;
+	double(SystemState::* _loggedField);
+	std::vector <double> _buffer;
 };
 
 
@@ -124,10 +127,10 @@ int main(int argc, char *argv[])
 		// Create loggers for each configuration and define dynamic coordinates to be logged
 		std::vector <std::unique_ptr<BinaryFileLogger>> loggersvector;
 		for (int it = 0; it < confs.size(); it++) {
-			loggersvector.push_back(std::make_unique<BinaryFileLogger>(confs.at(it).loggerParameters, "xMT"));
-			loggersvector.push_back(std::make_unique<BinaryFileLogger>(confs.at(it).loggerParameters, "xBeadl"));
-			loggersvector.push_back(std::make_unique<BinaryFileLogger>(confs.at(it).loggerParameters, "xBeadr"));
-			loggersvector.push_back(std::make_unique<BinaryFileLogger>(confs.at(it).loggerParameters, "xMol"));
+			loggersvector.push_back(std::make_unique<BinaryFileLogger>(confs.at(it).loggerParameters, "xMT", &SystemState::xMT));
+			loggersvector.push_back(std::make_unique<BinaryFileLogger>(confs.at(it).loggerParameters, "xBeadl", &SystemState::xBeadl));
+			loggersvector.push_back(std::make_unique<BinaryFileLogger>(confs.at(it).loggerParameters, "xBeadr", &SystemState::xBeadr));
+			loggersvector.push_back(std::make_unique<BinaryFileLogger>(confs.at(it).loggerParameters, "xMol", &SystemState::xMol));
 		}
 		///
 		
@@ -201,11 +204,11 @@ int main(int argc, char *argv[])
 					
 				}//end of openmp section
 				for (int it = 0; it < confs.size(); it++) {
-					const auto& currState = confs.at(it).currentState;
-					loggersvector.at(4 * it)->save(currState.xMT);
-					loggersvector.at(4 * it + 1)->save(currState.xBeadl);
-					loggersvector.at(4 * it + 2)->save(currState.xBeadr);
-					loggersvector.at(4 * it + 3)->save(currState.xMol);
+					const auto currState = &confs.at(it).currentState;
+					loggersvector.at(4 * it)->save(currState);
+					loggersvector.at(4 * it + 1)->save(currState);
+					loggersvector.at(4 * it + 2)->save(currState);
+					loggersvector.at(4 * it + 3)->save(currState);
 				}
 			}
 			
