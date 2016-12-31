@@ -170,7 +170,6 @@ int main(int argc, char *argv[])
 
 					int threadid = omp_get_thread_num();
 
-					const LoggerParameters lP  = confs.at(threadid).loggerParameters;
 					const ModelParameters mP   = confs.at(threadid).modelParameters;
 					const InitialConditions initC = confs.at(threadid).initialConditions;
 					DynamicCoordinates dynC = confs.at(threadid).dynamicCoordinates;
