@@ -162,43 +162,41 @@ private:
 
 int main(int argc, char *argv[])
 {
-	int mode = 1;//1-> regular 2-> to check timestep
-	if (mode == 1) {
-		if (cmdOptionExists(argv, argv + argc, "-h"))
-		{
-			// Do stuff
-			std::cout << "Sorry users, no help donations today." << std::endl;
-		}
-		char * param_input_filename = getCmdOption(argv, argv + argc, "-paramsfile");
-		char * output_filename = getCmdOption(argv, argv + argc, "-resultfile");
+	if (cmdOptionExists(argv, argv + argc, "-h"))
+	{
+		// Do stuff
+		std::cout << "Sorry users, no help donations today." << std::endl;
+	}
+	char * param_input_filename = getCmdOption(argv, argv + argc, "-paramsfile");
+	char * output_filename = getCmdOption(argv, argv + argc, "-resultfile");
 
-		// Create and load simulation parameters and configuration, values are taken from json file
-		SimulationParameters sP = load_simulationparams(inputparamfile);
-		std::vector <Configuration> confs = load_configuration(inputparamfile);
-		// Check if number of configurations correspond to predefined threads number
-		if (confs.size() != nThreads) { throw std::runtime_error{ "Please check the number of configurations in json corresponds to the number of threads implemented in simulator" }; }
-		
-		// Create loggers for each configuration and define dynamic coordinates to be logged
-		std::vector <std::unique_ptr<BinaryFileLogger>> loggersvector;
-		for (int it = 0; it < confs.size(); it++) {
-			const auto& loggerParameters = confs.at(it).loggerParameters;
-			//TODO create tasks here
-		}
-		///
-		
-		/*
+	// Create and load simulation parameters and configuration, values are taken from json file
+	SimulationParameters sP = load_simulationparams(inputparamfile);
+	std::vector <Configuration> confs = load_configuration(inputparamfile);
+	// Check if number of configurations correspond to predefined threads number
+	if (confs.size() != nThreads) { throw std::runtime_error{ "Please check the number of configurations in json corresponds to the number of threads implemented in simulator" }; }
 
-		///////////////////////////////
-		//////////////////////////////
-		///////////// Iterations
-		///////////////////////////
-		/*
-		const int frequency = (int)round(sP.microsteps);
-		const int totalsimsteps = (int)round((sP.microsteps)*(sP.nTotal));
-		const int nsteps = (int)round(3*(totalsimsteps / frequency) / intbufferSize);
-			*/
+	// Create loggers for each configuration and define dynamic coordinates to be logged
+	std::vector <std::unique_ptr<BinaryFileLogger>> loggersvector;
+	for (int it = 0; it < confs.size(); it++) {
+		const auto& loggerParameters = confs.at(it).loggerParameters;
+		//TODO create tasks here
+	}
+	///
 
-		
+	/*
+
+	///////////////////////////////
+	//////////////////////////////
+	///////////// Iterations
+	///////////////////////////
+	/*
+	const int frequency = (int)round(sP.microsteps);
+	const int totalsimsteps = (int)round((sP.microsteps)*(sP.nTotal));
+	const int nsteps = (int)round(3*(totalsimsteps / frequency) / intbufferSize);
+		*/
+
+
 		/*
 		int frequency = sP.microsteps;
 		int totalsimsteps = sP.microsteps*(sP.nTotal);
@@ -213,71 +211,64 @@ int main(int argc, char *argv[])
 		saved step range is 10'000 -> nTotal
 		microsteps is macrostep*(buffersize/3)
 		*/
-		MklGaussianParallelGenerator generator1(0.0, 1.0, 900'000, 5);
+	MklGaussianParallelGenerator generator1(0.0, 1.0, 900'000, 5);
 
-		for (int savedstep = 0; savedstep < (100'000); savedstep++) {
+	for (int savedstep = 0; savedstep < (100'000); savedstep++) {
 
-			for (int macrostep = 0; macrostep < (900'000 / 900'000); macrostep++) {
-				generator1.generateNumbers();
-				const auto buffData = generator1.getNumbersBuffer();
+		for (int macrostep = 0; macrostep < (900'000 / 900'000); macrostep++) {
+			generator1.generateNumbers();
+			const auto buffData = generator1.getNumbersBuffer();
 #pragma omp parallel num_threads(nThreads) shared(buffData, confs)
-				{
+			{
 
-					int threadid = omp_get_thread_num();
+				int threadid = omp_get_thread_num();
 
-					const ModelParameters mP   = confs.at(threadid).modelParameters;
-					const InitialConditions initC = confs.at(threadid).initialConditions;
-					auto currentState = confs.at(threadid).currentState;
+				const ModelParameters mP = confs.at(threadid).modelParameters;
+				const InitialConditions initC = confs.at(threadid).initialConditions;
+				auto currentState = confs.at(threadid).currentState;
 
-					// configurate force object
-					PotentialForce potentialForce;
-					potentialForce.E = E;
-					potentialForce.G = mP.G;
-					potentialForce.L = mP.L;
-					potentialForce.powsigma = pow(mP.sigma, 2.0);
-					
-					for (int iter = 0; iter < 900'000/3; iter ++) {
+				// configurate force object
+				PotentialForce potentialForce;
+				potentialForce.E = E;
+				potentialForce.G = mP.G;
+				potentialForce.L = mP.L;
+				potentialForce.powsigma = pow(mP.sigma, 2.0);
 
-						const double MT_Mol_force = potentialForce.calc(currentState.xMol - currentState.xMT);
+				for (int iter = 0; iter < 900'000 / 3; iter++) {
 
-						const double next_xMT = currentState.xMT + (sP.expTime / mP.gammaMT)*(((-mP.MTstiffL)*(currentState.xMT - currentState.xBeadl)) + (mP.MTstiffR*(currentState.xBeadr - currentState.xMT)) - (MT_Mol_force));
-						const double next_xBeadl = currentState.xBeadl + (sP.expTime / mP.gammaBead)*(((-mP.trapstiff)*(currentState.xBeadl - initC.xTrapl)) + (mP.MTstiffL*(currentState.xMT - currentState.xBeadl))) + sqrt(2.0*mP.DBead*sP.expTime)*(buffData[iter]);
-						const double next_xBeadr = currentState.xBeadr + (sP.expTime / mP.gammaBead)*(((-mP.MTstiffR)*(currentState.xBeadr - currentState.xMT)) + ((-mP.trapstiff)*(currentState.xBeadr - initC.xTrapr))) + sqrt(2.0*mP.DBead*sP.expTime)*(buffData[iter + (900'000/3)]);
-						const double next_xMol = currentState.xMol + (sP.expTime / mP.gammaMol) *(MT_Mol_force + mP.molstiff*(initC.xPed - currentState.xMol)) + sqrt(2.0*mP.DMol*sP.expTime) *(buffData[iter + (2*900'000 / 3)]);
+					const double MT_Mol_force = potentialForce.calc(currentState.xMol - currentState.xMT);
 
-						currentState.xMT = next_xMT;
-						currentState.xBeadl = next_xBeadl;
-						currentState.xBeadr = next_xBeadr;
-						currentState.xMol = next_xMol;
-					}
-					confs.at(threadid).currentState = currentState;
-					
+					const double next_xMT = currentState.xMT + (sP.expTime / mP.gammaMT)*(((-mP.MTstiffL)*(currentState.xMT - currentState.xBeadl)) + (mP.MTstiffR*(currentState.xBeadr - currentState.xMT)) - (MT_Mol_force));
+					const double next_xBeadl = currentState.xBeadl + (sP.expTime / mP.gammaBead)*(((-mP.trapstiff)*(currentState.xBeadl - initC.xTrapl)) + (mP.MTstiffL*(currentState.xMT - currentState.xBeadl))) + sqrt(2.0*mP.DBead*sP.expTime)*(buffData[iter]);
+					const double next_xBeadr = currentState.xBeadr + (sP.expTime / mP.gammaBead)*(((-mP.MTstiffR)*(currentState.xBeadr - currentState.xMT)) + ((-mP.trapstiff)*(currentState.xBeadr - initC.xTrapr))) + sqrt(2.0*mP.DBead*sP.expTime)*(buffData[iter + (900'000 / 3)]);
+					const double next_xMol = currentState.xMol + (sP.expTime / mP.gammaMol) *(MT_Mol_force + mP.molstiff*(initC.xPed - currentState.xMol)) + sqrt(2.0*mP.DMol*sP.expTime) *(buffData[iter + (2 * 900'000 / 3)]);
 
-					
-				}//end of openmp section
-				for (int it = 0; it < confs.size(); it++) {
-					const auto currState = &confs.at(it).currentState;
-					loggersvector.at(4 * it)->save(currState);
-					loggersvector.at(4 * it + 1)->save(currState);
-					loggersvector.at(4 * it + 2)->save(currState);
-					loggersvector.at(4 * it + 3)->save(currState);
+					currentState.xMT = next_xMT;
+					currentState.xBeadl = next_xBeadl;
+					currentState.xBeadr = next_xBeadr;
+					currentState.xMol = next_xMol;
 				}
-			}
-			
-			if (savedstep % 100 == 0) {
-				double procent = round(100*100 * savedstep / (100'000))/100;
-				std::cout << procent << "%" << std::endl;
-				std::cout << __rdtsc() << std::endl;
-				//std::cout << nst << std::endl;
+				confs.at(threadid).currentState = currentState;
+
+
+
+			}//end of openmp section
+			for (int it = 0; it < confs.size(); it++) {
+				const auto currState = &confs.at(it).currentState;
+				loggersvector.at(4 * it)->save(currState);
+				loggersvector.at(4 * it + 1)->save(currState);
+				loggersvector.at(4 * it + 2)->save(currState);
+				loggersvector.at(4 * it + 3)->save(currState);
 			}
 		}
-				
-		//////////////////////
-		////////////////////
-		//////////////////////
+
+		if (savedstep % 100 == 0) {
+			double procent = round(100 * 100 * savedstep / (100'000)) / 100;
+			std::cout << procent << "%" << std::endl;
+			std::cout << __rdtsc() << std::endl;
+			//std::cout << nst << std::endl;
+		}
 	}
-	
-return 0;
 }
 
 //std::chrono
