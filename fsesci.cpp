@@ -172,7 +172,7 @@ int main(int argc, char *argv[])
 
 					const ModelParameters mP   = confs.at(threadid).modelParameters;
 					const InitialConditions initC = confs.at(threadid).initialConditions;
-					DynamicCoordinates dynC = confs.at(threadid).dynamicCoordinates;
+					auto currentState = confs.at(threadid).currentState;
 
 					// configurate force object
 					PotentialForce potentialForce;
@@ -183,29 +183,29 @@ int main(int argc, char *argv[])
 					
 					for (int iter = 0; iter < 900'000/3; iter ++) {
 
-						const double MT_Mol_force = potentialForce.calc(dynC.xMol - dynC.xMT);
+						const double MT_Mol_force = potentialForce.calc(currentState.xMol - currentState.xMT);
 
-						const double next_xMT = dynC.xMT + (sP.expTime / mP.gammaMT)*(((-mP.MTstiffL)*(dynC.xMT - dynC.xBeadl)) + (mP.MTstiffR*(dynC.xBeadr - dynC.xMT)) - (MT_Mol_force));
-						const double next_xBeadl = dynC.xBeadl + (sP.expTime / mP.gammaBead)*(((-mP.trapstiff)*(dynC.xBeadl - initC.xTrapl)) + (mP.MTstiffL*(dynC.xMT - dynC.xBeadl))) + sqrt(2.0*mP.DBead*sP.expTime)*(buffData[iter]);
-						const double next_xBeadr = dynC.xBeadr + (sP.expTime / mP.gammaBead)*(((-mP.MTstiffR)*(dynC.xBeadr - dynC.xMT)) + ((-mP.trapstiff)*(dynC.xBeadr - initC.xTrapr))) + sqrt(2.0*mP.DBead*sP.expTime)*(buffData[iter + (900'000/3)]);
-						const double next_xMol = dynC.xMol + (sP.expTime / mP.gammaMol) *(MT_Mol_force + mP.molstiff*(initC.xPed - dynC.xMol)) + sqrt(2.0*mP.DMol*sP.expTime) *(buffData[iter + (2*900'000 / 3)]);
+						const double next_xMT = currentState.xMT + (sP.expTime / mP.gammaMT)*(((-mP.MTstiffL)*(currentState.xMT - currentState.xBeadl)) + (mP.MTstiffR*(currentState.xBeadr - currentState.xMT)) - (MT_Mol_force));
+						const double next_xBeadl = currentState.xBeadl + (sP.expTime / mP.gammaBead)*(((-mP.trapstiff)*(currentState.xBeadl - initC.xTrapl)) + (mP.MTstiffL*(currentState.xMT - currentState.xBeadl))) + sqrt(2.0*mP.DBead*sP.expTime)*(buffData[iter]);
+						const double next_xBeadr = currentState.xBeadr + (sP.expTime / mP.gammaBead)*(((-mP.MTstiffR)*(currentState.xBeadr - currentState.xMT)) + ((-mP.trapstiff)*(currentState.xBeadr - initC.xTrapr))) + sqrt(2.0*mP.DBead*sP.expTime)*(buffData[iter + (900'000/3)]);
+						const double next_xMol = currentState.xMol + (sP.expTime / mP.gammaMol) *(MT_Mol_force + mP.molstiff*(initC.xPed - currentState.xMol)) + sqrt(2.0*mP.DMol*sP.expTime) *(buffData[iter + (2*900'000 / 3)]);
 
-						dynC.xMT = next_xMT;
-						dynC.xBeadl = next_xBeadl;
-						dynC.xBeadr = next_xBeadr;
-						dynC.xMol = next_xMol;
+						currentState.xMT = next_xMT;
+						currentState.xBeadl = next_xBeadl;
+						currentState.xBeadr = next_xBeadr;
+						currentState.xMol = next_xMol;
 					}
-					confs.at(threadid).dynamicCoordinates = dynC;
+					confs.at(threadid).currentState = currentState;
 					
 
 					
 				}//end of openmp section
 				for (int it = 0; it < confs.size(); it++) {
-					DynamicCoordinates dynC = confs.at(it).dynamicCoordinates;
-					loggersvector.at(4 * it)->save(dynC.xMT);
-					loggersvector.at(4 * it + 1)->save(dynC.xBeadl);
-					loggersvector.at(4 * it + 2)->save(dynC.xBeadr);
-					loggersvector.at(4 * it + 3)->save(dynC.xMol);
+					const auto& currState = confs.at(it).currentState;
+					loggersvector.at(4 * it)->save(currState.xMT);
+					loggersvector.at(4 * it + 1)->save(currState.xBeadl);
+					loggersvector.at(4 * it + 2)->save(currState.xBeadr);
+					loggersvector.at(4 * it + 3)->save(currState.xMol);
 				}
 			}
 			

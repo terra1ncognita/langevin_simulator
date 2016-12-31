@@ -50,25 +50,22 @@ struct ModelParameters
 	double molstiff ;				//(*pN / um| stiffness of the NDC80 *)
 
 };
-//
-struct InitialConditions
-{
-	// initial coordinates
-	double xPed ;  ////////////// Is it really iC????
-	double xMol ;
-	double xMT ;
-	double xBeadl ;
-	double xBeadr ;
-	double xTrapl ;// Must be negative for prestretch ////////////// Is it really iC????
-	double xTrapr ;// Must be positive for prestretch ////////////// Is it really iC????
-};
-//
-struct DynamicCoordinates
+
+struct SystemState
 {
 	double xMol;
 	double xMT;
 	double xBeadl;
 	double xBeadr;
+};
+
+struct InitialConditions
+{
+	SystemState initialState;
+
+	double xPed;   ////////////// Is it really iC????
+	double xTrapl; // Must be negative for prestretch ////////////// Is it really iC????
+	double xTrapr; // Must be positive for prestretch ////////////// Is it really iC????
 };
 // Composition of parameters
 struct Configuration
@@ -76,5 +73,5 @@ struct Configuration
 	LoggerParameters loggerParameters;
 	ModelParameters modelParameters;
 	InitialConditions initialConditions;
-	DynamicCoordinates dynamicCoordinates;
+	SystemState currentState;
 };
