@@ -230,7 +230,11 @@ int main(int argc, char *argv[])
 
 			#pragma omp parallel num_threads(nThreads) shared(buffData, tasks)
 			{
+				const auto begin = __rdtsc();
 				tasks[omp_get_thread_num()]->advanceState(900'000 / 3, buffData);
+				const auto end = __rdtsc();
+				const auto cyclesPerStep = static_cast<double>(end - begin) / static_cast<double>(900'000 / 3);
+				std::cout << "cyclesPerStep = " << cyclesPerStep << std::endl;
 			} // end of openmp section
 
 			for (const auto& task : tasks) {
