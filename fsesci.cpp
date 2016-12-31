@@ -55,7 +55,15 @@ public:
 	~BinaryFileLogger() {
 		writeToFile();
 	}
-	void writeToFile(){
+	void save(const SystemState* systemState) {
+		_buffer.push_back(systemState->*_loggedField);
+		if (_buffer.size() == _buffsize) {
+			writeToFile();
+		}
+	}
+
+private:
+	void writeToFile() {
 		if (_buffer.empty()) {
 			return;
 		}
@@ -65,14 +73,7 @@ public:
 		};
 		_buffer.clear();
 	}
-	void save(const SystemState* systemState) {
-		_buffer.push_back(systemState->*_loggedField);
-		if (_buffer.size() == _buffsize) {
-			writeToFile();
-		}
-	}
 
-private:
 	static constexpr std::size_t _buffsize = 4096 / sizeof(double);
 	std::ofstream _file;
 	double(SystemState::* _loggedField);
