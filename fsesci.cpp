@@ -53,17 +53,17 @@ public:
 		_buffer.reserve(_buffsize);
 	}
 	~BinaryFileLogger() {
-		writeToFile();
+		flush();
 	}
 	void save(const SystemState* systemState) {
 		_buffer.push_back(systemState->*_loggedField);
 		if (_buffer.size() == _buffsize) {
-			writeToFile();
+			flush();
 		}
 	}
 
 private:
-	void writeToFile() {
+	void flush() {
 		if (_buffer.empty()) {
 			return;
 		}
