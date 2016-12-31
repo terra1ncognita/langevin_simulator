@@ -102,7 +102,61 @@ public:
 	}
 };
 
+class Task
+{
+public:
+	Task(const SimulationParameters& simulationParameters, const Configuration& configuration):
+		_sP( simulationParameters ),
+		_mP( configuration.modelParameters ),
+		_initC( configuration.initialConditions ),
+		_state( configuration.initialConditions.initialState )
+	{
+		const auto& loggerParameters = configuration.loggerParameters;
+		SystemState::iterateFields([this, &loggerParameters] (double(SystemState::* field), std::string fieldName) {
+			auto logger = std::make_unique<BinaryFileLogger>(loggerParameters, field, fieldName);// creates object of class BinaryFileLogger but returns to logger variable the unique pointer to it. // for creation of object implicitly with arguments like this also remind yourself the vector.emplace(args) .
+			this->_loggers.push_back(std::move(logger));// unique pointer can't be copied, only moved like this
+		});
+	}
 
+	// rndNumbers must contain 3 * nSteps random numbers
+	void advanceState(unsigned nSteps, const double* rndNumbers) {
+		// configurate force object
+		PotentialForce potentialForce;
+		potentialForce.E = E;
+		potentialForce.G = _mP.G;
+		potentialForce.L = _mP.L;
+		potentialForce.powsigma = pow(_mP.sigma, 2.0);
+
+		auto takeRandomNumber = [rndNumbers] () mutable -> double {
+			return *(rndNumbers++);
+		};
+
+		for (unsigned i = 0; i < nSteps; i++) {
+			const double rnd_xBeadl = takeRandomNumber();
+			const double rnd_xBeadr = takeRandomNumber();
+			const double rnd_xMol = takeRandomNumber();
+			
+			const double MT_Mol_force = potentialForce.calc(_state.xMol - _state.xMT);
+
+			const double next_xMT = _state.xMT + (_sP.expTime / _mP.gammaMT)*(((-_mP.MTstiffL)*(_state.xMT - _state.xBeadl)) + (_mP.MTstiffR*(_state.xBeadr - _state.xMT)) - (MT_Mol_force));
+			const double next_xBeadl = _state.xBeadl + (_sP.expTime / _mP.gammaBead)*(((-_mP.trapstiff)*(_state.xBeadl - _initC.xTrapl)) + (_mP.MTstiffL*(_state.xMT - _state.xBeadl))) + sqrt(2.0*_mP.DBead*_sP.expTime) * rnd_xBeadl;
+			const double next_xBeadr = _state.xBeadr + (_sP.expTime / _mP.gammaBead)*(((-_mP.MTstiffR)*(_state.xBeadr - _state.xMT)) + ((-_mP.trapstiff)*(_state.xBeadr - _initC.xTrapr))) + sqrt(2.0*_mP.DBead*_sP.expTime) * rnd_xBeadr;
+			const double next_xMol = _state.xMol + (_sP.expTime / _mP.gammaMol) *(MT_Mol_force + _mP.molstiff*(_initC.xPed - _state.xMol)) + sqrt(2.0*_mP.DMol*_sP.expTime) * rnd_xMol;
+			
+			_state.xMT = next_xMT;
+			_state.xBeadl = next_xBeadl;
+			_state.xBeadr = next_xBeadr;
+			_state.xMol = next_xMol;
+		}
+	}
+
+private:
+	const SimulationParameters _sP;
+	const ModelParameters _mP;
+	const InitialConditions _initC;
+	SystemState _state;
+	std::vector<std::unique_ptr<BinaryFileLogger>> _loggers;
+};
 
 
 
@@ -128,9 +182,7 @@ int main(int argc, char *argv[])
 		std::vector <std::unique_ptr<BinaryFileLogger>> loggersvector;
 		for (int it = 0; it < confs.size(); it++) {
 			const auto& loggerParameters = confs.at(it).loggerParameters;
-			SystemState::iterateFields([&loggersvector, &loggerParameters] (double (SystemState::* field), std::string fieldName) {
-				loggersvector.push_back(std::make_unique<BinaryFileLogger>(loggerParameters, field, fieldName));
-			});
+			//TODO create tasks here
 		}
 		///
 		
