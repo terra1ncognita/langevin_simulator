@@ -13,12 +13,12 @@ SimulationParameters assign_simulation_parameters_from_json(SimulationParameters
 	if (!(jsonobjsimp["expTime"].empty())) {
 		simp.expTime = stod(jsonobjsimp["expTime"].get<std::string>());
 	}
-	if (!(jsonobjsimp["microsteps"].empty())) {
+	/*if (!(jsonobjsimp["microsteps"].empty())) {
 		simp.microsteps = (int)round(stod(jsonobjsimp["microsteps"].get<std::string>()));
 	}
 	if (!(jsonobjsimp["nTotal"].empty())) {
 		simp.nTotal = (int)round(stod(jsonobjsimp["nTotal"].get<std::string>()));
-	}
+	}*/
 	return simp;
 }
 
@@ -76,6 +76,20 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	if (!(jsonobj["ModelParameters"]["molstiff"].empty())) {
 		conf.modelParameters.molstiff = stod(jsonobj["ModelParameters"]["molstiff"].get<std::string>());
 	}
+
+	if (!(jsonobj["ModelParameters"]["feedbackFreq"].empty())) {
+		conf.modelParameters.feedbackFreq = stod(jsonobj["ModelParameters"]["feedbackFreq"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["DmblMoveAmplitude"].empty())) {
+		conf.modelParameters.DmblMoveAmplitude = stod(jsonobj["ModelParameters"]["DmblMoveAmplitude"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["prestretchTotalForce"].empty())) {
+		conf.modelParameters.prestretchTotalForce = stod(jsonobj["ModelParameters"]["prestretchTotalForce"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["movementForce"].empty())) {
+		conf.modelParameters.movementForce = stod(jsonobj["ModelParameters"]["movementForce"].get<std::string>());
+	}
+
 	//// Assign Initial Conditions from json
 	if (!(jsonobj["InitialConditions"]["xPed"].empty())) {
 		conf.initialConditions.xPed = stod(jsonobj["InitialConditions"]["xPed"].get<std::string>());
@@ -93,12 +107,20 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 		conf.initialConditions.initialState.xBeadr = stod(jsonobj["InitialConditions"]["xBeadr"].get<std::string>());
 	}
 	if (!(jsonobj["InitialConditions"]["xTrapl"].empty())) {
-		conf.initialConditions.xTrapl = stod(jsonobj["InitialConditions"]["xTrapl"].get<std::string>());
+		conf.initialConditions.initialState.xTrapl = stod(jsonobj["InitialConditions"]["xTrapl"].get<std::string>());
 	}
 	if (!(jsonobj["InitialConditions"]["xTrapr"].empty())) {
-		conf.initialConditions.xTrapr = stod(jsonobj["InitialConditions"]["xTrapr"].get<std::string>());
+		conf.initialConditions.initialState.xTrapr = stod(jsonobj["InitialConditions"]["xTrapr"].get<std::string>());
 	}
+
 	//// Assign Dynamic Coordinates from json initial conditions
+	if (!(jsonobj["InitialConditions"]["xTrapl"].empty())) {
+		conf.currentState.xTrapl = stod(jsonobj["InitialConditions"]["xTrapl"].get<std::string>());
+	}
+	if (!(jsonobj["InitialConditions"]["xTrapr"].empty())) {
+		conf.currentState.xTrapr = stod(jsonobj["InitialConditions"]["xTrapr"].get<std::string>());
+	}
+
 	if (!(jsonobj["InitialConditions"]["xMol"].empty())) {
 		conf.currentState.xMol = stod(jsonobj["InitialConditions"]["xMol"].get<std::string>());
 	}

@@ -9,8 +9,8 @@ struct SimulationParameters
 {
 	// simulation parameters
 	double expTime;//
-	int microsteps;// 10MHz scanning
-	int nTotal ;	//10^-2 seconds total
+	//int microsteps;// 10MHz scanning
+	//int nTotal ;	//10^-2 seconds total
 };
 
 
@@ -48,7 +48,10 @@ struct ModelParameters
 	double MTstiffL ;			//(* pN/um | stiffness of the MT *) 
 	double MTstiffR;
 	double molstiff ;				//(*pN / um| stiffness of the NDC80 *)
-
+	double feedbackFreq;
+	double DmblMoveAmplitude;
+	double prestretchTotalForce;
+	double movementForce;
 };
 
 struct SystemState
@@ -57,6 +60,10 @@ struct SystemState
 	double xMT;
 	double xBeadl;
 	double xBeadr;
+	double xTrapl; 
+	double xTrapr; 
+	double Time=0.0;
+	int direction = 1;
 
 	template <typename F>
 	static void iterateFields(F&& f) {
@@ -64,6 +71,11 @@ struct SystemState
 		f(&SystemState::xMT, "xMT");
 		f(&SystemState::xBeadl, "xBeadl");
 		f(&SystemState::xBeadr, "xBeadr");
+
+		f(&SystemState::xTrapl, "xTrapl");
+		f(&SystemState::xTrapr, "xTrapr");
+		f(&SystemState::Time, "Time");
+
 	}
 };
 
@@ -72,8 +84,8 @@ struct InitialConditions
 	SystemState initialState;
 
 	double xPed;   ////////////// Is it really iC????
-	double xTrapl; // Must be negative for prestretch ////////////// Is it really iC????
-	double xTrapr; // Must be positive for prestretch ////////////// Is it really iC????
+	//double xTrapl; // Must be negative for prestretch ////////////// Is it really iC????
+	//double xTrapr; // Must be positive for prestretch ////////////// Is it really iC????
 };
 // Composition of parameters
 struct Configuration

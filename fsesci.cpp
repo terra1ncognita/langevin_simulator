@@ -30,10 +30,10 @@
 
 #include <fstream>
 
-static constexpr unsigned nThreads = 5;
+static constexpr unsigned nThreads = 4;
 
 // Initialize global constants
-std::string inputparamfile = "C:\\Users\\Tolya\\Documents\\Visual Studio 2015\\Projects\\Langevien2_New\\Release\\config_debug.json";
+std::string inputparamfile = "C:\\Users\\Tolya\\Documents\\Visual Studio 2015\\Projects\\Langevien2_New\\x64\\Release\\config_debug.json";
 const double E = std::exp(1.0);
 const double kBoltz= 1.38064852e-5;// (*pN um *)
 
@@ -133,15 +133,17 @@ public:
 		};
 
 		for (unsigned i = 0; i < nSteps; i++) {
+			_state.Time = _state.Time + _sP.expTime;
+			const double rnd_xMT = takeRandomNumber();
 			const double rnd_xBeadl = takeRandomNumber();
 			const double rnd_xBeadr = takeRandomNumber();
 			const double rnd_xMol = takeRandomNumber();
 			
 			const double MT_Mol_force = potentialForce.calc(_state.xMol - _state.xMT);
 
-			const double next_xMT = _state.xMT + (_sP.expTime / _mP.gammaMT)*(((-_mP.MTstiffL)*(_state.xMT - _state.xBeadl)) + (_mP.MTstiffR*(_state.xBeadr - _state.xMT)) - (MT_Mol_force));
-			const double next_xBeadl = _state.xBeadl + (_sP.expTime / _mP.gammaBead)*(((-_mP.trapstiff)*(_state.xBeadl - _initC.xTrapl)) + (_mP.MTstiffL*(_state.xMT - _state.xBeadl))) + sqrt(2.0*_mP.DBead*_sP.expTime) * rnd_xBeadl;
-			const double next_xBeadr = _state.xBeadr + (_sP.expTime / _mP.gammaBead)*(((-_mP.MTstiffR)*(_state.xBeadr - _state.xMT)) + ((-_mP.trapstiff)*(_state.xBeadr - _initC.xTrapr))) + sqrt(2.0*_mP.DBead*_sP.expTime) * rnd_xBeadr;
+			const double next_xMT = _state.xMT + (_sP.expTime / _mP.gammaMT)*(((-_mP.MTstiffL)*(_state.xMT - _state.xBeadl)) + (_mP.MTstiffR*(_state.xBeadr - _state.xMT)) - (MT_Mol_force))+ sqrt(2.0*_mP.DMT*_sP.expTime) * rnd_xMT;
+			const double next_xBeadl = _state.xBeadl + (_sP.expTime / _mP.gammaBead)*(((-_mP.trapstiff)*(_state.xBeadl - _state.xTrapl)) + (_mP.MTstiffL*(_state.xMT - _state.xBeadl))) + sqrt(2.0*_mP.DBead*_sP.expTime) * rnd_xBeadl;
+			const double next_xBeadr = _state.xBeadr + (_sP.expTime / _mP.gammaBead)*(((-_mP.MTstiffR)*(_state.xBeadr - _state.xMT)) + ((-_mP.trapstiff)*(_state.xBeadr - _state.xTrapr))) + sqrt(2.0*_mP.DBead*_sP.expTime) * rnd_xBeadr;
 			const double next_xMol = _state.xMol + (_sP.expTime / _mP.gammaMol) *(MT_Mol_force + _mP.molstiff*(_initC.xPed - _state.xMol)) + sqrt(2.0*_mP.DMol*_sP.expTime) * rnd_xMol;
 			
 			_state.xMT = next_xMT;
@@ -158,11 +160,15 @@ public:
 	}
 
 private:
+	
+	
+	
 	const SimulationParameters _sP;
+	std::vector<std::unique_ptr<BinaryFileLogger>> _loggers;
+public:
+	SystemState _state;
 	const ModelParameters _mP;
 	const InitialConditions _initC;
-	SystemState _state;
-	std::vector<std::unique_ptr<BinaryFileLogger>> _loggers;
 };
 
 
@@ -219,31 +225,78 @@ int main(int argc, char *argv[])
 		saved step range is 10'000 -> nTotal
 		microsteps is macrostep*(buffersize/3)
 		*/
-	MklGaussianParallelGenerator generator1(0.0, 1.0, 900'000, 5);
+	int buffsize = 400'000;
+	int randomsPeriter = 4;
+	int stepsperbuffer = static_cast<int>(std::floor(buffsize / randomsPeriter));
+	int totalsavings = 20'000;//(totalsteps / iterationsbetweenSavings)
+	int iterationsbetweenSavings = 1'000'000;
+	int iterationsbetweenTrapsUpdate = 30'000'000;
+	
 
-	for (int savedstep = 0; savedstep < (100'000); savedstep++) {
 
-		for (int macrostep = 0; macrostep < (900'000 / 900'000); macrostep++) {
-			
+
+	if (iterationsbetweenSavings % stepsperbuffer != 0) {
+		throw std::runtime_error{ "Please check that iterationsbetweenSavings/stepsperbuffer is integer" };
+	}
+	if (iterationsbetweenTrapsUpdate %  iterationsbetweenSavings != 0) {
+		throw std::runtime_error{ "Please check that iterationsbetweenTrapsUpdate/iterationsbetweenSavings is integer" };
+	}
+
+	unsigned trapsUpdateTest = iterationsbetweenTrapsUpdate / iterationsbetweenSavings;
+
+	MklGaussianParallelGenerator generator1(0.0, 1.0, buffsize, 4);
+	//std::cout << totalsteps/iterationsbetweenSavings  << std::endl;
+	for (int savedSampleIter = 0; savedSampleIter < totalsavings; savedSampleIter++) {
+		
+		
+		for (int macrostep = 0; macrostep < (iterationsbetweenSavings /stepsperbuffer); macrostep++) {
 			generator1.generateNumbers();
 			const auto buffData = generator1.getNumbersBuffer();
 
-			#pragma omp parallel num_threads(nThreads) shared(buffData, tasks)
+#pragma omp parallel num_threads(nThreads) shared(buffData, tasks)
 			{
-				const auto begin = __rdtsc();
-				tasks[omp_get_thread_num()]->advanceState(900'000 / 3, buffData);
-				const auto end = __rdtsc();
-				const auto cyclesPerStep = static_cast<double>(end - begin) / static_cast<double>(900'000 / 3);
-				std::cout << "cyclesPerStep = " << cyclesPerStep << std::endl;
+					//const auto begin = __rdtsc();
+				tasks[omp_get_thread_num()]->advanceState(stepsperbuffer, buffData);
+					//const auto end = __rdtsc();
+					//const auto cyclesPerStep = static_cast<double>(end - begin) / static_cast<double>(std::floor(buffsize / randomsPeriter));
+					//std::cout << "cyclesPerStep = " << cyclesPerStep << std::endl;
 			} // end of openmp section
-
+		}
 			for (const auto& task : tasks) {
 				task->writeStateTolog();
 			}
-		}
+		
+			if ((savedSampleIter % trapsUpdateTest) == 0) {
+				for (const auto& task : tasks) {
+					if (task->_state.direction == 1)
+					{
+						//moving to the right, leading bead right, trailing bead left, positive X increment
+						if (task->_state.xBeadr >= task->_mP.DmblMoveAmplitude) {
+							task->_state.direction = -1;
+						}
+						else {
+							task->_state.xTrapr = (task->_initC.initialState.xTrapr - task->_initC.initialState.xBeadr) + task->_state.xBeadr + task->_mP.movementForce / task->_mP.MTstiffR;
+							task->_state.xTrapl = task->_state.xTrapr - (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
+						}
+					}
+					if (task->_state.direction == -1)
+					{
+						//moving to the left, leading bead left, trailing bead right, negative X increment
+						if (task->_state.xBeadr <= -task->_mP.DmblMoveAmplitude) {
+							task->_state.direction = 1;
+						}
+						else {
+							task->_state.xTrapl = task->_state.xBeadl + (task->_initC.initialState.xTrapl - task->_initC.initialState.xBeadl)  - task->_mP.movementForce / task->_mP.MTstiffR;
+							task->_state.xTrapr = task->_state.xTrapl + (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
+						}
+					}
+					// check and update trap forces
+					// check for amplitude reach
+				}
+			}
 
-		if (savedstep % 100 == 0) {
-			double procent = round(100 * 100 * savedstep / (100'000)) / 100;
+		if (savedSampleIter % 100 == 0) {
+			double procent = round(100 * 100 * savedSampleIter / (totalsavings)) / 100;
 			std::cout << procent << "%" << std::endl;
 			std::cout << __rdtsc() << std::endl;
 			//std::cout << nst << std::endl;
