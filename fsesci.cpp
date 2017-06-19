@@ -118,7 +118,24 @@ public:
 			this->_loggers.push_back(std::move(logger));// unique pointer can't be copied, only moved like this
 		});
 	}
+	double calculateMTspringForce(double relaxedLength, double stiffness, double extension) {
 
+		if (fabs(stiffness) <= relaxedLength) 
+		{
+			return 0.0;
+		}
+		else
+		{
+			if (extension>=0.0)
+			{
+				return stiffness*(extension-relaxedLength);
+			}
+			else
+			{
+				return stiffness*(extension + relaxedLength);
+			}
+		}
+	}
 	// rndNumbers must contain 3 * nSteps random numbers
 	void advanceState(unsigned nSteps, const double* rndNumbers) {
 		// configurate force object
@@ -150,6 +167,8 @@ public:
 			_state.xBeadl = next_xBeadl;
 			_state.xBeadr = next_xBeadr;
 			_state.xMol = next_xMol;
+			
+
 		}
 	}
 
