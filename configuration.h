@@ -47,6 +47,10 @@ struct ModelParameters
 	double trapstiff;			//(* pN/um | stiffness of the trap *) 
 	double MTstiffL ;			//(* pN/um | stiffness of the MT *) 
 	double MTstiffR;
+	double MTlowstiff;
+	double MTrelaxedLengthL;
+	double MTrelaxedLengthR;
+	double MTlength;
 	double molstiff ;				//(*pN / um| stiffness of the NDC80 *)
 	double feedbackFreq;
 	double DmblMoveAmplitude;
@@ -82,7 +86,7 @@ struct SystemState
 struct InitialConditions
 {
 	SystemState initialState;
-
+	
 	double xPed;   ////////////// Is it really iC????
 	//double xTrapl; // Must be negative for prestretch ////////////// Is it really iC????
 	//double xTrapr; // Must be positive for prestretch ////////////// Is it really iC????

@@ -70,8 +70,20 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	if (!(jsonobj["ModelParameters"]["MTstiffL"].empty())) {
 		conf.modelParameters.MTstiffL = stod(jsonobj["ModelParameters"]["MTstiffL"].get<std::string>());
 	}
+	if (!(jsonobj["ModelParameters"]["MTlowstiff"].empty())) {
+		conf.modelParameters.MTlowstiff = stod(jsonobj["ModelParameters"]["MTlowstiff"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["MTrelaxedLengthL"].empty())) {
+		conf.modelParameters.MTrelaxedLengthL = stod(jsonobj["ModelParameters"]["MTrelaxedLengthL"].get<std::string>());
+	}
 	if (!(jsonobj["ModelParameters"]["MTstiffR"].empty())) {
 		conf.modelParameters.MTstiffR = stod(jsonobj["ModelParameters"]["MTstiffR"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["MTrelaxedLengthR"].empty())) {
+		conf.modelParameters.MTrelaxedLengthR = stod(jsonobj["ModelParameters"]["MTrelaxedLengthR"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["MTlength"].empty())) {
+		conf.modelParameters.MTlength = stod(jsonobj["ModelParameters"]["MTlength"].get<std::string>());
 	}
 	if (!(jsonobj["ModelParameters"]["molstiff"].empty())) {
 		conf.modelParameters.molstiff = stod(jsonobj["ModelParameters"]["molstiff"].get<std::string>());
@@ -112,7 +124,9 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	if (!(jsonobj["InitialConditions"]["xTrapr"].empty())) {
 		conf.initialConditions.initialState.xTrapr = stod(jsonobj["InitialConditions"]["xTrapr"].get<std::string>());
 	}
-
+	if (!(jsonobj["InitialConditions"]["direction"].empty())) {
+		conf.currentState.direction = stoi(jsonobj["InitialConditions"]["direction"].get<std::string>());
+	}
 	//// Assign Dynamic Coordinates from json initial conditions
 	if (!(jsonobj["InitialConditions"]["xTrapl"].empty())) {
 		conf.currentState.xTrapl = stod(jsonobj["InitialConditions"]["xTrapl"].get<std::string>());

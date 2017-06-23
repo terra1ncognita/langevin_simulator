@@ -118,24 +118,25 @@ public:
 			this->_loggers.push_back(std::move(logger));// unique pointer can't be copied, only moved like this
 		});
 	}
-	double calculateMTspringForce(double relaxedLength, double stiffness, double extension) {
 
-		if (fabs(stiffness) <= relaxedLength) 
+	double calculateMTspringForce(double relaxedLength, double stiffness, double extension) {
+		if (fabs(extension) <= relaxedLength)
 		{
-			return 0.0;
+			return _mP.MTlowstiff*extension;
 		}
 		else
 		{
-			if (extension>=0.0)
+			if (extension >= 0.0)
 			{
-				return stiffness*(extension-relaxedLength);
+				return stiffness*(extension - relaxedLength) + _mP.MTlowstiff*relaxedLength;
 			}
 			else
 			{
-				return stiffness*(extension + relaxedLength);
+				return stiffness*(extension + relaxedLength) + _mP.MTlowstiff*relaxedLength;
 			}
 		}
 	}
+
 	// rndNumbers must contain 3 * nSteps random numbers
 	void advanceState(unsigned nSteps, const double* rndNumbers) {
 		// configurate force object
@@ -158,17 +159,15 @@ public:
 			
 			const double MT_Mol_force = potentialForce.calc(_state.xMol - _state.xMT);
 
-			const double next_xMT = _state.xMT + (_sP.expTime / _mP.gammaMT)*(((-_mP.MTstiffL)*(_state.xMT - _state.xBeadl)) + (_mP.MTstiffR*(_state.xBeadr - _state.xMT)) - (MT_Mol_force))+ sqrt(2.0*_mP.DMT*_sP.expTime) * rnd_xMT;
-			const double next_xBeadl = _state.xBeadl + (_sP.expTime / _mP.gammaBead)*(((-_mP.trapstiff)*(_state.xBeadl - _state.xTrapl)) + (_mP.MTstiffL*(_state.xMT - _state.xBeadl))) + sqrt(2.0*_mP.DBead*_sP.expTime) * rnd_xBeadl;
-			const double next_xBeadr = _state.xBeadr + (_sP.expTime / _mP.gammaBead)*(((-_mP.MTstiffR)*(_state.xBeadr - _state.xMT)) + ((-_mP.trapstiff)*(_state.xBeadr - _state.xTrapr))) + sqrt(2.0*_mP.DBead*_sP.expTime) * rnd_xBeadr;
+			const double next_xMT = _state.xMT + (_sP.expTime / _mP.gammaMT)*(-calculateMTspringForce(_mP.MTrelaxedLengthL, _mP.MTstiffL, _state.xMT - _state.xBeadl - _mP.MTlength / 2.0) + calculateMTspringForce(_mP.MTrelaxedLengthR, _mP.MTstiffR, _state.xBeadr - _state.xMT - _mP.MTlength/2.0) - (MT_Mol_force))+ sqrt(2.0*_mP.DMT*_sP.expTime) * rnd_xMT;
+			const double next_xBeadl = _state.xBeadl + (_sP.expTime / _mP.gammaBead)*(((-_mP.trapstiff)*(_state.xBeadl - _state.xTrapl)) + calculateMTspringForce(_mP.MTrelaxedLengthL, _mP.MTstiffL, _state.xMT - _state.xBeadl -  _mP.MTlength / 2.0)) + sqrt(2.0*_mP.DBead*_sP.expTime) * rnd_xBeadl;
+			const double next_xBeadr = _state.xBeadr + (_sP.expTime / _mP.gammaBead)*(-calculateMTspringForce(_mP.MTrelaxedLengthR, _mP.MTstiffR, _state.xBeadr - _state.xMT - _mP.MTlength / 2.0 ) + ((-_mP.trapstiff)*(_state.xBeadr - _state.xTrapr))) + sqrt(2.0*_mP.DBead*_sP.expTime) * rnd_xBeadr;
 			const double next_xMol = _state.xMol + (_sP.expTime / _mP.gammaMol) *(MT_Mol_force + _mP.molstiff*(_initC.xPed - _state.xMol)) + sqrt(2.0*_mP.DMol*_sP.expTime) * rnd_xMol;
 			
 			_state.xMT = next_xMT;
 			_state.xBeadl = next_xBeadl;
 			_state.xBeadr = next_xBeadr;
 			_state.xMol = next_xMol;
-			
-
 		}
 	}
 
@@ -247,7 +246,7 @@ int main(int argc, char *argv[])
 	int buffsize = 400'000;
 	int randomsPeriter = 4;
 	int stepsperbuffer = static_cast<int>(std::floor(buffsize / randomsPeriter));
-	int totalsavings = 20'000;//(totalsteps / iterationsbetweenSavings)
+	int totalsavings = 100'000;//(totalsteps / iterationsbetweenSavings)//20000
 	int iterationsbetweenSavings = 1'000'000;
 	int iterationsbetweenTrapsUpdate = 30'000'000;
 	
@@ -290,7 +289,7 @@ int main(int argc, char *argv[])
 					if (task->_state.direction == 1)
 					{
 						//moving to the right, leading bead right, trailing bead left, positive X increment
-						if (task->_state.xBeadr >= task->_mP.DmblMoveAmplitude) {
+						if (task->_state.xBeadr >= (task->_mP.MTlength/2) + task->_mP.DmblMoveAmplitude) {
 							task->_state.direction = -1;
 						}
 						else {
@@ -301,7 +300,7 @@ int main(int argc, char *argv[])
 					if (task->_state.direction == -1)
 					{
 						//moving to the left, leading bead left, trailing bead right, negative X increment
-						if (task->_state.xBeadr <= -task->_mP.DmblMoveAmplitude) {
+						if (task->_state.xBeadr <= (task->_mP.MTlength/2) -task->_mP.DmblMoveAmplitude) {
 							task->_state.direction = 1;
 						}
 						else {
