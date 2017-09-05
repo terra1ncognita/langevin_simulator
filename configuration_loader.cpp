@@ -46,23 +46,23 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	if (!(jsonobj["ModelParameters"]["sigma"].empty())) {
 		conf.modelParameters.sigma = stod(jsonobj["ModelParameters"]["sigma"].get<std::string>());
 	}
+	if (!(jsonobj["ModelParameters"]["gammaMol"].empty())) {
+		conf.modelParameters.gammaMol = stod(jsonobj["ModelParameters"]["gammaMol"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["gammaBead"].empty())) {
+		conf.modelParameters.gammaBead = stod(jsonobj["ModelParameters"]["gammaBead"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["gammaMT"].empty())) {
+		conf.modelParameters.gammaMT =stod(jsonobj["ModelParameters"]["gammaMT"].get<std::string>()) ;
+	}
 	if (!(jsonobj["ModelParameters"]["DMol"].empty())) {
-		conf.modelParameters.DMol = stod(jsonobj["ModelParameters"]["DMol"].get<std::string>());
+		conf.modelParameters.DMol = conf.modelParameters.kT / stod(jsonobj["ModelParameters"]["gammaMol"].get<std::string>());
 	}
 	if (!(jsonobj["ModelParameters"]["DBead"].empty())) {
-		conf.modelParameters.DBead = stod(jsonobj["ModelParameters"]["DBead"].get<std::string>());
+		conf.modelParameters.DBead = conf.modelParameters.kT / stod(jsonobj["ModelParameters"]["gammaBead"].get<std::string>());
 	}
 	if (!(jsonobj["ModelParameters"]["DMT"].empty())) {
-		conf.modelParameters.DMT = stod(jsonobj["ModelParameters"]["DMT"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["gammaMolAdjust"].empty())) {
-		conf.modelParameters.gammaMol = conf.modelParameters.kT*stod(jsonobj["ModelParameters"]["gammaMolAdjust"].get<std::string>())/ conf.modelParameters.DMol;
-	}
-	if (!(jsonobj["ModelParameters"]["gammaBeadAdjust"].empty())) {
-		conf.modelParameters.gammaBead = conf.modelParameters.kT*stod(jsonobj["ModelParameters"]["gammaBeadAdjust"].get<std::string>()) / conf.modelParameters.DBead;
-	}
-	if (!(jsonobj["ModelParameters"]["gammaMTAdjust"].empty())) {
-		conf.modelParameters.gammaMT = conf.modelParameters.kT*stod(jsonobj["ModelParameters"]["gammaMTAdjust"].get<std::string>()) / conf.modelParameters.DMT;
+		conf.modelParameters.DMT = conf.modelParameters.kT / stod(jsonobj["ModelParameters"]["gammaMT"].get<std::string>());
 	}
 	if (!(jsonobj["ModelParameters"]["trapstiff"].empty())) {
 		conf.modelParameters.trapstiff = stod(jsonobj["ModelParameters"]["trapstiff"].get<std::string>());
@@ -125,7 +125,7 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 		conf.initialConditions.initialState.xTrapr = stod(jsonobj["InitialConditions"]["xTrapr"].get<std::string>());
 	}
 	if (!(jsonobj["InitialConditions"]["direction"].empty())) {
-		conf.currentState.direction = stoi(jsonobj["InitialConditions"]["direction"].get<std::string>());
+		conf.currentState.direction = stod(jsonobj["InitialConditions"]["direction"].get<std::string>());
 	}
 	//// Assign Dynamic Coordinates from json initial conditions
 	if (!(jsonobj["InitialConditions"]["xTrapl"].empty())) {

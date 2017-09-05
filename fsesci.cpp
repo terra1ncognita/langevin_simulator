@@ -33,7 +33,7 @@
 static constexpr unsigned nThreads = 4;
 
 // Initialize global constants
-std::string inputparamfile = "C:\\Users\\Tolya\\Documents\\Visual Studio 2015\\Projects\\Langevien2_New\\x64\\Release\\config_debug.json";
+//std::string inputparamfile = "C:\\Users\\Tolya\\Documents\\Visual Studio 2015\\Projects\\Langevien2_New\\x64\\Release\\config_debug_trap50_noT.json";
 const double E = std::exp(1.0);
 const double kBoltz= 1.38064852e-5;// (*pN um *)
 
@@ -201,6 +201,9 @@ int main(int argc, char *argv[])
 	char * param_input_filename = getCmdOption(argv, argv + argc, "-paramsfile");
 	char * output_filename = getCmdOption(argv, argv + argc, "-resultfile");
 
+	std::string inputparamfile;
+	inputparamfile.append(param_input_filename);
+
 	// Create and load simulation parameters and configuration, values are taken from json file
 	const auto simulationParameters = load_simulationparams(inputparamfile);
 	const auto configurations = load_configuration(inputparamfile);
@@ -246,9 +249,9 @@ int main(int argc, char *argv[])
 	int buffsize = 400'000;
 	int randomsPeriter = 4;
 	int stepsperbuffer = static_cast<int>(std::floor(buffsize / randomsPeriter));
-	int totalsavings = 100'000;//(totalsteps / iterationsbetweenSavings)//20000
-	int iterationsbetweenSavings = 1'000'000;
-	int iterationsbetweenTrapsUpdate = 30'000'000;
+	int totalsavings = 10'000;//(totalsteps / iterationsbetweenSavings)//20000
+	int iterationsbetweenSavings = 1'000'000;//1'000'000
+	int iterationsbetweenTrapsUpdate = 10'000'000;
 	
 
 
@@ -284,27 +287,27 @@ int main(int argc, char *argv[])
 				task->writeStateTolog();
 			}
 		
-			if ((savedSampleIter % trapsUpdateTest) == 0) {
+			 if ((savedSampleIter % trapsUpdateTest) == 0) {
 				for (const auto& task : tasks) {
-					if (task->_state.direction == 1)
+					if (task->_state.direction == 1.0)
 					{
 						//moving to the right, leading bead right, trailing bead left, positive X increment
-						if (task->_state.xBeadr >= (task->_mP.MTlength/2) + task->_mP.DmblMoveAmplitude) {
-							task->_state.direction = -1;
+						if (task->_state.xBeadr >= task->_initC.initialState.xBeadr +  task->_mP.DmblMoveAmplitude) {
+							task->_state.direction = -1.0;
 						}
 						else {
-							task->_state.xTrapr = (task->_initC.initialState.xTrapr - task->_initC.initialState.xBeadr) + task->_state.xBeadr + task->_mP.movementForce / task->_mP.MTstiffR;
+							task->_state.xTrapr = (task->_initC.initialState.xTrapr - task->_initC.initialState.xBeadr) + task->_state.xBeadr + (0.5*task->_mP.movementForce / task->_mP.trapstiff);
 							task->_state.xTrapl = task->_state.xTrapr - (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
 						}
 					}
-					if (task->_state.direction == -1)
+					if (task->_state.direction == -1.0)
 					{
 						//moving to the left, leading bead left, trailing bead right, negative X increment
-						if (task->_state.xBeadr <= (task->_mP.MTlength/2) -task->_mP.DmblMoveAmplitude) {
-							task->_state.direction = 1;
+						if (task->_state.xBeadl <= task->_initC.initialState.xBeadl -task->_mP.DmblMoveAmplitude) {
+							task->_state.direction = 1.0;
 						}
 						else {
-							task->_state.xTrapl = task->_state.xBeadl + (task->_initC.initialState.xTrapl - task->_initC.initialState.xBeadl)  - task->_mP.movementForce / task->_mP.MTstiffR;
+							task->_state.xTrapl = task->_state.xBeadl + (task->_initC.initialState.xTrapl - task->_initC.initialState.xBeadl)  - (0.5*task->_mP.movementForce / task->_mP.trapstiff);
 							task->_state.xTrapr = task->_state.xTrapl + (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
 						}
 					}

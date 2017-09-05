@@ -67,7 +67,7 @@ struct SystemState
 	double xTrapl; 
 	double xTrapr; 
 	double Time=0.0;
-	int direction = 1;
+	double direction = 1.0;
 
 	template <typename F>
 	static void iterateFields(F&& f) {
@@ -79,7 +79,7 @@ struct SystemState
 		f(&SystemState::xTrapl, "xTrapl");
 		f(&SystemState::xTrapr, "xTrapr");
 		f(&SystemState::Time, "Time");
-
+		f(&SystemState::direction, "Direction");
 	}
 };
 
