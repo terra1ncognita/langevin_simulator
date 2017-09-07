@@ -120,8 +120,8 @@ public:
 	}
 
 	double calculateMTspringForce(double relaxedLength, double stiffness, double extension) {
-		double extensionNm = extension * 1000;
-		return (0.0062*extensionNm+(1.529*pow(10,-6)*(pow(extensionNm,2))) + (2.72*pow(10,-7)*pow(extensionNm,3)));
+		double extensionNm = fabs(extension * 1000);
+		return (extension/fabs(extension))*(0.0062*extensionNm+(1.529*pow(10,-6)*(pow(extensionNm,2))) + (2.72*pow(10,-7)*pow(extensionNm,3)));
 		
 		/*
 		if (fabs(extension) <= relaxedLength)
