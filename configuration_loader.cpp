@@ -126,6 +126,7 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	}
 	if (!(jsonobj["InitialConditions"]["direction"].empty())) {
 		conf.currentState.direction = stod(jsonobj["InitialConditions"]["direction"].get<std::string>());
+		conf.initialConditions.initialState.direction = stod(jsonobj["InitialConditions"]["direction"].get<std::string>());
 	}
 	//// Assign Dynamic Coordinates from json initial conditions
 	if (!(jsonobj["InitialConditions"]["xTrapl"].empty())) {

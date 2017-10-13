@@ -79,7 +79,7 @@ struct SystemState
 		f(&SystemState::xTrapl, "xTrapl");
 		f(&SystemState::xTrapr, "xTrapr");
 		f(&SystemState::Time, "Time");
-		f(&SystemState::direction, "Direction");
+		f(&SystemState::direction, "direction");
 	}
 };
 
