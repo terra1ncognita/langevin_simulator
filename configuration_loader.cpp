@@ -48,12 +48,15 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	}
 	if (!(jsonobj["ModelParameters"]["gammaMol"].empty())) {
 		conf.modelParameters.gammaMol = stod(jsonobj["ModelParameters"]["gammaMol"].get<std::string>());
+		conf.modelParameters.DMol = conf.modelParameters.kT / stod(jsonobj["ModelParameters"]["gammaMol"].get<std::string>());
 	}
 	if (!(jsonobj["ModelParameters"]["gammaBead"].empty())) {
 		conf.modelParameters.gammaBead = stod(jsonobj["ModelParameters"]["gammaBead"].get<std::string>());
+		conf.modelParameters.DBead = conf.modelParameters.kT / stod(jsonobj["ModelParameters"]["gammaBead"].get<std::string>());
 	}
 	if (!(jsonobj["ModelParameters"]["gammaMT"].empty())) {
-		conf.modelParameters.gammaMT =stod(jsonobj["ModelParameters"]["gammaMT"].get<std::string>()) ;
+		conf.modelParameters.gammaMT =stod(jsonobj["ModelParameters"]["gammaMT"].get<std::string>());
+		conf.modelParameters.DMT = conf.modelParameters.kT / stod(jsonobj["ModelParameters"]["gammaMT"].get<std::string>());
 	}
 	if (!(jsonobj["ModelParameters"]["DMol"].empty())) {
 		conf.modelParameters.DMol = conf.modelParameters.kT / stod(jsonobj["ModelParameters"]["gammaMol"].get<std::string>());
