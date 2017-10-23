@@ -111,7 +111,7 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	if (!(jsonobj["ModelParameters"]["prestretchTotalForce"].empty())) {
 		conf.modelParameters.prestretchTotalForce = stod(jsonobj["ModelParameters"]["prestretchTotalForce"].get<std::string>());
 	}
-	if (!(jsonobj["ModelParameters"]["movementForce"].empty())) {
+	if (!(jsonobj["ModelParameters"]["movementTotalForce"].empty())) {
 		conf.modelParameters.movementTotalForce = stod(jsonobj["ModelParameters"]["movementTotalForce"].get<std::string>());
 	}
 
