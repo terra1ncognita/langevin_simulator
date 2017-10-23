@@ -36,15 +36,18 @@ struct ModelParameters
 
 									//Parameters of diffusion
 	double DMol ;					//(* um^2/s | free diffusion coefficient of the protein in water *)
-	double DBead ;					// (* um^2/s | free diffusion coefficient of 0.5 um bead in water *)
+	double DBeadL;					// (* um^2/s | free diffusion coefficient of 0.5 um bead in water *)
+	double DBeadR;
 	double DMT;
 
 	double gammaMol;		//(* pN s/um | friction drag coefficient for protein *)
-	double gammaBead ;		//(* pN s/um | friction drag coefficient for 0.5 um bead *)
-	double gammaMT ;				//(* pN s/um | friction drag coefficient for 0.5 um for MT *)
+	double gammaBeadL;		//(* pN s/um | friction drag coefficient for 0.5 um bead *)
+	double gammaBeadR;
+	double gammaMT;				//(* pN s/um | friction drag coefficient for 0.5 um for MT *)
 
 											// Parameters of stiffness
-	double trapstiff;			//(* pN/um | stiffness of the trap *) 
+	double trapstiffL;			//(* pN/um | stiffness of the trap *) 
+	double trapstiffR;
 	double MTstiffL ;			//(* pN/um | stiffness of the MT *) 
 	double MTstiffR;
 	double MTlowstiff;
@@ -55,7 +58,7 @@ struct ModelParameters
 	double feedbackFreq;
 	double DmblMoveAmplitude;
 	double prestretchTotalForce;
-	double movementForce;
+	double movementTotalForce;
 };
 
 struct SystemState

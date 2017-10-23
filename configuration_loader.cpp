@@ -50,9 +50,13 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 		conf.modelParameters.gammaMol = stod(jsonobj["ModelParameters"]["gammaMol"].get<std::string>());
 		conf.modelParameters.DMol = conf.modelParameters.kT / stod(jsonobj["ModelParameters"]["gammaMol"].get<std::string>());
 	}
-	if (!(jsonobj["ModelParameters"]["gammaBead"].empty())) {
-		conf.modelParameters.gammaBead = stod(jsonobj["ModelParameters"]["gammaBead"].get<std::string>());
-		conf.modelParameters.DBead = conf.modelParameters.kT / stod(jsonobj["ModelParameters"]["gammaBead"].get<std::string>());
+	if (!(jsonobj["ModelParameters"]["gammaBeadL"].empty())) {
+		conf.modelParameters.gammaBeadL = stod(jsonobj["ModelParameters"]["gammaBeadL"].get<std::string>());
+		conf.modelParameters.DBeadL = conf.modelParameters.kT / stod(jsonobj["ModelParameters"]["gammaBeadL"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["gammaBeadR"].empty())) {
+		conf.modelParameters.gammaBeadR = stod(jsonobj["ModelParameters"]["gammaBeadR"].get<std::string>());
+		conf.modelParameters.DBeadR = conf.modelParameters.kT / stod(jsonobj["ModelParameters"]["gammaBeadR"].get<std::string>());
 	}
 	if (!(jsonobj["ModelParameters"]["gammaMT"].empty())) {
 		conf.modelParameters.gammaMT =stod(jsonobj["ModelParameters"]["gammaMT"].get<std::string>());
@@ -61,14 +65,20 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	if (!(jsonobj["ModelParameters"]["DMol"].empty())) {
 		conf.modelParameters.DMol = conf.modelParameters.kT / stod(jsonobj["ModelParameters"]["gammaMol"].get<std::string>());
 	}
-	if (!(jsonobj["ModelParameters"]["DBead"].empty())) {
-		conf.modelParameters.DBead = conf.modelParameters.kT / stod(jsonobj["ModelParameters"]["gammaBead"].get<std::string>());
+	if (!(jsonobj["ModelParameters"]["DBeadL"].empty())) {
+		conf.modelParameters.DBeadL = conf.modelParameters.kT / stod(jsonobj["ModelParameters"]["gammaBeadL"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["DBeadR"].empty())) {
+		conf.modelParameters.DBeadR = conf.modelParameters.kT / stod(jsonobj["ModelParameters"]["gammaBeadR"].get<std::string>());
 	}
 	if (!(jsonobj["ModelParameters"]["DMT"].empty())) {
 		conf.modelParameters.DMT = conf.modelParameters.kT / stod(jsonobj["ModelParameters"]["gammaMT"].get<std::string>());
 	}
-	if (!(jsonobj["ModelParameters"]["trapstiff"].empty())) {
-		conf.modelParameters.trapstiff = stod(jsonobj["ModelParameters"]["trapstiff"].get<std::string>());
+	if (!(jsonobj["ModelParameters"]["trapstiffL"].empty())) {
+		conf.modelParameters.trapstiffL = stod(jsonobj["ModelParameters"]["trapstiffL"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["trapstiffR"].empty())) {
+		conf.modelParameters.trapstiffR = stod(jsonobj["ModelParameters"]["trapstiffR"].get<std::string>());
 	}
 	if (!(jsonobj["ModelParameters"]["MTstiffL"].empty())) {
 		conf.modelParameters.MTstiffL = stod(jsonobj["ModelParameters"]["MTstiffL"].get<std::string>());
@@ -102,7 +112,7 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 		conf.modelParameters.prestretchTotalForce = stod(jsonobj["ModelParameters"]["prestretchTotalForce"].get<std::string>());
 	}
 	if (!(jsonobj["ModelParameters"]["movementForce"].empty())) {
-		conf.modelParameters.movementForce = stod(jsonobj["ModelParameters"]["movementForce"].get<std::string>());
+		conf.modelParameters.movementTotalForce = stod(jsonobj["ModelParameters"]["movementTotalForce"].get<std::string>());
 	}
 
 	//// Assign Initial Conditions from json

@@ -165,8 +165,8 @@ public:
 			const double MT_Mol_force = potentialForce.calc(_state.xMol - _state.xMT);
 
 			const double next_xMT = _state.xMT + (_sP.expTime / _mP.gammaMT)*(-calculateMTspringForce(_mP.MTrelaxedLengthL, _mP.MTstiffL, _state.xMT - _state.xBeadl - _mP.MTlength / 2.0) + calculateMTspringForce(_mP.MTrelaxedLengthR, _mP.MTstiffR, _state.xBeadr - _state.xMT - _mP.MTlength/2.0) - (MT_Mol_force))+ sqrt(2.0*_mP.DMT*_sP.expTime) * rnd_xMT;
-			const double next_xBeadl = _state.xBeadl + (_sP.expTime / _mP.gammaBead)*(((-_mP.trapstiff)*(_state.xBeadl - _state.xTrapl)) + calculateMTspringForce(_mP.MTrelaxedLengthL, _mP.MTstiffL, _state.xMT - _state.xBeadl -  _mP.MTlength / 2.0)) + sqrt(2.0*_mP.DBead*_sP.expTime) * rnd_xBeadl;
-			const double next_xBeadr = _state.xBeadr + (_sP.expTime / _mP.gammaBead)*(-calculateMTspringForce(_mP.MTrelaxedLengthR, _mP.MTstiffR, _state.xBeadr - _state.xMT - _mP.MTlength / 2.0 ) + ((-_mP.trapstiff)*(_state.xBeadr - _state.xTrapr))) + sqrt(2.0*_mP.DBead*_sP.expTime) * rnd_xBeadr;
+			const double next_xBeadl = _state.xBeadl + (_sP.expTime / _mP.gammaBeadL)*(((-_mP.trapstiffL)*(_state.xBeadl - _state.xTrapl)) + calculateMTspringForce(_mP.MTrelaxedLengthL, _mP.MTstiffL, _state.xMT - _state.xBeadl -  _mP.MTlength / 2.0)) + sqrt(2.0*_mP.DBeadL*_sP.expTime) * rnd_xBeadl;
+			const double next_xBeadr = _state.xBeadr + (_sP.expTime / _mP.gammaBeadR)*(-calculateMTspringForce(_mP.MTrelaxedLengthR, _mP.MTstiffR, _state.xBeadr - _state.xMT - _mP.MTlength / 2.0 ) + ((-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr))) + sqrt(2.0*_mP.DBeadR*_sP.expTime) * rnd_xBeadr;
 			const double next_xMol = _state.xMol + (_sP.expTime / _mP.gammaMol) *(MT_Mol_force + _mP.molstiff*(_initC.xPed - _state.xMol)) + sqrt(2.0*_mP.DMol*_sP.expTime) * rnd_xMol;
 			
 			_state.xMT = next_xMT;
@@ -254,7 +254,7 @@ int main(int argc, char *argv[])
 	int buffsize = 400'000;
 	int randomsPeriter = 4;
 	int stepsperbuffer = static_cast<int>(std::floor(buffsize / randomsPeriter));
-	int totalsavings = 10'000;//(totalsteps / iterationsbetweenSavings)//20000
+	int totalsavings = 10*10'000;//(totalsteps / iterationsbetweenSavings)//20000
 	int iterationsbetweenSavings = 1'000'000;//1'000'000
 	int iterationsbetweenTrapsUpdate = 10'000'000;
 	
@@ -301,7 +301,7 @@ int main(int argc, char *argv[])
 							task->_state.direction = -1.0;
 						}
 						else {
-							task->_state.xTrapr = (task->_initC.initialState.xTrapr - task->_initC.initialState.xBeadr) + task->_state.xBeadr + (0.5*task->_mP.movementForce / task->_mP.trapstiff);
+							task->_state.xTrapr = (task->_initC.initialState.xTrapr - task->_initC.initialState.xBeadr) + task->_state.xBeadr + (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffR);
 							task->_state.xTrapl = task->_state.xTrapr - (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
 						}
 					}
@@ -312,7 +312,7 @@ int main(int argc, char *argv[])
 							task->_state.direction = 1.0;
 						}
 						else {
-							task->_state.xTrapl = task->_state.xBeadl + (task->_initC.initialState.xTrapl - task->_initC.initialState.xBeadl)  - (0.5*task->_mP.movementForce / task->_mP.trapstiff);
+							task->_state.xTrapl = task->_state.xBeadl + (task->_initC.initialState.xTrapl - task->_initC.initialState.xBeadl)  - (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffL);
 							task->_state.xTrapr = task->_state.xTrapl + (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
 						}
 					}
@@ -324,7 +324,7 @@ int main(int argc, char *argv[])
 		if (savedSampleIter % 100 == 0) {
 			double procent = round(100 * 100 * savedSampleIter / (totalsavings)) / 100;
 			std::cout << procent << "%" << std::endl;
-			std::cout << __rdtsc() << std::endl;
+			//std::cout << __rdtsc() << std::endl;
 			//std::cout << nst << std::endl;
 		}
 	}
