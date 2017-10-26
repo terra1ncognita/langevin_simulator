@@ -54,6 +54,25 @@ struct ModelParameters
 	double MTlowstiff;
 	double MTrelaxedLengthL;
 	double MTrelaxedLengthR;
+
+	double MTstiffWeakSlopeL;
+	double MTstiffWeakBoundaryL;
+	double MTstiffParabolicAL;
+	double MTstiffParabolicBL;
+	double MTstiffParabolicCL;
+	double MTstiffStrongBoundaryL;
+	double MTstiffStrongSlopeL;
+	double MTstiffStrongIntersectL;
+
+	double MTstiffWeakSlopeR;
+	double MTstiffWeakBoundaryR;
+	double MTstiffParabolicAR;
+	double MTstiffParabolicBR;
+	double MTstiffParabolicCR;
+	double MTstiffStrongBoundaryR;
+	double MTstiffStrongSlopeR;
+	double MTstiffStrongIntersectR;
+
 	double MTlength;
 	double molstiff ;				//(*pN / um| stiffness of the NDC80 *)
 	double feedbackFreq;

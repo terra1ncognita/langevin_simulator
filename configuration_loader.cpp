@@ -85,21 +85,56 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	if (!(jsonobj["ModelParameters"]["trapstiffR"].empty())) {
 		conf.modelParameters.trapstiffR = stod(jsonobj["ModelParameters"]["trapstiffR"].get<std::string>());
 	}
-	if (!(jsonobj["ModelParameters"]["MTstiffL"].empty())) {
-		conf.modelParameters.MTstiffL = stod(jsonobj["ModelParameters"]["MTstiffL"].get<std::string>());
+	if (!(jsonobj["ModelParameters"]["MTstiffWeakSlopeL"].empty())) {
+		conf.modelParameters.MTstiffWeakSlopeL = stod(jsonobj["ModelParameters"]["MTstiffWeakSlopeL"].get<std::string>());
 	}
-	if (!(jsonobj["ModelParameters"]["MTlowstiff"].empty())) {
-		conf.modelParameters.MTlowstiff = stod(jsonobj["ModelParameters"]["MTlowstiff"].get<std::string>());
+	if (!(jsonobj["ModelParameters"]["MTstiffWeakBoundaryL"].empty())) {
+		conf.modelParameters.MTstiffWeakBoundaryL = stod(jsonobj["ModelParameters"]["MTstiffWeakBoundaryL"].get<std::string>());
 	}
-	if (!(jsonobj["ModelParameters"]["MTrelaxedLengthL"].empty())) {
-		conf.modelParameters.MTrelaxedLengthL = stod(jsonobj["ModelParameters"]["MTrelaxedLengthL"].get<std::string>());
+	if (!(jsonobj["ModelParameters"]["MTstiffParabolicAL"].empty())) {
+		conf.modelParameters.MTstiffParabolicAL = stod(jsonobj["ModelParameters"]["MTstiffParabolicAL"].get<std::string>());
 	}
-	if (!(jsonobj["ModelParameters"]["MTstiffR"].empty())) {
-		conf.modelParameters.MTstiffR = stod(jsonobj["ModelParameters"]["MTstiffR"].get<std::string>());
+	if (!(jsonobj["ModelParameters"]["MTstiffParabolicBL"].empty())) {
+		conf.modelParameters.MTstiffParabolicBL = stod(jsonobj["ModelParameters"]["MTstiffParabolicBL"].get<std::string>());
 	}
-	if (!(jsonobj["ModelParameters"]["MTrelaxedLengthR"].empty())) {
-		conf.modelParameters.MTrelaxedLengthR = stod(jsonobj["ModelParameters"]["MTrelaxedLengthR"].get<std::string>());
+	if (!(jsonobj["ModelParameters"]["MTstiffParabolicCL"].empty())) {
+		conf.modelParameters.MTstiffParabolicCL = stod(jsonobj["ModelParameters"]["MTstiffParabolicCL"].get<std::string>());
 	}
+	if (!(jsonobj["ModelParameters"]["MTstiffStrongBoundaryL"].empty())) {
+		conf.modelParameters.MTstiffStrongBoundaryL = stod(jsonobj["ModelParameters"]["MTstiffStrongBoundaryL"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["MTstiffStrongSlopeL"].empty())) {
+		conf.modelParameters.MTstiffStrongSlopeL = stod(jsonobj["ModelParameters"]["MTstiffStrongSlopeL"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["MTstiffStrongIntersectL"].empty())) {
+		conf.modelParameters.MTstiffStrongIntersectL = stod(jsonobj["ModelParameters"]["MTstiffStrongIntersectL"].get<std::string>());
+	}
+
+	if (!(jsonobj["ModelParameters"]["MTstiffWeakSlopeR"].empty())) {
+		conf.modelParameters.MTstiffWeakSlopeR = stod(jsonobj["ModelParameters"]["MTstiffWeakSlopeR"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["MTstiffWeakBoundaryR"].empty())) {
+		conf.modelParameters.MTstiffWeakBoundaryR = stod(jsonobj["ModelParameters"]["MTstiffWeakBoundaryR"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["MTstiffParabolicAR"].empty())) {
+		conf.modelParameters.MTstiffParabolicAR = stod(jsonobj["ModelParameters"]["MTstiffParabolicAR"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["MTstiffParabolicBR"].empty())) {
+		conf.modelParameters.MTstiffParabolicBR = stod(jsonobj["ModelParameters"]["MTstiffParabolicBR"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["MTstiffParabolicCR"].empty())) {
+		conf.modelParameters.MTstiffParabolicCR = stod(jsonobj["ModelParameters"]["MTstiffParabolicCR"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["MTstiffStrongBoundaryR"].empty())) {
+		conf.modelParameters.MTstiffStrongBoundaryR = stod(jsonobj["ModelParameters"]["MTstiffStrongBoundaryR"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["MTstiffStrongSlopeR"].empty())) {
+		conf.modelParameters.MTstiffStrongSlopeR = stod(jsonobj["ModelParameters"]["MTstiffStrongSlopeR"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["MTstiffStrongIntersectR"].empty())) {
+		conf.modelParameters.MTstiffStrongIntersectR = stod(jsonobj["ModelParameters"]["MTstiffStrongIntersectR"].get<std::string>());
+	}
+	
 	if (!(jsonobj["ModelParameters"]["MTlength"].empty())) {
 		conf.modelParameters.MTlength = stod(jsonobj["ModelParameters"]["MTlength"].get<std::string>());
 	}

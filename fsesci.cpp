@@ -119,24 +119,46 @@ public:
 		});
 	}
 
-	double calculateMTspringForce(double relaxedLength, double stiffness, double extension) {
+	double calculateMTspringForce(double extensionInput, char side) {
 		//double extensionNm = fabs(extension * 1000);
 		//return (extension/fabs(extension))*(0.0062*extensionNm+(1.529*pow(10,-6)*(pow(extensionNm,2))) + (2.72*pow(10,-7)*pow(extensionNm,3)));
-		
-		
-		if (fabs(extension) <= relaxedLength)
+		double extension=fabs(extensionInput)*2.0;
+		double sign = (extension > 0) - (extension < 0);
+
+		if (side == 'L')
 		{
-			return _mP.MTlowstiff*extension;
-		}
-		else
-		{
-			if (extension >= 0.0)
+			if (extension <= _mP.MTstiffWeakBoundaryL)
 			{
-				return stiffness*(extension - relaxedLength) + _mP.MTlowstiff*relaxedLength;
+				return _mP.MTstiffWeakSlopeL*extension*sign;
 			}
 			else
 			{
-				return stiffness*(extension + relaxedLength) + _mP.MTlowstiff*relaxedLength;
+				if (extension > _mP.MTstiffWeakBoundaryL && extension < _mP.MTstiffStrongBoundaryL)
+				{
+					return (_mP.MTstiffParabolicAL*pow(extension,2) + _mP.MTstiffParabolicBL*extension + _mP.MTstiffParabolicCL)*sign;
+				}
+				else
+				{
+					return (_mP.MTstiffStrongSlopeL*extension + _mP.MTstiffStrongIntersectL)*sign;
+				}
+			}
+		}
+		if (side == 'R')
+		{
+			if (extension <= _mP.MTstiffWeakBoundaryR)
+			{
+				return _mP.MTstiffWeakSlopeR*extension*sign;
+			}
+			else
+			{
+				if (extension > _mP.MTstiffWeakBoundaryR && extension < _mP.MTstiffStrongBoundaryR)
+				{
+					return (_mP.MTstiffParabolicAR*pow(extension, 2) + _mP.MTstiffParabolicBR*extension + _mP.MTstiffParabolicCR)*sign;
+				}
+				else
+				{
+					return (_mP.MTstiffStrongSlopeR*extension + _mP.MTstiffStrongIntersectR)*sign;
+				}
 			}
 		}
 		
@@ -164,9 +186,9 @@ public:
 			
 			const double MT_Mol_force = potentialForce.calc(_state.xMol - _state.xMT);
 
-			const double next_xMT = _state.xMT + (_mP.expTime / _mP.gammaMT)*(-calculateMTspringForce(_mP.MTrelaxedLengthL, _mP.MTstiffL, _state.xMT - _state.xBeadl - _mP.MTlength / 2.0) + calculateMTspringForce(_mP.MTrelaxedLengthR, _mP.MTstiffR, _state.xBeadr - _state.xMT - _mP.MTlength/2.0) - (MT_Mol_force))+ sqrt(2.0*_mP.DMT*_mP.expTime) * rnd_xMT;
-			const double next_xBeadl = _state.xBeadl + (_mP.expTime / _mP.gammaBeadL)*(((-_mP.trapstiffL)*(_state.xBeadl - _state.xTrapl)) + calculateMTspringForce(_mP.MTrelaxedLengthL, _mP.MTstiffL, _state.xMT - _state.xBeadl -  _mP.MTlength / 2.0)) + sqrt(2.0*_mP.DBeadL*_mP.expTime) * rnd_xBeadl;
-			const double next_xBeadr = _state.xBeadr + (_mP.expTime / _mP.gammaBeadR)*(-calculateMTspringForce(_mP.MTrelaxedLengthR, _mP.MTstiffR, _state.xBeadr - _state.xMT - _mP.MTlength / 2.0 ) + ((-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr))) + sqrt(2.0*_mP.DBeadR*_mP.expTime) * rnd_xBeadr;
+			const double next_xMT = _state.xMT + (_mP.expTime / _mP.gammaMT)*(-calculateMTspringForce(_state.xMT - _state.xBeadl - _mP.MTlength / 2.0, 'L') + calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength/2.0, 'R') - (MT_Mol_force))+ sqrt(2.0*_mP.DMT*_mP.expTime) * rnd_xMT;
+			const double next_xBeadl = _state.xBeadl + (_mP.expTime / _mP.gammaBeadL)*(((-_mP.trapstiffL)*(_state.xBeadl - _state.xTrapl)) + calculateMTspringForce(_state.xMT - _state.xBeadl -  _mP.MTlength / 2.0, 'L')) + sqrt(2.0*_mP.DBeadL*_mP.expTime) * rnd_xBeadl;
+			const double next_xBeadr = _state.xBeadr + (_mP.expTime / _mP.gammaBeadR)*(-calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength / 2.0, 'R') + ((-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr))) + sqrt(2.0*_mP.DBeadR*_mP.expTime) * rnd_xBeadr;
 			const double next_xMol = _state.xMol + (_mP.expTime / _mP.gammaMol) *(MT_Mol_force + _mP.molstiff*(_initC.xPed - _state.xMol)) + sqrt(2.0*_mP.DMol*_mP.expTime) * rnd_xMol;
 			
 			_state.xMT = next_xMT;
