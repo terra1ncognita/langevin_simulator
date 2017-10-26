@@ -5,13 +5,13 @@
 #include <string>
 
 // Global parameters of simulations -> define iterations and steps
-struct SimulationParameters
-{
+//struct SimulationParameters
+//{
 	// simulation parameters
-	double expTime;//
+//	double expTime;//
 	//int microsteps;// 10MHz scanning
 	//int nTotal ;	//10^-2 seconds total
-};
+//};
 
 
 // Classes for objects that store simulation configs: LoggerParameters, ModelParameters, InitialConditions
@@ -25,6 +25,7 @@ struct LoggerParameters
 struct ModelParameters
 {
 	/////
+	double expTime;
 	//Global paramters
 	double T ;					//temperature
 	double kT;

@@ -15,9 +15,9 @@
 using json = nlohmann::json;
 
 
-SimulationParameters assign_simulation_parameters_from_json(SimulationParameters simp, json jsonobjsimp);
+//SimulationParameters assign_simulation_parameters_from_json(SimulationParameters simp, json jsonobjsimp);
 
 Configuration assign_config_from_json(Configuration conf, json jsonobj);
 
-SimulationParameters load_simulationparams(std::string paramInputFilename);
-std::vector <Configuration> load_configuration(std::string paramInputFilename);
+//SimulationParameters load_simulationparams(std::string paramInputFilename);
+std::vector <Configuration> load_configuration(std::string paramInputFilename, unsigned nThreads);

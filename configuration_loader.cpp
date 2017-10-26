@@ -9,18 +9,18 @@ const double kBoltz = 1.38064852e-5;// (*pN um *)
 
 
 /// Assign Simulation Parameters
-SimulationParameters assign_simulation_parameters_from_json(SimulationParameters simp, json jsonobjsimp) {
-	if (!(jsonobjsimp["expTime"].empty())) {
-		simp.expTime = stod(jsonobjsimp["expTime"].get<std::string>());
-	}
+//SimulationParameters assign_simulation_parameters_from_json(SimulationParameters simp, json jsonobjsimp) {
+//	if (!(jsonobjsimp["expTime"].empty())) {
+//		simp.expTime = stod(jsonobjsimp["expTime"].get<std::string>());
+//	}
 	/*if (!(jsonobjsimp["microsteps"].empty())) {
 		simp.microsteps = (int)round(stod(jsonobjsimp["microsteps"].get<std::string>()));
 	}
 	if (!(jsonobjsimp["nTotal"].empty())) {
 		simp.nTotal = (int)round(stod(jsonobjsimp["nTotal"].get<std::string>()));
 	}*/
-	return simp;
-}
+//	return simp;
+//}
 
 // Assign configuration from json object
 Configuration assign_config_from_json(Configuration conf, json jsonobj) {
@@ -33,6 +33,11 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	}
 	
 	//// Assign Model Parameters from json
+	
+	if (!(jsonobj["ModelParameters"]["expTime"].empty())) {
+		conf.modelParameters.expTime = stod(jsonobj["ModelParameters"]["expTime"].get<std::string>());
+			
+	}
 	if (!(jsonobj["ModelParameters"]["T"].empty())) {
 		conf.modelParameters.T= stod(jsonobj["ModelParameters"]["T"].get<std::string>());
 		conf.modelParameters.kT = kBoltz*conf.modelParameters.T;
@@ -167,15 +172,37 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 
 
 ////Simulation params loader
-SimulationParameters load_simulationparams(std::string paramInputFilename) {
-	json fulljson = parse_json_string(readfile(paramInputFilename));
-	json jsonsimp = fulljson["SimulationParameters"];
-	SimulationParameters simp = {};
-	return assign_simulation_parameters_from_json(simp, jsonsimp);
+//SimulationParameters load_simulationparams(std::string paramInputFilename) {
+//	json fulljson = parse_json_string(readfile(paramInputFilename));
+//	json jsonsimp = fulljson["SimulationParameters"];
+//	SimulationParameters simp = {};
+//	return assign_simulation_parameters_from_json(simp, jsonsimp);
 	 
+//}
+
+//// Configuration creator new
+std::vector <Configuration> load_configuration(std::string paramInputFilename, unsigned nThreads) {
+	std::vector <std::string> configs = split(paramInputFilename, ";");
+	if (configs.size()% nThreads !=0) {
+	
+		throw std::runtime_error{ "Number of configs is not multiple of number of cores" };
+	}
+	std::vector <Configuration> configurationsVector;
+	for (const auto& config : configs) {
+		json fulljson = parse_json_string(readfile(config));
+		json defaultjson = fulljson["Configuration"];
+		Configuration iterate;
+		iterate = assign_config_from_json(iterate, defaultjson);
+		configurationsVector.push_back(iterate);
+	}
+
+	return configurationsVector;
+
 }
 
+
 //// Configuration creator
+/*
 std::vector <Configuration> load_configuration(std::string paramInputFilename) {
 	json fulljson = parse_json_string(readfile(paramInputFilename));
 	json defaultjson = fulljson["Configuration"];
@@ -197,3 +224,4 @@ std::vector <Configuration> load_configuration(std::string paramInputFilename) {
 	return configurationsVector;
 
 }
+*/

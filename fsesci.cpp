@@ -30,7 +30,7 @@
 
 #include <fstream>
 
-static constexpr unsigned nThreads = 4;
+//static constexpr unsigned nThreads = 2;
 
 // Initialize global constants
 //std::string inputparamfile = "C:\\Users\\Tolya\\Documents\\Visual Studio 2015\\Projects\\Langevien2_New\\x64\\Release\\config_debug_trap50_noT.json";
@@ -106,8 +106,8 @@ public:
 class Task
 {
 public:
-	Task(const SimulationParameters& simulationParameters, const Configuration& configuration):
-		_sP( simulationParameters ),
+	Task( const Configuration& configuration):
+		
 		_mP( configuration.modelParameters ),
 		_initC( configuration.initialConditions ),
 		_state( configuration.initialConditions.initialState )
@@ -156,7 +156,7 @@ public:
 		};
 
 		for (unsigned i = 0; i < nSteps; i++) {
-			_state.Time = _state.Time + _sP.expTime;
+			_state.Time = _state.Time + _mP.expTime;
 			const double rnd_xMT = takeRandomNumber();
 			const double rnd_xBeadl = takeRandomNumber();
 			const double rnd_xBeadr = takeRandomNumber();
@@ -164,10 +164,10 @@ public:
 			
 			const double MT_Mol_force = potentialForce.calc(_state.xMol - _state.xMT);
 
-			const double next_xMT = _state.xMT + (_sP.expTime / _mP.gammaMT)*(-calculateMTspringForce(_mP.MTrelaxedLengthL, _mP.MTstiffL, _state.xMT - _state.xBeadl - _mP.MTlength / 2.0) + calculateMTspringForce(_mP.MTrelaxedLengthR, _mP.MTstiffR, _state.xBeadr - _state.xMT - _mP.MTlength/2.0) - (MT_Mol_force))+ sqrt(2.0*_mP.DMT*_sP.expTime) * rnd_xMT;
-			const double next_xBeadl = _state.xBeadl + (_sP.expTime / _mP.gammaBeadL)*(((-_mP.trapstiffL)*(_state.xBeadl - _state.xTrapl)) + calculateMTspringForce(_mP.MTrelaxedLengthL, _mP.MTstiffL, _state.xMT - _state.xBeadl -  _mP.MTlength / 2.0)) + sqrt(2.0*_mP.DBeadL*_sP.expTime) * rnd_xBeadl;
-			const double next_xBeadr = _state.xBeadr + (_sP.expTime / _mP.gammaBeadR)*(-calculateMTspringForce(_mP.MTrelaxedLengthR, _mP.MTstiffR, _state.xBeadr - _state.xMT - _mP.MTlength / 2.0 ) + ((-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr))) + sqrt(2.0*_mP.DBeadR*_sP.expTime) * rnd_xBeadr;
-			const double next_xMol = _state.xMol + (_sP.expTime / _mP.gammaMol) *(MT_Mol_force + _mP.molstiff*(_initC.xPed - _state.xMol)) + sqrt(2.0*_mP.DMol*_sP.expTime) * rnd_xMol;
+			const double next_xMT = _state.xMT + (_mP.expTime / _mP.gammaMT)*(-calculateMTspringForce(_mP.MTrelaxedLengthL, _mP.MTstiffL, _state.xMT - _state.xBeadl - _mP.MTlength / 2.0) + calculateMTspringForce(_mP.MTrelaxedLengthR, _mP.MTstiffR, _state.xBeadr - _state.xMT - _mP.MTlength/2.0) - (MT_Mol_force))+ sqrt(2.0*_mP.DMT*_mP.expTime) * rnd_xMT;
+			const double next_xBeadl = _state.xBeadl + (_mP.expTime / _mP.gammaBeadL)*(((-_mP.trapstiffL)*(_state.xBeadl - _state.xTrapl)) + calculateMTspringForce(_mP.MTrelaxedLengthL, _mP.MTstiffL, _state.xMT - _state.xBeadl -  _mP.MTlength / 2.0)) + sqrt(2.0*_mP.DBeadL*_mP.expTime) * rnd_xBeadl;
+			const double next_xBeadr = _state.xBeadr + (_mP.expTime / _mP.gammaBeadR)*(-calculateMTspringForce(_mP.MTrelaxedLengthR, _mP.MTstiffR, _state.xBeadr - _state.xMT - _mP.MTlength / 2.0 ) + ((-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr))) + sqrt(2.0*_mP.DBeadR*_mP.expTime) * rnd_xBeadr;
+			const double next_xMol = _state.xMol + (_mP.expTime / _mP.gammaMol) *(MT_Mol_force + _mP.molstiff*(_initC.xPed - _state.xMol)) + sqrt(2.0*_mP.DMol*_mP.expTime) * rnd_xMol;
 			
 			_state.xMT = next_xMT;
 			_state.xBeadl = next_xBeadl;
@@ -186,7 +186,7 @@ private:
 	
 	
 	
-	const SimulationParameters _sP;
+	
 	std::vector<std::unique_ptr<BinaryFileLogger>> _loggers;
 public:
 	SystemState _state;
@@ -205,25 +205,33 @@ int main(int argc, char *argv[])
 	}
 	char * param_input_filename = getCmdOption(argv, argv + argc, "-paramsfile");
 	char * output_filename = getCmdOption(argv, argv + argc, "-resultfile");
+	char * charnThreads = getCmdOption(argv, argv + argc, "-nthreads");
+
 
 	std::string inputparamfile;
-	inputparamfile.append(param_input_filename);
 
+	inputparamfile.append(param_input_filename);
+	unsigned nThreads = std::stoi(charnThreads);
+	
+	
+	//inputparamfile = "Config_1.json;Config_2.json;Config_3.json;Config_4.json";
+	//unsigned nThreads = 4;
+	
 	// Create and load simulation parameters and configuration, values are taken from json file
-	const auto simulationParameters = load_simulationparams(inputparamfile);
-	const auto configurations = load_configuration(inputparamfile);
+	//const auto simulationParameters = load_simulationparams(inputparamfile);
+	const auto configurations = load_configuration(inputparamfile,nThreads);
 
 	std::vector<std::unique_ptr<Task>> tasks;
 	for (const auto& configuration : configurations) {
-		auto task = std::make_unique<Task>(simulationParameters, configuration);
+		auto task = std::make_unique<Task>( configuration);
 		tasks.push_back(std::move(task));
 	}
 
 	// Check if number of configurations correspond to predefined threads number
-	if (configurations.size() != nThreads) {
+	/*if (configurations.size() != nThreads) {
 		throw std::runtime_error{ "Please check the number of configurations in json corresponds to the number of threads implemented in simulator" };
 	}
-
+	*/
 	/*
 
 	///////////////////////////////
@@ -272,6 +280,8 @@ int main(int argc, char *argv[])
 
 	MklGaussianParallelGenerator generator1(0.0, 1.0, buffsize, 4);
 	//std::cout << totalsteps/iterationsbetweenSavings  << std::endl;
+	int tasksperthread = tasks.size() / nThreads;
+	std::cout << tasksperthread << std::endl;
 	for (int savedSampleIter = 0; savedSampleIter < totalsavings; savedSampleIter++) {
 		
 		
@@ -282,7 +292,11 @@ int main(int argc, char *argv[])
 #pragma omp parallel num_threads(nThreads) shared(buffData, tasks)
 			{
 					//const auto begin = __rdtsc();
-				tasks[omp_get_thread_num()]->advanceState(stepsperbuffer, buffData);
+				//tasks[omp_get_thread_num()]->advanceState(stepsperbuffer, buffData);
+				for (int taskrun = 0; taskrun < tasksperthread; taskrun++) {
+					tasks[omp_get_thread_num()+ taskrun*nThreads]->advanceState(stepsperbuffer, buffData);
+					
+				}
 					//const auto end = __rdtsc();
 					//const auto cyclesPerStep = static_cast<double>(end - begin) / static_cast<double>(std::floor(buffsize / randomsPeriter));
 					//std::cout << "cyclesPerStep = " << cyclesPerStep << std::endl;
