@@ -339,6 +339,11 @@ int main(int argc, char *argv[])
 	//std::cout << totalsteps/iterationsbetweenSavings  << std::endl;
 	int tasksperthread = tasks.size() / nThreads;
 	std::cout << tasksperthread << std::endl;
+
+	for (const auto& task : tasks) {
+		task->statebuffertoZero(task->_loggingBuffer);
+		task->statebuffertoZero(task->_forcefeedbackBuffer);
+	}
 	for (int savedSampleIter = 0; savedSampleIter < totalsavings; savedSampleIter++) {
 		
 		
@@ -423,8 +428,6 @@ int main(int argc, char *argv[])
 					task->_state.xTrapl = task->_forcefeedbackBuffer.xTrapl;
 					task->_state.xTrapr = task->_forcefeedbackBuffer.xTrapr;
 
-					task->_loggingBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapl;
-					task->_loggingBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapr;
 					task->_loggingBuffer.direction = task->_forcefeedbackBuffer.direction;
 
 					
