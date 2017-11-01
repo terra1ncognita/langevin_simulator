@@ -309,6 +309,8 @@ int main(int argc, char *argv[])
 		saved step range is 10'000 -> nTotal
 		microsteps is macrostep*(buffersize/3)
 		*/
+	/*
+	//Old time params
 	int buffsize = 800'000;
 	int randomsPeriter = 4;
 	int stepsperbuffer = static_cast<int>(std::floor(buffsize / randomsPeriter));
@@ -316,8 +318,13 @@ int main(int argc, char *argv[])
 	int iterationsbetweenSavings = 1'000'000;//1'000'000
 	int iterationsbetweenTrapsUpdate = 10'000'000;
 	
-
-
+	*/
+	int buffsize = 400'000;
+	int randomsPeriter = 4;
+	int stepsperbuffer = static_cast<int>(std::floor(buffsize / randomsPeriter));
+	int totalsavings = 400;//1'400;//(totalsteps / iterationsbetweenSavings)//20000
+	int iterationsbetweenSavings = 15'000'000;//1'000'000
+	int iterationsbetweenTrapsUpdate = 30'000'000;
 
 	if (iterationsbetweenSavings % stepsperbuffer != 0) {
 		throw std::runtime_error{ "Please check that iterationsbetweenSavings/stepsperbuffer is integer" };
