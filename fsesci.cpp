@@ -110,7 +110,9 @@ public:
 		
 		_mP( configuration.modelParameters ),
 		_initC( configuration.initialConditions ),
-		_state( configuration.initialConditions.initialState )
+		_state( configuration.initialConditions.initialState ),
+		_loggingBuffer(configuration.initialConditions.initialState),
+		_forcefeedbackBuffer(configuration.initialConditions.initialState)
 	{
 		const auto& loggerParameters = configuration.loggerParameters;
 		SystemState::iterateFields([this, &loggerParameters] (double(SystemState::* field), std::string fieldName) {
@@ -191,16 +193,30 @@ public:
 			const double next_xBeadr = _state.xBeadr + (_mP.expTime / _mP.gammaBeadR)*(-calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength / 2.0, 'R') + ((-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr))) + sqrt(2.0*_mP.DBeadR*_mP.expTime) * rnd_xBeadr;
 			const double next_xMol = _state.xMol + (_mP.expTime / _mP.gammaMol) *(MT_Mol_force + _mP.molstiff*(_initC.xPed - _state.xMol)) + sqrt(2.0*_mP.DMol*_mP.expTime) * rnd_xMol;
 			
-			_state.xMT = next_xMT;
+			_state.xMT    = next_xMT;
 			_state.xBeadl = next_xBeadl;
 			_state.xBeadr = next_xBeadr;
-			_state.xMol = next_xMol;
+			_state.xMol   = next_xMol;
+
+			
+
+			_loggingBuffer.xMT     +=  _state.xMT;   
+			_loggingBuffer.xBeadl  +=  _state.xBeadl;
+			_loggingBuffer.xBeadr  +=  _state.xBeadr;
+			_loggingBuffer.xTrapl += _state.xTrapl;
+			_loggingBuffer.xTrapr += _state.xTrapr;
+			_loggingBuffer.xMol    +=  _state.xMol;  
+			_loggingBuffer.Time    +=  _state.Time;   
+			
+		
+			
+
 		}
 	}
 
 	void writeStateTolog() const {
 		for (const auto& logger : _loggers) {
-			logger->save(&_state);
+			logger->save(&_loggingBuffer);
 		}
 	}
 
@@ -212,6 +228,8 @@ private:
 	std::vector<std::unique_ptr<BinaryFileLogger>> _loggers;
 public:
 	SystemState _state;
+	SystemState _loggingBuffer;
+	SystemState _forcefeedbackBuffer;
 	const ModelParameters _mP;
 	const InitialConditions _initC;
 };
@@ -281,10 +299,10 @@ int main(int argc, char *argv[])
 		saved step range is 10'000 -> nTotal
 		microsteps is macrostep*(buffersize/3)
 		*/
-	int buffsize = 400'000;
+	int buffsize = 800'000;
 	int randomsPeriter = 4;
 	int stepsperbuffer = static_cast<int>(std::floor(buffsize / randomsPeriter));
-	int totalsavings = 10*10'000;//(totalsteps / iterationsbetweenSavings)//20000
+	int totalsavings = 10000;//(totalsteps / iterationsbetweenSavings)//20000
 	int iterationsbetweenSavings = 1'000'000;//1'000'000
 	int iterationsbetweenTrapsUpdate = 10'000'000;
 	
@@ -325,35 +343,84 @@ int main(int argc, char *argv[])
 			} // end of openmp section
 		}
 			for (const auto& task : tasks) {
+				task->_forcefeedbackBuffer.xMT    += task->_loggingBuffer.xMT;
+				task->_forcefeedbackBuffer.xBeadl += task->_loggingBuffer.xBeadl;
+				task->_forcefeedbackBuffer.xBeadr += task->_loggingBuffer.xBeadr;
+				task->_forcefeedbackBuffer.xTrapl += task->_loggingBuffer.xMol;
+				task->_forcefeedbackBuffer.xTrapr += task->_loggingBuffer.xTrapl;
+				task->_forcefeedbackBuffer.xMol   += task->_loggingBuffer.xTrapr;
+				task->_forcefeedbackBuffer.Time   += task->_loggingBuffer.Time;
+
+				task->_loggingBuffer.xMT    = task->_loggingBuffer.xMT / iterationsbetweenSavings;
+				task->_loggingBuffer.xBeadl = task->_loggingBuffer.xBeadl / iterationsbetweenSavings;
+				task->_loggingBuffer.xBeadr = task->_loggingBuffer.xBeadr / iterationsbetweenSavings;
+				task->_loggingBuffer.xMol   = task->_loggingBuffer.xMol / iterationsbetweenSavings;
+				task->_loggingBuffer.xTrapl = task->_loggingBuffer.xTrapl / iterationsbetweenSavings;
+				task->_loggingBuffer.xTrapr = task->_loggingBuffer.xTrapr / iterationsbetweenSavings;
+				task->_loggingBuffer.Time   = task->_loggingBuffer.Time / iterationsbetweenSavings;
+
 				task->writeStateTolog();
+
+				task->_loggingBuffer.xMT    = 0.0;
+				task->_loggingBuffer.xBeadl = 0.0;
+				task->_loggingBuffer.xBeadr = 0.0;
+				task->_loggingBuffer.xMol   = 0.0;
+				task->_loggingBuffer.xTrapl = 0.0;
+				task->_loggingBuffer.xTrapr = 0.0;
+				task->_loggingBuffer.Time   = 0.0;
 			}
 		
 			 if ((savedSampleIter % trapsUpdateTest) == 0) {
 				for (const auto& task : tasks) {
-					if (task->_state.direction == 1.0)
+
+					task->_forcefeedbackBuffer.xMT = task->_forcefeedbackBuffer.xMT / iterationsbetweenTrapsUpdate;
+					task->_forcefeedbackBuffer.xBeadl = task->_forcefeedbackBuffer.xBeadl / iterationsbetweenTrapsUpdate;
+					task->_forcefeedbackBuffer.xBeadr = task->_forcefeedbackBuffer.xBeadr / iterationsbetweenTrapsUpdate;
+					task->_forcefeedbackBuffer.xMol = task->_forcefeedbackBuffer.xMol / iterationsbetweenTrapsUpdate;
+					task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapl / iterationsbetweenTrapsUpdate;
+					task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapr / iterationsbetweenTrapsUpdate;
+					task->_forcefeedbackBuffer.Time = task->_forcefeedbackBuffer.Time / iterationsbetweenTrapsUpdate;
+
+					
+
+					if (task->_forcefeedbackBuffer.direction == 1.0)
 					{
 						//moving to the right, leading bead right, trailing bead left, positive X increment
-						if (task->_state.xBeadr >= task->_initC.initialState.xBeadr +  task->_mP.DmblMoveAmplitude) {
-							task->_state.direction = -1.0;
+						if (task->_forcefeedbackBuffer.xBeadr >= task->_initC.initialState.xBeadr +  task->_mP.DmblMoveAmplitude) {
+							task->_forcefeedbackBuffer.direction = -1.0;
 						}
 						else {
-							task->_state.xTrapr = (task->_initC.initialState.xTrapr - task->_initC.initialState.xBeadr) + task->_state.xBeadr + (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffR);
-							task->_state.xTrapl = task->_state.xTrapr - (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
+							task->_forcefeedbackBuffer.xTrapr = (task->_initC.initialState.xTrapr - task->_initC.initialState.xBeadr) + task->_forcefeedbackBuffer.xBeadr + (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffR);
+							task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapr - (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
 						}
 					}
-					if (task->_state.direction == -1.0)
+					if (task->_forcefeedbackBuffer.direction == -1.0)
 					{
 						//moving to the left, leading bead left, trailing bead right, negative X increment
-						if (task->_state.xBeadl <= task->_initC.initialState.xBeadl -task->_mP.DmblMoveAmplitude) {
-							task->_state.direction = 1.0;
+						if (task->_forcefeedbackBuffer.xBeadl <= task->_initC.initialState.xBeadl -task->_mP.DmblMoveAmplitude) {
+							task->_forcefeedbackBuffer.direction = 1.0;
 						}
 						else {
-							task->_state.xTrapl = task->_state.xBeadl + (task->_initC.initialState.xTrapl - task->_initC.initialState.xBeadl)  - (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffL);
-							task->_state.xTrapr = task->_state.xTrapl + (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
+							task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xBeadl + (task->_initC.initialState.xTrapl - task->_initC.initialState.xBeadl)  - (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffL);
+							task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapl + (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
 						}
 					}
 					// check and update trap forces
 					// check for amplitude reach
+					task->_forcefeedbackBuffer.xMT = 0.0;
+					task->_forcefeedbackBuffer.xBeadl = 0.0;
+					task->_forcefeedbackBuffer.xBeadr = 0.0;
+					task->_forcefeedbackBuffer.xMol = 0.0;
+					task->_forcefeedbackBuffer.xTrapl = 0.0;
+					task->_forcefeedbackBuffer.xTrapr = 0.0;
+					task->_forcefeedbackBuffer.Time = 0.0;
+
+					task->_state.xTrapl = task->_forcefeedbackBuffer.xTrapl;
+					task->_state.xTrapr = task->_forcefeedbackBuffer.xTrapr;
+
+					task->_loggingBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapl;
+					task->_loggingBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapr;
+					task->_loggingBuffer.direction = task->_forcefeedbackBuffer.direction;
 				}
 			}
 
