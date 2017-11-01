@@ -220,6 +220,16 @@ public:
 		}
 	}
 
+	void statebuffertoZero(SystemState &_statetoclear) {
+		_statetoclear.xMT = 0.0;
+		_statetoclear.xBeadl = 0.0;
+		_statetoclear.xBeadr = 0.0;
+		_statetoclear.xTrapl = 0.0;
+		_statetoclear.xTrapr = 0.0;
+		_statetoclear.xMol = 0.0;
+		_statetoclear.Time = 0.0;
+	}
+
 private:
 	
 	
@@ -346,28 +356,22 @@ int main(int argc, char *argv[])
 				task->_forcefeedbackBuffer.xMT    += task->_loggingBuffer.xMT;
 				task->_forcefeedbackBuffer.xBeadl += task->_loggingBuffer.xBeadl;
 				task->_forcefeedbackBuffer.xBeadr += task->_loggingBuffer.xBeadr;
-				task->_forcefeedbackBuffer.xTrapl += task->_loggingBuffer.xMol;
-				task->_forcefeedbackBuffer.xTrapr += task->_loggingBuffer.xTrapl;
-				task->_forcefeedbackBuffer.xMol   += task->_loggingBuffer.xTrapr;
+				task->_forcefeedbackBuffer.xTrapl += task->_loggingBuffer.xTrapl;
+				task->_forcefeedbackBuffer.xTrapr += task->_loggingBuffer.xTrapr;
+				task->_forcefeedbackBuffer.xMol   += task->_loggingBuffer.xMol;
 				task->_forcefeedbackBuffer.Time   += task->_loggingBuffer.Time;
 
 				task->_loggingBuffer.xMT    = task->_loggingBuffer.xMT / iterationsbetweenSavings;
 				task->_loggingBuffer.xBeadl = task->_loggingBuffer.xBeadl / iterationsbetweenSavings;
 				task->_loggingBuffer.xBeadr = task->_loggingBuffer.xBeadr / iterationsbetweenSavings;
-				task->_loggingBuffer.xMol   = task->_loggingBuffer.xMol / iterationsbetweenSavings;
 				task->_loggingBuffer.xTrapl = task->_loggingBuffer.xTrapl / iterationsbetweenSavings;
 				task->_loggingBuffer.xTrapr = task->_loggingBuffer.xTrapr / iterationsbetweenSavings;
+				task->_loggingBuffer.xMol = task->_loggingBuffer.xMol / iterationsbetweenSavings;
 				task->_loggingBuffer.Time   = task->_loggingBuffer.Time / iterationsbetweenSavings;
 
 				task->writeStateTolog();
-
-				task->_loggingBuffer.xMT    = 0.0;
-				task->_loggingBuffer.xBeadl = 0.0;
-				task->_loggingBuffer.xBeadr = 0.0;
-				task->_loggingBuffer.xMol   = 0.0;
-				task->_loggingBuffer.xTrapl = 0.0;
-				task->_loggingBuffer.xTrapr = 0.0;
-				task->_loggingBuffer.Time   = 0.0;
+				task->statebuffertoZero(task->_loggingBuffer);
+				
 			}
 		
 			 if ((savedSampleIter % trapsUpdateTest) == 0) {
@@ -376,9 +380,9 @@ int main(int argc, char *argv[])
 					task->_forcefeedbackBuffer.xMT = task->_forcefeedbackBuffer.xMT / iterationsbetweenTrapsUpdate;
 					task->_forcefeedbackBuffer.xBeadl = task->_forcefeedbackBuffer.xBeadl / iterationsbetweenTrapsUpdate;
 					task->_forcefeedbackBuffer.xBeadr = task->_forcefeedbackBuffer.xBeadr / iterationsbetweenTrapsUpdate;
-					task->_forcefeedbackBuffer.xMol = task->_forcefeedbackBuffer.xMol / iterationsbetweenTrapsUpdate;
 					task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapl / iterationsbetweenTrapsUpdate;
 					task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapr / iterationsbetweenTrapsUpdate;
+					task->_forcefeedbackBuffer.xMol = task->_forcefeedbackBuffer.xMol / iterationsbetweenTrapsUpdate;
 					task->_forcefeedbackBuffer.Time = task->_forcefeedbackBuffer.Time / iterationsbetweenTrapsUpdate;
 
 					
@@ -416,13 +420,8 @@ int main(int argc, char *argv[])
 					task->_loggingBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapr;
 					task->_loggingBuffer.direction = task->_forcefeedbackBuffer.direction;
 
-					task->_forcefeedbackBuffer.xMT = 0.0;
-					task->_forcefeedbackBuffer.xBeadl = 0.0;
-					task->_forcefeedbackBuffer.xBeadr = 0.0;
-					task->_forcefeedbackBuffer.xMol = 0.0;
-					task->_forcefeedbackBuffer.xTrapl = 0.0;
-					task->_forcefeedbackBuffer.xTrapr = 0.0;
-					task->_forcefeedbackBuffer.Time = 0.0;
+					
+					task->statebuffertoZero(task->_forcefeedbackBuffer);
 				}
 			}
 
