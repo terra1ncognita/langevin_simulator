@@ -407,13 +407,7 @@ int main(int argc, char *argv[])
 					}
 					// check and update trap forces
 					// check for amplitude reach
-					task->_forcefeedbackBuffer.xMT = 0.0;
-					task->_forcefeedbackBuffer.xBeadl = 0.0;
-					task->_forcefeedbackBuffer.xBeadr = 0.0;
-					task->_forcefeedbackBuffer.xMol = 0.0;
-					task->_forcefeedbackBuffer.xTrapl = 0.0;
-					task->_forcefeedbackBuffer.xTrapr = 0.0;
-					task->_forcefeedbackBuffer.Time = 0.0;
+					
 
 					task->_state.xTrapl = task->_forcefeedbackBuffer.xTrapl;
 					task->_state.xTrapr = task->_forcefeedbackBuffer.xTrapr;
@@ -421,6 +415,14 @@ int main(int argc, char *argv[])
 					task->_loggingBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapl;
 					task->_loggingBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapr;
 					task->_loggingBuffer.direction = task->_forcefeedbackBuffer.direction;
+
+					task->_forcefeedbackBuffer.xMT = 0.0;
+					task->_forcefeedbackBuffer.xBeadl = 0.0;
+					task->_forcefeedbackBuffer.xBeadr = 0.0;
+					task->_forcefeedbackBuffer.xMol = 0.0;
+					task->_forcefeedbackBuffer.xTrapl = 0.0;
+					task->_forcefeedbackBuffer.xTrapr = 0.0;
+					task->_forcefeedbackBuffer.Time = 0.0;
 				}
 			}
 
