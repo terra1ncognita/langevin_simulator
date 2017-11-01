@@ -57,7 +57,7 @@ public:
 	}
 	void save(const SystemState* systemState) {
 		_buffer.push_back(systemState->*_loggedField);
-		if (_buffer.size() == _buffsize) {
+		if (_buffer.size() >= _buffsize) {
 			flush();
 		}
 	}
@@ -74,7 +74,7 @@ private:
 		_buffer.clear();
 	}
 
-	static constexpr std::size_t _buffsize = 4096 / sizeof(double);
+	static constexpr std::size_t _buffsize = 1024 / sizeof(double);//4096 default
 	std::ofstream _file;
 	double(SystemState::* _loggedField);
 	std::vector <double> _buffer;
@@ -197,18 +197,13 @@ public:
 			_state.xBeadr = next_xBeadr;
 			_state.xMol   = next_xMol;
 
-			
-
 			_loggingBuffer.xMT     +=  _state.xMT;   
 			_loggingBuffer.xBeadl  +=  _state.xBeadl;
 			_loggingBuffer.xBeadr  +=  _state.xBeadr;
 			_loggingBuffer.xTrapl += _state.xTrapl;
 			_loggingBuffer.xTrapr += _state.xTrapr;
 			_loggingBuffer.xMol    +=  _state.xMol;  
-			_loggingBuffer.Time    +=  _state.Time;   
-			
-		
-			
+			_loggingBuffer.Time    =  _state.Time;   
 
 		}
 	}
@@ -216,6 +211,7 @@ public:
 	void writeStateTolog() const {
 		for (const auto& logger : _loggers) {
 			logger->save(&_loggingBuffer);
+			//logger->save(&_forcefeedbackBuffer);
 		}
 	}
 
@@ -331,9 +327,9 @@ int main(int argc, char *argv[])
 	int buffsize = 400'000;
 	int randomsPeriter = 4;
 	int stepsperbuffer = static_cast<int>(std::floor(buffsize / randomsPeriter));
-	int totalsavings = 400;//1'400;//(totalsteps / iterationsbetweenSavings)//20000
+	int totalsavings = 1'400;//1'400;//(totalsteps / iterationsbetweenSavings)//20000
 	int iterationsbetweenSavings = 15'000'000;//1'000'000
-	int iterationsbetweenTrapsUpdate = 30'000'000;
+	int iterationsbetweenTrapsUpdate = 15'000'000;
 
 	if (iterationsbetweenSavings % stepsperbuffer != 0) {
 		throw std::runtime_error{ "Please check that iterationsbetweenSavings/stepsperbuffer is integer" };
@@ -381,7 +377,7 @@ int main(int argc, char *argv[])
 				task->_forcefeedbackBuffer.xTrapl += task->_loggingBuffer.xTrapl;
 				task->_forcefeedbackBuffer.xTrapr += task->_loggingBuffer.xTrapr;
 				task->_forcefeedbackBuffer.xMol   += task->_loggingBuffer.xMol;
-				task->_forcefeedbackBuffer.Time   += task->_loggingBuffer.Time;
+				//task->_forcefeedbackBuffer.Time   += task->_loggingBuffer.Time;
 
 				task->_loggingBuffer.xMT    = task->_loggingBuffer.xMT / static_cast<double>(iterationsbetweenSavings);
 				task->_loggingBuffer.xBeadl = task->_loggingBuffer.xBeadl / static_cast<double>(iterationsbetweenSavings);
@@ -389,7 +385,7 @@ int main(int argc, char *argv[])
 				task->_loggingBuffer.xTrapl = task->_loggingBuffer.xTrapl / static_cast<double>(iterationsbetweenSavings);
 				task->_loggingBuffer.xTrapr = task->_loggingBuffer.xTrapr / static_cast<double>(iterationsbetweenSavings);
 				task->_loggingBuffer.xMol   = task->_loggingBuffer.xMol / static_cast<double>(iterationsbetweenSavings);
-				task->_loggingBuffer.Time   = task->_loggingBuffer.Time / static_cast<double>(iterationsbetweenSavings);
+				//task->_loggingBuffer.Time   = task->_loggingBuffer.Time / static_cast<double>(iterationsbetweenSavings);
 
 				task->writeStateTolog();
 				task->loggingBuffertoZero();
@@ -405,26 +401,32 @@ int main(int argc, char *argv[])
 					task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapl / static_cast<double>(iterationsbetweenTrapsUpdate);
 					task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapr / static_cast<double>(iterationsbetweenTrapsUpdate);
 					task->_forcefeedbackBuffer.xMol   = task->_forcefeedbackBuffer.xMol / static_cast<double>(iterationsbetweenTrapsUpdate);
-					task->_forcefeedbackBuffer.Time   = task->_forcefeedbackBuffer.Time / static_cast<double>(iterationsbetweenTrapsUpdate);
+					//task->_forcefeedbackBuffer.Time   = task->_forcefeedbackBuffer.Time / static_cast<double>(iterationsbetweenTrapsUpdate);
 
-					
+					//task->writeStateTolog();
 
-					if (task->_forcefeedbackBuffer.direction == 1.0)
+					int tmpDirection = task->_forcefeedbackBuffer.direction;
+
+					if (tmpDirection == 1.0)
 					{
 						//moving to the right, leading bead right, trailing bead left, positive X increment
 						if (task->_forcefeedbackBuffer.xBeadr >= task->_initC.initialState.xBeadr +  task->_mP.DmblMoveAmplitude) {
 							task->_forcefeedbackBuffer.direction = -1.0;
+							task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xBeadl + (task->_initC.initialState.xTrapl - task->_initC.initialState.xBeadl) - (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffL);
+							task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapl + (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
 						}
 						else {
 							task->_forcefeedbackBuffer.xTrapr = (task->_initC.initialState.xTrapr - task->_initC.initialState.xBeadr) + task->_forcefeedbackBuffer.xBeadr + (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffR);
 							task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapr - (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
 						}
 					}
-					if (task->_forcefeedbackBuffer.direction == -1.0)
+					if (tmpDirection == -1.0)
 					{
 						//moving to the left, leading bead left, trailing bead right, negative X increment
 						if (task->_forcefeedbackBuffer.xBeadl <= task->_initC.initialState.xBeadl -task->_mP.DmblMoveAmplitude) {
 							task->_forcefeedbackBuffer.direction = 1.0;
+							task->_forcefeedbackBuffer.xTrapr = (task->_initC.initialState.xTrapr - task->_initC.initialState.xBeadr) + task->_forcefeedbackBuffer.xBeadr + (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffR);
+							task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapr - (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
 						}
 						else {
 							task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xBeadl + (task->_initC.initialState.xTrapl - task->_initC.initialState.xBeadl)  - (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffL);
@@ -445,7 +447,7 @@ int main(int argc, char *argv[])
 				}
 			}
 
-		if (savedSampleIter % 100 == 0) {
+		if (savedSampleIter % 10 == 0) {
 			double procent = round(100 * 100 * savedSampleIter / (totalsavings)) / 100;
 			std::cout << procent << "%" << std::endl;
 			//std::cout << __rdtsc() << std::endl;
