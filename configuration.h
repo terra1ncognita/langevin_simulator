@@ -91,6 +91,7 @@ struct SystemState
 	double xTrapr; 
 	double Time=0.0;
 	double direction = 1.0;
+	double logpotentialForce;
 
 	template <typename F>
 	static void iterateFields(F&& f) {
@@ -103,6 +104,7 @@ struct SystemState
 		f(&SystemState::xTrapr, "xTrapr");
 		f(&SystemState::Time, "Time");
 		f(&SystemState::direction, "direction");
+		f(&SystemState::logpotentialForce, "logpotentialForce");
 	}
 };
 

@@ -197,12 +197,14 @@ public:
 			_state.xBeadr = next_xBeadr;
 			_state.xMol   = next_xMol;
 
+
 			_loggingBuffer.xMT     +=  _state.xMT;   
 			_loggingBuffer.xBeadl  +=  _state.xBeadl;
 			_loggingBuffer.xBeadr  +=  _state.xBeadr;
 			_loggingBuffer.xTrapl += _state.xTrapl;
 			_loggingBuffer.xTrapr += _state.xTrapr;
 			_loggingBuffer.xMol    +=  _state.xMol;  
+			_loggingBuffer.logpotentialForce += MT_Mol_force;
 			_loggingBuffer.Time    =  _state.Time;   
 
 		}
@@ -222,6 +224,7 @@ public:
 		_loggingBuffer.xTrapl = 0.0;
 		_loggingBuffer.xTrapr = 0.0;
 		_loggingBuffer.xMol = 0.0;
+		_loggingBuffer.logpotentialForce = 0.0;
 		_loggingBuffer.Time = 0.0;
 	}
 
@@ -232,7 +235,9 @@ public:
 		_forcefeedbackBuffer.xTrapl = 0.0;
 		_forcefeedbackBuffer.xTrapr = 0.0;
 		_forcefeedbackBuffer.xMol = 0.0;
+		_forcefeedbackBuffer.logpotentialForce = 0.0;
 		_forcefeedbackBuffer.Time = 0.0;
+	
 	}
 
 private:
@@ -327,7 +332,7 @@ int main(int argc, char *argv[])
 	int buffsize = 400'000;
 	int randomsPeriter = 4;
 	int stepsperbuffer = static_cast<int>(std::floor(buffsize / randomsPeriter));
-	int totalsavings = 1'400;//1'400;//(totalsteps / iterationsbetweenSavings)//20000
+	int totalsavings = 10'000;//1'400;//(totalsteps / iterationsbetweenSavings)//20000
 	int iterationsbetweenSavings = 15'000'000;//1'000'000
 	int iterationsbetweenTrapsUpdate = 15'000'000;
 
@@ -377,6 +382,7 @@ int main(int argc, char *argv[])
 				task->_forcefeedbackBuffer.xTrapl += task->_loggingBuffer.xTrapl;
 				task->_forcefeedbackBuffer.xTrapr += task->_loggingBuffer.xTrapr;
 				task->_forcefeedbackBuffer.xMol   += task->_loggingBuffer.xMol;
+				task->_forcefeedbackBuffer.logpotentialForce += task->_loggingBuffer.logpotentialForce;
 				//task->_forcefeedbackBuffer.Time   += task->_loggingBuffer.Time;
 
 				task->_loggingBuffer.xMT    = task->_loggingBuffer.xMT / static_cast<double>(iterationsbetweenSavings);
@@ -385,6 +391,7 @@ int main(int argc, char *argv[])
 				task->_loggingBuffer.xTrapl = task->_loggingBuffer.xTrapl / static_cast<double>(iterationsbetweenSavings);
 				task->_loggingBuffer.xTrapr = task->_loggingBuffer.xTrapr / static_cast<double>(iterationsbetweenSavings);
 				task->_loggingBuffer.xMol   = task->_loggingBuffer.xMol / static_cast<double>(iterationsbetweenSavings);
+				task->_loggingBuffer.logpotentialForce= task->_loggingBuffer.logpotentialForce / static_cast<double>(iterationsbetweenSavings);
 				//task->_loggingBuffer.Time   = task->_loggingBuffer.Time / static_cast<double>(iterationsbetweenSavings);
 
 				task->writeStateTolog();
@@ -401,6 +408,8 @@ int main(int argc, char *argv[])
 					task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapl / static_cast<double>(iterationsbetweenTrapsUpdate);
 					task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapr / static_cast<double>(iterationsbetweenTrapsUpdate);
 					task->_forcefeedbackBuffer.xMol   = task->_forcefeedbackBuffer.xMol / static_cast<double>(iterationsbetweenTrapsUpdate);
+					task->_forcefeedbackBuffer.logpotentialForce = task->_forcefeedbackBuffer.logpotentialForce / static_cast<double>(iterationsbetweenTrapsUpdate);
+
 					//task->_forcefeedbackBuffer.Time   = task->_forcefeedbackBuffer.Time / static_cast<double>(iterationsbetweenTrapsUpdate);
 
 					//task->writeStateTolog();
