@@ -195,12 +195,12 @@ public:
 			
 			//_state.xMT    = next_xMT;
 			_state.xMol   = next_xMol;
-			_state.Time += _mP.expTime;
+			_state.Time = _mP.expTime;
 
 
 			//_loggingBuffer.xMT     +=  _state.xMT;
-			_loggingBuffer.xMol    +=  _state.xMol;  
-			_loggingBuffer.logpotentialForce += MT_Mol_force;
+			_loggingBuffer.xMol    =  _state.xMol;  
+			_loggingBuffer.logpotentialForce = MT_Mol_force;
 			_loggingBuffer.Time    =  _state.Time;   
 
 		}
@@ -320,13 +320,13 @@ int main(int argc, char *argv[])
 
 		for (const auto& task : tasks) {
 			//task->_forcefeedbackBuffer.xMT    += task->_loggingBuffer.xMT;
-			task->_forcefeedbackBuffer.xMol   += task->_loggingBuffer.xMol;
-			task->_forcefeedbackBuffer.logpotentialForce += task->_loggingBuffer.logpotentialForce;
+			task->_forcefeedbackBuffer.xMol   = task->_loggingBuffer.xMol;
+			task->_forcefeedbackBuffer.logpotentialForce = task->_loggingBuffer.logpotentialForce;
 			//task->_forcefeedbackBuffer.Time   += task->_loggingBuffer.Time;
 
 			//task->_loggingBuffer.xMT    = task->_loggingBuffer.xMT / static_cast<double>(iterationsbetweenSavings);
-			task->_loggingBuffer.xMol   = task->_loggingBuffer.xMol / static_cast<double>(iterationsbetweenSavings);
-			task->_loggingBuffer.logpotentialForce= task->_loggingBuffer.logpotentialForce / static_cast<double>(iterationsbetweenSavings);
+			task->_loggingBuffer.xMol = task->_loggingBuffer.xMol;// / static_cast<double>(iterationsbetweenSavings);
+			task->_loggingBuffer.logpotentialForce = task->_loggingBuffer.logpotentialForce;// / static_cast<double>(iterationsbetweenSavings);
 			//task->_loggingBuffer.Time   = task->_loggingBuffer.Time / static_cast<double>(iterationsbetweenSavings);
 
 			task->writeStateTolog();
