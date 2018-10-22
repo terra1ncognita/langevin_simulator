@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdexcept>
 #include <omp.h>
+#include <time.h>
 
 
 
@@ -9,8 +10,10 @@ MklGaussianParallelGenerator::MklGaussianParallelGenerator(double mean, double s
 	:_mean{ mean }, _stDeviation{ stDeviation }, _bufferSize{bufferSize},_threadNum{threadNum}
 {
 	///////////////// If reproducibility from launch to launch is required seed is const, eslse seed must be random
-	MKL_UINT seed = 777;
+	srand(time(NULL));
+	MKL_UINT seed = rand();
 	/////////////////
+
 	for (unsigned i = 0; i < threadNum; i++) {
 		_streamWrappers.emplace_back(VSL_BRNG_MT2203 + i, seed);
 	}

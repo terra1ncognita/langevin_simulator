@@ -22,6 +22,7 @@ struct LoggerParameters
 	std::string filepath;
 	std::string name;
 };
+
 struct ModelParameters
 {
 	/////
@@ -73,6 +74,10 @@ struct ModelParameters
 	double MTstiffStrongSlopeR;
 	double MTstiffStrongIntersectR;
 
+	double molStiffWeakSlope;
+	double molStiffBoundary;
+	double molStiffStrongSlope;
+
 	double MTlength;
 	double molstiff ;				//(*pN / um| stiffness of the NDC80 *)
 	double feedbackFreq;
@@ -85,23 +90,16 @@ struct SystemState
 {
 	double xMol;
 	double xMT;
-	double xBeadl;
-	double xBeadr;
-	double xTrapl; 
-	double xTrapr; 
 	double Time=0.0;
 	double direction = 1.0;
 	double logpotentialForce;
 
+	//#pragma omp declare simd
 	template <typename F>
 	static void iterateFields(F&& f) {
 		f(&SystemState::xMol, "xMol");
 		f(&SystemState::xMT, "xMT");
-		f(&SystemState::xBeadl, "xBeadl");
-		f(&SystemState::xBeadr, "xBeadr");
-
-		f(&SystemState::xTrapl, "xTrapl");
-		f(&SystemState::xTrapr, "xTrapr");
+		
 		f(&SystemState::Time, "Time");
 		f(&SystemState::direction, "direction");
 		f(&SystemState::logpotentialForce, "logpotentialForce");
