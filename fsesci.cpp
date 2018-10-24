@@ -195,7 +195,7 @@ public:
 			
 			//_state.xMT    = next_xMT;
 			_state.xMol   = next_xMol;
-			_state.Time = _mP.expTime;
+			_state.Time += _mP.expTime;
 
 
 			//_loggingBuffer.xMT     +=  _state.xMT;
