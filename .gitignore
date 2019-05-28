@@ -2,6 +2,7 @@
 /My Amplifier XE Results - Langevien2/
 /Release/
 /x64/
-*.vcxproj.user
-/FreeDiffusion.vcxproj
-/FreeDiffusion.vcxproj.filters
+/Langevien2.vcxproj
+/Langevien2.vcxproj.filters
+/Langevien2.vcxproj.user
+/testtestfile.binary

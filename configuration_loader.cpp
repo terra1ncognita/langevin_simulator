@@ -3,6 +3,7 @@
 
 
 using json = nlohmann::json;
+//const double E = std::exp(1.0);
 const double kBoltz = 1.38064852e-5;// (*pN um *)
 
 
@@ -50,6 +51,14 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	if (!(jsonobj["ModelParameters"]["sigma"].empty())) {
 		conf.modelParameters.sigma = stod(jsonobj["ModelParameters"]["sigma"].get<std::string>());
 	}
+	if (!(jsonobj["ModelParameters"]["A"].empty())) {
+		conf.modelParameters.A = stod(jsonobj["ModelParameters"]["A"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["m"].empty())) {
+		conf.modelParameters.m = stod(jsonobj["ModelParameters"]["m"].get<std::string>());
+	}
+
+
 	if (!(jsonobj["ModelParameters"]["gammaMol"].empty())) {
 		conf.modelParameters.gammaMol = stod(jsonobj["ModelParameters"]["gammaMol"].get<std::string>());
 		conf.modelParameters.DMol = conf.modelParameters.kT / stod(jsonobj["ModelParameters"]["gammaMol"].get<std::string>());
@@ -83,6 +92,11 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	}
 	if (!(jsonobj["ModelParameters"]["trapstiffR"].empty())) {
 		conf.modelParameters.trapstiffR = stod(jsonobj["ModelParameters"]["trapstiffR"].get<std::string>());
+	}
+
+	// Friction coeffitient for quasiviscous molecule - MT interaction
+	if (!(jsonobj["ModelParameters"]["gammaQuasiviscous"].empty())) {
+		conf.modelParameters.gammaQuasiviscous = stod(jsonobj["ModelParameters"]["gammaQuasiviscous"].get<std::string>());
 	}
 
 	// MT stiffness Left
@@ -179,20 +193,42 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	if (!(jsonobj["InitialConditions"]["xMT"].empty())) {
 		conf.initialConditions.initialState.xMT = stod(jsonobj["InitialConditions"]["xMT"].get<std::string>());
 	}
-	
+	if (!(jsonobj["InitialConditions"]["xBeadl"].empty())) {
+		conf.initialConditions.initialState.xBeadl = stod(jsonobj["InitialConditions"]["xBeadl"].get<std::string>());
+	}
+	if (!(jsonobj["InitialConditions"]["xBeadr"].empty())) {
+		conf.initialConditions.initialState.xBeadr = stod(jsonobj["InitialConditions"]["xBeadr"].get<std::string>());
+	}
+	if (!(jsonobj["InitialConditions"]["xTrapl"].empty())) {
+		conf.initialConditions.initialState.xTrapl = stod(jsonobj["InitialConditions"]["xTrapl"].get<std::string>());
+	}
+	if (!(jsonobj["InitialConditions"]["xTrapr"].empty())) {
+		conf.initialConditions.initialState.xTrapr = stod(jsonobj["InitialConditions"]["xTrapr"].get<std::string>());
+	}
 	if (!(jsonobj["InitialConditions"]["direction"].empty())) {
 		conf.currentState.direction = stod(jsonobj["InitialConditions"]["direction"].get<std::string>());
 		conf.initialConditions.initialState.direction = stod(jsonobj["InitialConditions"]["direction"].get<std::string>());
 	}
 	//// Assign Dynamic Coordinates from json initial conditions
-	
+	if (!(jsonobj["InitialConditions"]["xTrapl"].empty())) {
+		conf.currentState.xTrapl = stod(jsonobj["InitialConditions"]["xTrapl"].get<std::string>());
+	}
+	if (!(jsonobj["InitialConditions"]["xTrapr"].empty())) {
+		conf.currentState.xTrapr = stod(jsonobj["InitialConditions"]["xTrapr"].get<std::string>());
+	}
+
 	if (!(jsonobj["InitialConditions"]["xMol"].empty())) {
 		conf.currentState.xMol = stod(jsonobj["InitialConditions"]["xMol"].get<std::string>());
 	}
 	if (!(jsonobj["InitialConditions"]["xMT"].empty())) {
 		conf.currentState.xMT = stod(jsonobj["InitialConditions"]["xMT"].get<std::string>());
 	}
-	
+	if (!(jsonobj["InitialConditions"]["xBeadl"].empty())) {
+		conf.currentState.xBeadl = stod(jsonobj["InitialConditions"]["xBeadl"].get<std::string>());
+	}
+	if (!(jsonobj["InitialConditions"]["xBeadr"].empty())) {
+		conf.currentState.xBeadr = stod(jsonobj["InitialConditions"]["xBeadr"].get<std::string>());
+	}
 	////
 	return conf;
 }
@@ -226,3 +262,29 @@ std::vector <Configuration> load_configuration(std::string paramInputFilename, u
 	return configurationsVector;
 
 }
+
+
+//// Configuration creator
+/*
+std::vector <Configuration> load_configuration(std::string paramInputFilename) {
+	json fulljson = parse_json_string(readfile(paramInputFilename));
+	json defaultjson = fulljson["Configuration"];
+	Configuration default;
+	default = assign_config_from_json(default, defaultjson);
+
+
+
+	std::vector <Configuration> configurationsVector;
+	Configuration iterate;
+
+	// iterate the array of configurations
+	for (json::iterator jsonit = defaultjson["Configurations"].begin(); jsonit != defaultjson["Configurations"].end(); ++jsonit) {
+		iterate = default;
+		iterate=assign_config_from_json(iterate, *jsonit);
+		configurationsVector.push_back(iterate);
+	}
+
+	return configurationsVector;
+
+}
+*/

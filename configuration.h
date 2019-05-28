@@ -22,7 +22,6 @@ struct LoggerParameters
 	std::string filepath;
 	std::string name;
 };
-
 struct ModelParameters
 {
 	/////
@@ -35,7 +34,8 @@ struct ModelParameters
 	double G ;					// (* kT | Depth of the potential *)
 	double L ;					//(* um | period of the periodic potential *)
 	double sigma;			//(* um | width of the binding well *)
-
+	double A;           // width of asymmetric potential, um
+	double m;           // center of well, um
 									//Parameters of diffusion
 	double DMol ;					//(* um^2/s | free diffusion coefficient of the protein in water *)
 	double DBeadL;					// (* um^2/s | free diffusion coefficient of 0.5 um bead in water *)
@@ -47,6 +47,7 @@ struct ModelParameters
 	double gammaBeadR;
 	double gammaMT;				//(* pN s/um | friction drag coefficient for 0.5 um for MT *)
 
+	double gammaQuasiviscous;
 											// Parameters of stiffness
 	double trapstiffL;			//(* pN/um | stiffness of the trap *) 
 	double trapstiffR;
@@ -90,16 +91,27 @@ struct SystemState
 {
 	double xMol;
 	double xMT;
+	double xBeadl;
+	double xBeadr;
+	double xTrapl; 
+	double xTrapr; 
 	double Time=0.0;
 	double direction = 1.0;
 	double logpotentialForce;
+
+	double vMol = 0.0;
+	double vMT = 0.0;
 
 	//#pragma omp declare simd
 	template <typename F>
 	static void iterateFields(F&& f) {
 		f(&SystemState::xMol, "xMol");
 		f(&SystemState::xMT, "xMT");
-		
+		f(&SystemState::xBeadl, "xBeadl");
+		f(&SystemState::xBeadr, "xBeadr");
+
+		f(&SystemState::xTrapl, "xTrapl");
+		f(&SystemState::xTrapr, "xTrapr");
 		f(&SystemState::Time, "Time");
 		f(&SystemState::direction, "direction");
 		f(&SystemState::logpotentialForce, "logpotentialForce");
