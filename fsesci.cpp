@@ -129,7 +129,7 @@ public:
 
 	double asymmetric(double unmodvar) const
 	{
-		double x = fmod(unmodvar, L/2.0);
+		double x = fmod(unmodvar - L/2.0, L) - L/2.0;
 		double tmp1 = pow(1.0 + 2.0 * x / L, log(2.0) / lgs);
 
 		return -(log(2.0) * A * G * exp(A * (1.0 - 1.0 / (1.0 - pow((-1.0 + var1 / tmp1 ), 2)))) * tmp1 * (1.0 / tmp1 - 1.0 / var1) /
@@ -390,7 +390,7 @@ int main(int argc, char *argv[])
 	int buffsize = 400'000;
 	int randomsPeriter = 4;
 	int stepsperbuffer = static_cast<int>(std::floor(buffsize / randomsPeriter));
-	int totalsavings = 2000;//(totalsteps / iterationsbetweenSavings)
+	int totalsavings = 4000;//(totalsteps / iterationsbetweenSavings)
 	int iterationsbetweenSavings = 15'000'000;
 	int iterationsbetweenTrapsUpdate = 15'000'000;
 
