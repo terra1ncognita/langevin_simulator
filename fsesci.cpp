@@ -81,10 +81,17 @@ private:
 };
 
 
-///
+/// Old finction for symmetric well
 double mod(double a, double N)
 {
 	return a - N*floor(a / N); //return in range [0, N)
+}
+
+// New mapping R->[-L/2, L/2], 0->0 for asymmetric well
+double period_map(double y, double L)
+{
+	double x = y + L / 2.0;
+	return x - floor(x / L)* L - L / 2.0;
 }
 
 class PotentialForce 
@@ -120,6 +127,7 @@ public:
 		var2 = pow(2.0, log(2.0) / lgs);
 	}
 	
+	// TODO refactor to use with period_map
 	double calc(double unmodvar) const
 	{
 		double var = mod(unmodvar, L);
@@ -129,7 +137,7 @@ public:
 
 	double asymmetric(double unmodvar) const
 	{
-		double x = fmod(unmodvar - L/2.0, L) - L/2.0;
+		double x = period_map(unmodvar, L);
 		double tmp1 = pow(1.0 + 2.0 * x / L, log(2.0) / lgs);
 
 		return -(log(2.0) * A * G * exp(A * (1.0 - 1.0 / (1.0 - pow((-1.0 + var1 / tmp1 ), 2)))) * tmp1 * (1.0 / tmp1 - 1.0 / var1) /
