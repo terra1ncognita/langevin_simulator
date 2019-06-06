@@ -140,7 +140,7 @@ public:
 		double x = period_map(unmodvar, L);
 		double tmp1 = pow(1.0 + 2.0 * x / L, log(2.0) / lgs);
 
-		return -(log(2.0) * A * G * exp(A * (1.0 - 1.0 / (1.0 - pow((-1.0 + var1 / tmp1 ), 2)))) * tmp1 * (1.0 / tmp1 - 1.0 / var1) /
+		return (log(2.0) * A * G * exp(A * (1.0 - 1.0 / (1.0 - pow((-1.0 + var1 / tmp1 ), 2)))) * tmp1 * (1.0 / tmp1 - 1.0 / var1) /
 			((L + 2.0*x) * pow(-1.0 + var2 / tmp1, 2) * lgs));
 	}
 };
