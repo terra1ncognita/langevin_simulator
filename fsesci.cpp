@@ -252,22 +252,15 @@ int main(int argc, char *argv[])
 		tasks.push_back(std::move(task));
 	}
 
-	int buffsize = 400'000;
+	int buffsize = 200'000;
 	int randomsPeriter = 1;
 	int stepsperbuffer = static_cast<int>(std::floor(buffsize / randomsPeriter));
 	int totalsavings = 10000;//(totalsteps / iterationsbetweenSavings)
 	int iterationsbetweenSavings = 15'000'000;
-	int iterationsbetweenTrapsUpdate = 15'000'000;
-
 
 	if (iterationsbetweenSavings % stepsperbuffer != 0) {
 		throw std::runtime_error{ "Please check that iterationsbetweenSavings/stepsperbuffer is integer" };
 	}
-	if (iterationsbetweenTrapsUpdate %  iterationsbetweenSavings != 0) {
-		throw std::runtime_error{ "Please check that iterationsbetweenTrapsUpdate/iterationsbetweenSavings is integer" };
-	}
-
-	unsigned trapsUpdateTest = iterationsbetweenTrapsUpdate / iterationsbetweenSavings;
 
 	MklGaussianParallelGenerator generator1(0.0, 1.0, buffsize, 4);
 	int tasksperthread = tasks.size() / nThreads;
