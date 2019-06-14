@@ -1,17 +1,8 @@
 #pragma once
 #include <string>
-# include <omp.h>
+#include <omp.h>
 #include <vector>
 #include <string>
-
-// Global parameters of simulations -> define iterations and steps
-//struct SimulationParameters
-//{
-	// simulation parameters
-//	double expTime;//
-	//int microsteps;// 10MHz scanning
-	//int nTotal ;	//10^-2 seconds total
-//};
 
 
 // Classes for objects that store simulation configs: LoggerParameters, ModelParameters, InitialConditions
@@ -90,28 +81,14 @@ struct ModelParameters
 struct SystemState
 {
 	double xMol;
-	double xMT;
-	double xBeadl;
-	double xBeadr;
-	double xTrapl; 
-	double xTrapr; 
 	double Time=0.0;
 	double direction = 1.0;
 	double logpotentialForce;
-
-	double vMol = 0.0;
-	double vMT = 0.0;
 
 	//#pragma omp declare simd
 	template <typename F>
 	static void iterateFields(F&& f) {
 		f(&SystemState::xMol, "xMol");
-		f(&SystemState::xMT, "xMT");
-		f(&SystemState::xBeadl, "xBeadl");
-		f(&SystemState::xBeadr, "xBeadr");
-
-		f(&SystemState::xTrapl, "xTrapl");
-		f(&SystemState::xTrapr, "xTrapr");
 		f(&SystemState::Time, "Time");
 		f(&SystemState::direction, "direction");
 		f(&SystemState::logpotentialForce, "logpotentialForce");
@@ -121,11 +98,9 @@ struct SystemState
 struct InitialConditions
 {
 	SystemState initialState;
-	
-	double xPed;   ////////////// Is it really iC????
-	//double xTrapl; // Must be negative for prestretch ////////////// Is it really iC????
-	//double xTrapr; // Must be positive for prestretch ////////////// Is it really iC????
+	double xPed;
 };
+
 // Composition of parameters
 struct Configuration
 {

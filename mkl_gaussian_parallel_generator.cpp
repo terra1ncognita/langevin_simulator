@@ -3,8 +3,6 @@
 #include <stdexcept>
 #include <omp.h>
 
-
-
 MklGaussianParallelGenerator::MklGaussianParallelGenerator(double mean, double stDeviation, std::size_t bufferSize, unsigned threadNum)
 	:_mean{ mean }, _stDeviation{ stDeviation }, _bufferSize{bufferSize},_threadNum{threadNum}
 {
@@ -20,7 +18,6 @@ MklGaussianParallelGenerator::MklGaussianParallelGenerator(double mean, double s
 	}
 	_buffer.resize(_bufferSize);
 }
-
 
 
 void MklGaussianParallelGenerator::generateNumbers()
