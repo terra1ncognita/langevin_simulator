@@ -329,7 +329,6 @@ int main(int argc, char *argv[])
 {
 	if (cmdOptionExists(argv, argv + argc, "-h"))
 	{
-		// Do stuff
 		std::cout << "Sorry users, no help donations today." << std::endl;
 	}
 	char * param_input_filename = getCmdOption(argv, argv + argc, "-paramsfile");
@@ -339,9 +338,6 @@ int main(int argc, char *argv[])
 	std::string inputparamfile;
 	inputparamfile.append(param_input_filename);
 	unsigned nThreads = std::stoi(charnThreads);
-	
-	//inputparamfile = "Config_1.json;Config_2.json;Config_3.json;Config_4.json";
-	//unsigned nThreads = 4;
 	
 	// Create and load simulation parameters and configuration, values are taken from json file
 	//const auto simulationParameters = load_simulationparams(inputparamfile);
@@ -385,20 +381,11 @@ int main(int argc, char *argv[])
 		saved step range is 10'000 -> nTotal
 		microsteps is macrostep*(buffersize/3)
 		*/
-	/*
-	//Old time params
+
 	int buffsize = 800'000;
 	int randomsPeriter = 4;
 	int stepsperbuffer = static_cast<int>(std::floor(buffsize / randomsPeriter));
-	int totalsavings = 10000;//(totalsteps / iterationsbetweenSavings)//20000
-	int iterationsbetweenSavings = 1'000'000;//1'000'000
-	int iterationsbetweenTrapsUpdate = 10'000'000;
-	
-	*/
-	int buffsize = 400'000;
-	int randomsPeriter = 4;
-	int stepsperbuffer = static_cast<int>(std::floor(buffsize / randomsPeriter));
-	int totalsavings = 4000;//(totalsteps / iterationsbetweenSavings)
+	int totalsavings = 7000;//(totalsteps / iterationsbetweenSavings)
 	int iterationsbetweenSavings = 15'000'000;
 	int iterationsbetweenTrapsUpdate = 15'000'000;
 
@@ -413,7 +400,7 @@ int main(int argc, char *argv[])
 	unsigned trapsUpdateTest = iterationsbetweenTrapsUpdate / iterationsbetweenSavings;
 
 	MklGaussianParallelGenerator generator1(0.0, 1.0, buffsize, 4);
-	//std::cout << totalsteps/iterationsbetweenSavings  << std::endl;
+
 	int tasksperthread = tasks.size() / nThreads;
 	std::cout << tasksperthread << std::endl;
 
@@ -480,7 +467,6 @@ int main(int argc, char *argv[])
 					task->_forcefeedbackBuffer.logpotentialForce = task->_forcefeedbackBuffer.logpotentialForce / static_cast<double>(iterationsbetweenTrapsUpdate);
 
 					//task->_forcefeedbackBuffer.Time   = task->_forcefeedbackBuffer.Time / static_cast<double>(iterationsbetweenTrapsUpdate);
-
 					//task->writeStateTolog();
 
 					int tmpDirection = task->_forcefeedbackBuffer.direction;
@@ -511,16 +497,11 @@ int main(int argc, char *argv[])
 							task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapl + (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
 						}
 					}
-					// check and update trap forces
-					// check for amplitude reach
 					
-
 					task->_state.xTrapl = task->_forcefeedbackBuffer.xTrapl;
 					task->_state.xTrapr = task->_forcefeedbackBuffer.xTrapr;
 
 					task->_loggingBuffer.direction = task->_forcefeedbackBuffer.direction;
-
-					
 					task->forcefeedbackBuffertoZero();
 				}
 			}
