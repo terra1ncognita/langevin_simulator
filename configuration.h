@@ -85,6 +85,9 @@ struct ModelParameters
 	double DmblMoveAmplitude;
 	double prestretchTotalForce;
 	double movementTotalForce;
+
+	double kOn;
+	double kOff;
 };
 
 struct SystemState
@@ -98,6 +101,8 @@ struct SystemState
 	double Time=0.0;
 	double direction = 1.0;
 	double logpotentialForce;
+
+	double binding = 0.0;
 
 	double vMol = 0.0;
 	double vMT = 0.0;
@@ -115,6 +120,8 @@ struct SystemState
 		f(&SystemState::Time, "Time");
 		f(&SystemState::direction, "direction");
 		f(&SystemState::logpotentialForce, "logpotentialForce");
+
+		f(&SystemState::direction, "binding");
 	}
 };
 

@@ -106,21 +106,24 @@ public:
 	double lgs = log(0.5);
 	double var1 = pow(2.0, log(1.0 + m) / lgs);
 	double var2 = pow(2.0, log(2.0) / lgs);
+	double binding = 0.0;
 
-	PotentialForce(double G_, double L_,  double sigma_)
+	PotentialForce(double G_, double L_,  double sigma_, double binding_)
 	{
 		G = G_;
 		L = L_;
 		powsigma = pow(sigma_, 2);
+		binding = binding_;
 	}
 
-	PotentialForce(double G_, double L_, double sigma_, double A_, double m_)
+	PotentialForce(double G_, double L_, double sigma_, double A_, double m_, double binding_)
 	{
 		G = G_;
 		L = L_;
 		powsigma = pow(sigma_, 2);
 		m = m_;
 		A = A_;
+		binding = binding_;
 
 		lgs = log((1.0 + m) / 2.0);
 		var1 = pow(2.0, log(1.0 + m) / lgs);
@@ -130,18 +133,27 @@ public:
 	// TODO refactor to use with period_map
 	double calc(double unmodvar) const
 	{
-		double var = mod(unmodvar, L);
-		return (G*(-L / 2.0 + var)) / (pow(E, pow(L - 2.0 * var, 2) / (8.0*powsigma))*powsigma);//l1d cache 4096 of doubles -> use 50% of it?
-		
+		if (binding == 0.0) {
+			return 0.0;
+		}
+		else if (binding == 1.0) {
+			double var = mod(unmodvar, L);
+			return (G*(-L / 2.0 + var)) / (pow(E, pow(L - 2.0 * var, 2) / (8.0*powsigma))*powsigma);//l1d cache 4096 of doubles -> use 50% of it?
+		}
 	}
 
 	double asymmetric(double unmodvar) const
 	{
-		double x = period_map(unmodvar, L);
-		double tmp1 = pow(1.0 + 2.0 * x / L, log(2.0) / lgs);
+		if (binding == 0.0) {
+			return 0.0;
+		}
+		else if (binding == 1.0) {
+			double x = period_map(unmodvar, L);
+			double tmp1 = pow(1.0 + 2.0 * x / L, log(2.0) / lgs);
 
-		return (log(2.0) * A * G * exp(A * (1.0 - 1.0 / (1.0 - pow((-1.0 + var1 / tmp1 ), 2)))) * tmp1 * (1.0 / tmp1 - 1.0 / var1) /
-			((L + 2.0*x) * pow(-1.0 + var2 / tmp1, 2) * lgs));
+			return (log(2.0) * A * G * exp(A * (1.0 - 1.0 / (1.0 - pow((-1.0 + var1 / tmp1), 2)))) * tmp1 * (1.0 / tmp1 - 1.0 / var1) /
+				((L + 2.0*x) * pow(-1.0 + var2 / tmp1, 2) * lgs));
+		}
 	}
 };
 
@@ -224,8 +236,9 @@ public:
 	// rndNumbers must contain 3 * nSteps random numbers
 	void advanceState(unsigned nSteps, const double* rndNumbers) {
 		// configurate force object
-		PotentialForce potentialForce(_mP.G, _mP.L, _mP.sigma, _mP.A, _mP.m);
-		
+		//PotentialForce potentialForce(_mP.G, _mP.L, _mP.sigma, _mP.A, _mP.m, _state.binding);
+		PotentialForce potentialForce(_mP.G, _mP.L, _mP.sigma, _state.binding);
+
 		auto takeRandomNumber = [rndNumbers] () mutable -> double {
 			return *(rndNumbers++);
 		};
@@ -313,6 +326,24 @@ public:
 	
 	}
 
+	void updadeBinding(int steps) {
+		double p;
+		double _rnd = uniform_unit(re);
+
+		if (_state.binding == 0.0) {
+			p = 1 - exp(-_mP.kOn * _mP.expTime * steps);
+			if (p > _rnd) {
+				_state.binding == 1.0;
+			}
+		}
+		else if (_state.binding == 1.0) {
+			p = 1 - exp(-_mP.kOff * _mP.expTime * steps);
+			if (p > _rnd) {
+				_state.binding == 0.0;
+			}
+		}
+	}
+
 private:
 	std::vector<std::unique_ptr<BinaryFileLogger>> _loggers;
 public:
@@ -321,6 +352,8 @@ public:
 	SystemState _forcefeedbackBuffer;
 	const ModelParameters _mP;
 	const InitialConditions _initC;
+	const std::uniform_real_distribution<double> uniform_unit;
+	const std::default_random_engine re;
 };
 
 
@@ -388,7 +421,7 @@ int main(int argc, char *argv[])
 	int totalsavings = 7000;//(totalsteps / iterationsbetweenSavings)
 	int iterationsbetweenSavings = 15'000'000;
 	int iterationsbetweenTrapsUpdate = 15'000'000;
-
+	int macrostepMax = iterationsbetweenSavings / stepsperbuffer;
 
 	if (iterationsbetweenSavings % stepsperbuffer != 0) {
 		throw std::runtime_error{ "Please check that iterationsbetweenSavings/stepsperbuffer is integer" };
@@ -411,8 +444,10 @@ int main(int argc, char *argv[])
 	}
 
 	for (int savedSampleIter = 0; savedSampleIter < totalsavings; savedSampleIter++) {
-		
-		int macrostepMax = iterationsbetweenSavings / stepsperbuffer;
+
+		for (const auto& task : tasks) {
+			task->updadeBinding(iterationsbetweenSavings);
+		}
 
 		for (int macrostep = 0; macrostep < macrostepMax; macrostep++) {
 			generator1.generateNumbers();
