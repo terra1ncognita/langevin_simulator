@@ -183,6 +183,14 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 		conf.modelParameters.movementTotalForce = stod(jsonobj["ModelParameters"]["movementTotalForce"].get<std::string>());
 	}
 
+	if (!(jsonobj["ModelParameters"]["kOn"].empty())) {
+		conf.modelParameters.kOn = stod(jsonobj["ModelParameters"]["kOn"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["kOff"].empty())) {
+		conf.modelParameters.kOff = stod(jsonobj["ModelParameters"]["kOff"].get<std::string>());
+	}
+
+
 	//// Assign Initial Conditions from json
 	if (!(jsonobj["InitialConditions"]["xPed"].empty())) {
 		conf.initialConditions.xPed = stod(jsonobj["InitialConditions"]["xPed"].get<std::string>());
