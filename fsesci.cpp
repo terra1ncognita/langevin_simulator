@@ -352,8 +352,8 @@ public:
 	SystemState _forcefeedbackBuffer;
 	const ModelParameters _mP;
 	const InitialConditions _initC;
-	const std::uniform_real_distribution<double> uniform_unit;
-	const std::default_random_engine re;
+	std::uniform_real_distribution<double> uniform_unit;
+	std::minstd_rand0 re;
 };
 
 
