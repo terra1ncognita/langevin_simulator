@@ -121,7 +121,7 @@ struct SystemState
 		f(&SystemState::direction, "direction");
 		f(&SystemState::logpotentialForce, "logpotentialForce");
 
-		f(&SystemState::direction, "binding");
+		f(&SystemState::binding, "binding");
 	}
 };
 
