@@ -172,6 +172,7 @@ public:
 			auto logger = std::make_unique<BinaryFileLogger>(loggerParameters, field, fieldName);// creates object of class BinaryFileLogger but returns to logger variable the unique pointer to it. // for creation of object implicitly with arguments like this also remind yourself the vector.emplace(args) .
 			this->_loggers.push_back(std::move(logger));// unique pointer can't be copied, only moved like this
 		});
+		re.seed(time(&_t));
 	}
 		
 	double calculateMolspringForce(double extensionInput) {
@@ -333,13 +334,13 @@ public:
 		if (_state.binding == 0.0) {
 			p = 1 - exp(-_mP.kOn * _mP.expTime * steps);
 			if (p > _rnd) {
-				_state.binding == 1.0;
+				_state.binding = 1.0;
 			}
 		}
 		else if (_state.binding == 1.0) {
 			p = 1 - exp(-_mP.kOff * _mP.expTime * steps);
 			if (p > _rnd) {
-				_state.binding == 0.0;
+				_state.binding = 0.0;
 			}
 		}
 	}
@@ -353,7 +354,8 @@ public:
 	const ModelParameters _mP;
 	const InitialConditions _initC;
 	std::uniform_real_distribution<double> uniform_unit;
-	std::minstd_rand0 re;
+	std::default_random_engine re;
+	std::time_t _t;
 };
 
 
