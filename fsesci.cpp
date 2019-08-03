@@ -74,7 +74,7 @@ private:
 		_buffer.clear();
 	}
 
-	static constexpr std::size_t _buffsize = 1024 / sizeof(double);//4096 default
+	static constexpr std::size_t _buffsize = 4096 / sizeof(double);//4096 default, was 1024
 	std::ofstream _file;
 	double(SystemState::* _loggedField);
 	std::vector <double> _buffer;
@@ -160,39 +160,39 @@ public:
 class Task
 {
 public:
-	Task( const Configuration& configuration):
-		
-		_mP( configuration.modelParameters ),
-		_initC( configuration.initialConditions ),
-		_state( configuration.initialConditions.initialState )
-		
+	Task(const Configuration& configuration) :
+
+		_mP(configuration.modelParameters),
+		_initC(configuration.initialConditions),
+		_state(configuration.initialConditions.initialState)
+
 	{
 		const auto& loggerParameters = configuration.loggerParameters;
-		SystemState::iterateFields([this, &loggerParameters] (double(SystemState::* field), std::string fieldName) {
+		SystemState::iterateFields([this, &loggerParameters](double(SystemState::* field), std::string fieldName) {
 			auto logger = std::make_unique<BinaryFileLogger>(loggerParameters, field, fieldName);// creates object of class BinaryFileLogger but returns to logger variable the unique pointer to it. // for creation of object implicitly with arguments like this also remind yourself the vector.emplace(args) .
 			this->_loggers.push_back(std::move(logger));// unique pointer can't be copied, only moved like this
 		});
 		re.seed(time(&_t));
 	}
-		
+
 	double calculateMolspringForce(double extensionInput) {
 		double extension = fabs(extensionInput);
 		int sign = (extensionInput > 0) - (extensionInput < 0);
 
 		if (extension <= _mP.molStiffBoundary) {
-			return sign*_mP.molStiffWeakSlope*extension;
+			return sign * _mP.molStiffWeakSlope*extension;
 		}
 		else
 		{
-			return sign*(_mP.molStiffStrongSlope*extension + _mP.molStiffBoundary*(_mP.molStiffWeakSlope-_mP.molStiffStrongSlope));
+			return sign * (_mP.molStiffStrongSlope*extension + _mP.molStiffBoundary*(_mP.molStiffWeakSlope - _mP.molStiffStrongSlope));
 		}
-		 
+
 	}
 
 	double calculateMTspringForce(double extensionInput, char side) {
 		//double extensionNm = fabs(extension * 1000);
 		//return (extension/fabs(extension))*(0.0062*extensionNm+(1.529*pow(10,-6)*(pow(extensionNm,2))) + (2.72*pow(10,-7)*pow(extensionNm,3)));
-		double extension=fabs(extensionInput)*2.0;
+		double extension = fabs(extensionInput)*2.0;
 		int sign = (extensionInput > 0) - (extensionInput < 0);
 
 		if (side == 'L')
@@ -205,7 +205,7 @@ public:
 			{
 				if (extension > _mP.MTstiffWeakBoundaryL && extension < _mP.MTstiffStrongBoundaryL)
 				{
-					return (_mP.MTstiffParabolicAL*pow(extension,2) + _mP.MTstiffParabolicBL*extension + _mP.MTstiffParabolicCL)*sign;
+					return (_mP.MTstiffParabolicAL*pow(extension, 2) + _mP.MTstiffParabolicBL*extension + _mP.MTstiffParabolicCL)*sign;
 				}
 				else
 				{
@@ -231,7 +231,7 @@ public:
 				}
 			}
 		}
-		
+
 	}
 
 	// rndNumbers must contain 3 * nSteps random numbers
@@ -239,7 +239,7 @@ public:
 		// configurate force object
 		//PotentialForce potentialForce(_mP.G, _mP.L, _mP.sigma, _mP.A, _mP.m, _state.binding);
 		PotentialForce potentialForce(_mP.G, _mP.L, _mP.sigma, _state.binding);
-
+		
 		auto takeRandomNumber = [rndNumbers] () mutable -> double {
 			return *(rndNumbers++);
 		};
@@ -251,9 +251,9 @@ public:
 			double rnd_xBeadr = takeRandomNumber();
 			double rnd_xMol = takeRandomNumber();
 			
-			//double MT_Mol_force = potentialForce.calc(_state.xMol - _state.xMT);
+			double MT_Mol_force = potentialForce.calc(_state.xMol - _state.xMT);
 
-			double MT_Mol_force = potentialForce.asymmetric(_state.xMol - _state.xMT);
+			//double MT_Mol_force = potentialForce.asymmetric(_state.xMol - _state.xMT);
 
 			double next_xMT = _state.xMT + (_mP.expTime / _mP.gammaMT)*(-calculateMTspringForce(_state.xMT - _state.xBeadl - _mP.MTlength / 2, 'L') + calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength/2, 'R') - MT_Mol_force)+ sqrt(2*_mP.DMT*_mP.expTime) * rnd_xMT;
 			double next_xBeadl = _state.xBeadl + (_mP.expTime / _mP.gammaBeadL)*(((-_mP.trapstiffL)*(_state.xBeadl - _state.xTrapl)) + calculateMTspringForce(_state.xMT - _state.xBeadl -  _mP.MTlength / 2, 'L')) + sqrt(2*_mP.DBeadL*_mP.expTime) * rnd_xBeadl;
@@ -293,7 +293,7 @@ public:
 			_loggingBuffer.xMol   +=  _state.xMol;  
 			_loggingBuffer.logpotentialForce += MT_Mol_force;
 			_loggingBuffer.Time   =  _state.Time;   
-
+			_loggingBuffer.binding = _state.binding;
 		}
 	}
 
@@ -313,6 +313,7 @@ public:
 		_loggingBuffer.xMol = 0.0;
 		_loggingBuffer.logpotentialForce = 0.0;
 		_loggingBuffer.Time = 0.0;
+		_loggingBuffer.binding = 0.0;
 	}
 
 	void forcefeedbackBuffertoZero() {
@@ -324,25 +325,25 @@ public:
 		_forcefeedbackBuffer.xMol = 0.0;
 		_forcefeedbackBuffer.logpotentialForce = 0.0;
 		_forcefeedbackBuffer.Time = 0.0;
-	
 	}
 
 	void updadeBinding(int steps) {
-		double p;
-		double _rnd = uniform_unit(re);
+		
+		double newState = _state.binding;
 
 		if (_state.binding == 0.0) {
-			p = 1 - exp(-_mP.kOn * _mP.expTime * steps);
-			if (p > _rnd) {
-				_state.binding = 1.0;
+			std::bernoulli_distribution berDist(1 - exp(-_mP.kOn * _mP.expTime * steps));
+			if (berDist(re)) {
+				newState = 1.0;
 			}
 		}
 		else if (_state.binding == 1.0) {
-			p = 1 - exp(-_mP.kOff * _mP.expTime * steps);
-			if (p > _rnd) {
-				_state.binding = 0.0;
+			std::bernoulli_distribution berDist(1 - exp(-_mP.kOff * _mP.expTime * steps));
+			if (berDist(re)) {
+				newState = 0.0;
 			}
 		}
+		_state.binding = newState;
 	}
 
 private:
@@ -353,7 +354,6 @@ public:
 	SystemState _forcefeedbackBuffer;
 	const ModelParameters _mP;
 	const InitialConditions _initC;
-	std::uniform_real_distribution<double> uniform_unit;
 	std::default_random_engine re;
 	std::time_t _t;
 };
@@ -423,7 +423,6 @@ int main(int argc, char *argv[])
 	int totalsavings = 7000;//(totalsteps / iterationsbetweenSavings)
 	int iterationsbetweenSavings = 15'000'000;
 	int iterationsbetweenTrapsUpdate = 15'000'000;
-	int macrostepMax = iterationsbetweenSavings / stepsperbuffer;
 
 	if (iterationsbetweenSavings % stepsperbuffer != 0) {
 		throw std::runtime_error{ "Please check that iterationsbetweenSavings/stepsperbuffer is integer" };
@@ -432,6 +431,7 @@ int main(int argc, char *argv[])
 		throw std::runtime_error{ "Please check that iterationsbetweenTrapsUpdate/iterationsbetweenSavings is integer" };
 	}
 
+	int macrostepMax = iterationsbetweenSavings / stepsperbuffer;
 	unsigned trapsUpdateTest = iterationsbetweenTrapsUpdate / iterationsbetweenSavings;
 
 	MklGaussianParallelGenerator generator1(0.0, 1.0, buffsize, 4);
@@ -442,8 +442,18 @@ int main(int argc, char *argv[])
 	for (const auto& task : tasks) {
 		task->loggingBuffertoZero();
 		task->forcefeedbackBuffertoZero();
-		
 	}
+
+	/*
+	generator1.generateNumbers();
+	const auto buffData = generator1.getNumbersBuffer();
+
+	for (int t = 0; t < totalsavings; ++t) {
+		tasks[0]->updadeBinding(iterationsbetweenSavings);
+		tasks[0]->advanceState(stepsperbuffer, buffData);
+		std::cout << tasks[0]->_state.binding << " " << tasks[0]->_loggingBuffer.logpotentialForce << std::endl;
+	}
+	*/
 
 	for (int savedSampleIter = 0; savedSampleIter < totalsavings; savedSampleIter++) {
 
@@ -457,95 +467,97 @@ int main(int argc, char *argv[])
 
 			#pragma omp parallel num_threads(nThreads) shared(buffData, tasks)
 			{
-					//const auto begin = __rdtsc();
+				//const auto begin = __rdtsc();
 				//tasks[omp_get_thread_num()]->advanceState(stepsperbuffer, buffData);
 				for (int taskrun = 0; taskrun < tasksperthread; taskrun++) {
 					tasks[omp_get_thread_num()+ taskrun*nThreads]->advanceState(stepsperbuffer, buffData);
 					
 				}
-					//const auto end = __rdtsc();
-					//const auto cyclesPerStep = static_cast<double>(end - begin) / static_cast<double>(std::floor(buffsize / randomsPeriter));
-					//std::cout << "cyclesPerStep = " << cyclesPerStep << std::endl;
+				//const auto end = __rdtsc();
+				//const auto cyclesPerStep = static_cast<double>(end - begin) / static_cast<double>(std::floor(buffsize / randomsPeriter));
+				//std::cout << "cyclesPerStep = " << cyclesPerStep << std::endl;
 			} // end of openmp section
+
 		}
-			for (const auto& task : tasks) {
-				task->_forcefeedbackBuffer.xMT    += task->_loggingBuffer.xMT;
-				task->_forcefeedbackBuffer.xBeadl += task->_loggingBuffer.xBeadl;
-				task->_forcefeedbackBuffer.xBeadr += task->_loggingBuffer.xBeadr;
-				task->_forcefeedbackBuffer.xTrapl += task->_loggingBuffer.xTrapl;
-				task->_forcefeedbackBuffer.xTrapr += task->_loggingBuffer.xTrapr;
-				task->_forcefeedbackBuffer.xMol   += task->_loggingBuffer.xMol;
-				task->_forcefeedbackBuffer.logpotentialForce += task->_loggingBuffer.logpotentialForce;
-				//task->_forcefeedbackBuffer.Time   += task->_loggingBuffer.Time;
 
-				task->_loggingBuffer.xMT    = task->_loggingBuffer.xMT / static_cast<double>(iterationsbetweenSavings);
-				task->_loggingBuffer.xBeadl = task->_loggingBuffer.xBeadl / static_cast<double>(iterationsbetweenSavings);
-				task->_loggingBuffer.xBeadr = task->_loggingBuffer.xBeadr / static_cast<double>(iterationsbetweenSavings);
-				task->_loggingBuffer.xTrapl = task->_loggingBuffer.xTrapl / static_cast<double>(iterationsbetweenSavings);
-				task->_loggingBuffer.xTrapr = task->_loggingBuffer.xTrapr / static_cast<double>(iterationsbetweenSavings);
-				task->_loggingBuffer.xMol   = task->_loggingBuffer.xMol / static_cast<double>(iterationsbetweenSavings);
-				task->_loggingBuffer.logpotentialForce= task->_loggingBuffer.logpotentialForce / static_cast<double>(iterationsbetweenSavings);
-				//task->_loggingBuffer.Time   = task->_loggingBuffer.Time / static_cast<double>(iterationsbetweenSavings);
+		for (const auto& task : tasks) {
+			task->_forcefeedbackBuffer.xMT    += task->_loggingBuffer.xMT;
+			task->_forcefeedbackBuffer.xBeadl += task->_loggingBuffer.xBeadl;
+			task->_forcefeedbackBuffer.xBeadr += task->_loggingBuffer.xBeadr;
+			task->_forcefeedbackBuffer.xTrapl += task->_loggingBuffer.xTrapl;
+			task->_forcefeedbackBuffer.xTrapr += task->_loggingBuffer.xTrapr;
+			task->_forcefeedbackBuffer.xMol   += task->_loggingBuffer.xMol;
+			task->_forcefeedbackBuffer.logpotentialForce += task->_loggingBuffer.logpotentialForce;
+			//task->_forcefeedbackBuffer.Time   += task->_loggingBuffer.Time;
 
-				task->writeStateTolog();
-				task->loggingBuffertoZero();
-				
-			}
+			task->_loggingBuffer.xMT    = task->_loggingBuffer.xMT / static_cast<double>(iterationsbetweenSavings);
+			task->_loggingBuffer.xBeadl = task->_loggingBuffer.xBeadl / static_cast<double>(iterationsbetweenSavings);
+			task->_loggingBuffer.xBeadr = task->_loggingBuffer.xBeadr / static_cast<double>(iterationsbetweenSavings);
+			task->_loggingBuffer.xTrapl = task->_loggingBuffer.xTrapl / static_cast<double>(iterationsbetweenSavings);
+			task->_loggingBuffer.xTrapr = task->_loggingBuffer.xTrapr / static_cast<double>(iterationsbetweenSavings);
+			task->_loggingBuffer.xMol   = task->_loggingBuffer.xMol / static_cast<double>(iterationsbetweenSavings);
+			task->_loggingBuffer.logpotentialForce= task->_loggingBuffer.logpotentialForce / static_cast<double>(iterationsbetweenSavings);
+			//task->_loggingBuffer.Time   = task->_loggingBuffer.Time / static_cast<double>(iterationsbetweenSavings);
+
+			task->writeStateTolog();
+			task->loggingBuffertoZero();
+		}
 		
-			 if ((savedSampleIter % trapsUpdateTest) == 0) {
-				for (const auto& task : tasks) {
+		if ((savedSampleIter % trapsUpdateTest) == 0) {
+			for (const auto& task : tasks) {
 
-					task->_forcefeedbackBuffer.xMT    = task->_forcefeedbackBuffer.xMT / static_cast<double>(iterationsbetweenTrapsUpdate);
-					task->_forcefeedbackBuffer.xBeadl = task->_forcefeedbackBuffer.xBeadl / static_cast<double>(iterationsbetweenTrapsUpdate);
-					task->_forcefeedbackBuffer.xBeadr = task->_forcefeedbackBuffer.xBeadr / static_cast<double>(iterationsbetweenTrapsUpdate);
-					task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapl / static_cast<double>(iterationsbetweenTrapsUpdate);
-					task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapr / static_cast<double>(iterationsbetweenTrapsUpdate);
-					task->_forcefeedbackBuffer.xMol   = task->_forcefeedbackBuffer.xMol / static_cast<double>(iterationsbetweenTrapsUpdate);
-					task->_forcefeedbackBuffer.logpotentialForce = task->_forcefeedbackBuffer.logpotentialForce / static_cast<double>(iterationsbetweenTrapsUpdate);
+				task->_forcefeedbackBuffer.xMT    = task->_forcefeedbackBuffer.xMT / static_cast<double>(iterationsbetweenTrapsUpdate);
+				task->_forcefeedbackBuffer.xBeadl = task->_forcefeedbackBuffer.xBeadl / static_cast<double>(iterationsbetweenTrapsUpdate);
+				task->_forcefeedbackBuffer.xBeadr = task->_forcefeedbackBuffer.xBeadr / static_cast<double>(iterationsbetweenTrapsUpdate);
+				task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapl / static_cast<double>(iterationsbetweenTrapsUpdate);
+				task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapr / static_cast<double>(iterationsbetweenTrapsUpdate);
+				task->_forcefeedbackBuffer.xMol   = task->_forcefeedbackBuffer.xMol / static_cast<double>(iterationsbetweenTrapsUpdate);
+				task->_forcefeedbackBuffer.logpotentialForce = task->_forcefeedbackBuffer.logpotentialForce / static_cast<double>(iterationsbetweenTrapsUpdate);
 
-					//task->_forcefeedbackBuffer.Time   = task->_forcefeedbackBuffer.Time / static_cast<double>(iterationsbetweenTrapsUpdate);
-					//task->writeStateTolog();
+				//task->_forcefeedbackBuffer.Time   = task->_forcefeedbackBuffer.Time / static_cast<double>(iterationsbetweenTrapsUpdate);
+				//task->writeStateTolog();
 
-					int tmpDirection = task->_forcefeedbackBuffer.direction;
+				int tmpDirection = task->_forcefeedbackBuffer.direction;
 
-					if (tmpDirection == 1.0)
-					{
-						//moving to the right, leading bead right, trailing bead left, positive X increment
-						if (task->_forcefeedbackBuffer.xBeadr >= task->_initC.initialState.xBeadr +  task->_mP.DmblMoveAmplitude) {
-							task->_forcefeedbackBuffer.direction = -1.0;
-							task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xBeadl + (task->_initC.initialState.xTrapl - task->_initC.initialState.xBeadl) - (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffL);
-							task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapl + (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
-						}
-						else {
-							task->_forcefeedbackBuffer.xTrapr = (task->_initC.initialState.xTrapr - task->_initC.initialState.xBeadr) + task->_forcefeedbackBuffer.xBeadr + (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffR);
-							task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapr - (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
-						}
+				if (tmpDirection == 1.0)
+				{
+					//moving to the right, leading bead right, trailing bead left, positive X increment
+					if (task->_forcefeedbackBuffer.xBeadr >= task->_initC.initialState.xBeadr +  task->_mP.DmblMoveAmplitude) {
+						task->_forcefeedbackBuffer.direction = -1.0;
+						task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xBeadl + (task->_initC.initialState.xTrapl - task->_initC.initialState.xBeadl) - (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffL);
+						task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapl + (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
 					}
-					if (tmpDirection == -1.0)
-					{
-						//moving to the left, leading bead left, trailing bead right, negative X increment
-						if (task->_forcefeedbackBuffer.xBeadl <= task->_initC.initialState.xBeadl -task->_mP.DmblMoveAmplitude) {
-							task->_forcefeedbackBuffer.direction = 1.0;
-							task->_forcefeedbackBuffer.xTrapr = (task->_initC.initialState.xTrapr - task->_initC.initialState.xBeadr) + task->_forcefeedbackBuffer.xBeadr + (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffR);
-							task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapr - task->_initC.initialState.xTrapr + task->_initC.initialState.xTrapl;
-						}
-						else {
-							task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xBeadl + (task->_initC.initialState.xTrapl - task->_initC.initialState.xBeadl)  - (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffL);
-							task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapl + (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
-						}
+					else {
+						task->_forcefeedbackBuffer.xTrapr = (task->_initC.initialState.xTrapr - task->_initC.initialState.xBeadr) + task->_forcefeedbackBuffer.xBeadr + (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffR);
+						task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapr - (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
 					}
-					
-					task->_state.xTrapl = task->_forcefeedbackBuffer.xTrapl;
-					task->_state.xTrapr = task->_forcefeedbackBuffer.xTrapr;
-
-					task->_loggingBuffer.direction = task->_forcefeedbackBuffer.direction;
-					task->forcefeedbackBuffertoZero();
 				}
+				if (tmpDirection == -1.0)
+				{
+					//moving to the left, leading bead left, trailing bead right, negative X increment
+					if (task->_forcefeedbackBuffer.xBeadl <= task->_initC.initialState.xBeadl -task->_mP.DmblMoveAmplitude) {
+						task->_forcefeedbackBuffer.direction = 1.0;
+						task->_forcefeedbackBuffer.xTrapr = (task->_initC.initialState.xTrapr - task->_initC.initialState.xBeadr) + task->_forcefeedbackBuffer.xBeadr + (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffR);
+						task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapr - task->_initC.initialState.xTrapr + task->_initC.initialState.xTrapl;
+					}
+					else {
+						task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xBeadl + (task->_initC.initialState.xTrapl - task->_initC.initialState.xBeadl)  - (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffL);
+						task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapl + (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
+					}
+				}
+					
+				task->_state.xTrapl = task->_forcefeedbackBuffer.xTrapl;
+				task->_state.xTrapr = task->_forcefeedbackBuffer.xTrapr;
+
+				task->_loggingBuffer.direction = task->_forcefeedbackBuffer.direction;
+				task->forcefeedbackBuffertoZero();
 			}
+		}
 
 		if (savedSampleIter % 10 == 0) {
 			double procent = round(100 * 100 * savedSampleIter / (totalsavings)) / 100;
 			std::cout << procent << "%" << std::endl;
+			
 			//std::cout << __rdtsc() << std::endl;
 			//std::cout << nst << std::endl;
 		}

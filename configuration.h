@@ -98,14 +98,14 @@ struct SystemState
 	double xBeadr;
 	double xTrapl; 
 	double xTrapr; 
-	double Time=0.0;
+	double Time = 0.0;
 	double direction = 1.0;
 	double logpotentialForce;
 
 	double binding = 0.0;
 
-	double vMol = 0.0;
-	double vMT = 0.0;
+	//double vMol = 0.0;
+	//double vMT = 0.0;
 
 	//#pragma omp declare simd
 	template <typename F>
