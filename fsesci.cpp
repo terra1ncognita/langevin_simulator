@@ -34,9 +34,6 @@
 
 // Initialize global constants
 //std::string inputparamfile = "C:\\Users\\Tolya\\Documents\\Visual Studio 2015\\Projects\\Langevien2_New\\x64\\Release\\config_debug_trap50_noT.json";
-const double E = std::exp(1.0);
-//const double kBoltz= 1.38064852e-5; //pN um
-
 
 /// ToDo try to use ofstream rawwrite
 
@@ -97,7 +94,7 @@ double period_map(double y, double L)
 class PotentialForce 
 {
 public:
-	double G = 0.0;
+	double G = 0.0, G2 = 0.0;
 	double L = 0.0;
 	double E = exp(1.0); 
 	double powsigma = 0.0;
@@ -108,17 +105,19 @@ public:
 	double var2 = pow(2.0, log(2.0) / lgs);
 	double binding = 0.0;
 
-	PotentialForce(double G_, double L_,  double sigma_, double binding_)
+	PotentialForce(double G_, double G2_, double L_,  double sigma_, double binding_)
 	{
 		G = G_;
+		G2 = G2_;
 		L = L_;
 		powsigma = pow(sigma_, 2);
 		binding = binding_;
 	}
 
-	PotentialForce(double G_, double L_, double sigma_, double A_, double m_, double binding_)
+	PotentialForce(double G_, double G2_, double L_, double sigma_, double A_, double m_, double binding_)
 	{
 		G = G_;
+		G2 = G2_;
 		L = L_;
 		powsigma = pow(sigma_, 2);
 		m = m_;
@@ -133,12 +132,15 @@ public:
 	// TODO refactor to use with period_map
 	double calc(double unmodvar) const
 	{
+		double var = mod(unmodvar, L);
 		if (binding == 0.0) {
 			return 0.0;
 		}
 		else if (binding == 1.0) {
-			double var = mod(unmodvar, L);
 			return (G*(-L / 2.0 + var)) / (pow(E, pow(L - 2.0 * var, 2) / (8.0*powsigma))*powsigma);//l1d cache 4096 of doubles -> use 50% of it?
+		}
+		else if (binding == 2.0) {
+			return (G2*(-L / 2.0 + var)) / (pow(E, pow(L - 2.0 * var, 2) / (8.0*powsigma))*powsigma);
 		}
 	}
 
@@ -238,7 +240,7 @@ public:
 	void advanceState(unsigned nSteps, const double* rndNumbers) {
 		// configurate force object
 		//PotentialForce potentialForce(_mP.G, _mP.L, _mP.sigma, _mP.A, _mP.m, _state.binding);
-		PotentialForce potentialForce(_mP.G, _mP.L, _mP.sigma, _state.binding);
+		PotentialForce potentialForce(_mP.G, _mP.G2, _mP.L, _mP.sigma, _state.binding);
 		
 		auto takeRandomNumber = [rndNumbers] () mutable -> double {
 			return *(rndNumbers++);
@@ -328,22 +330,17 @@ public:
 	}
 
 	void updadeBinding(int steps) {
-		
-		double newState = _state.binding;
+		int curr_binding = int(_state.binding);
+		std::vector<double> probs(_mP.transitionMatrix[curr_binding],
+			_mP.transitionMatrix[curr_binding] + _mP.numStates);
 
-		if (_state.binding == 0.0) {
-			std::bernoulli_distribution berDist(1 - exp(-_mP.kOn * _mP.expTime * steps));
-			if (berDist(re)) {
-				newState = 1.0;
-			}
+		for (auto& p : probs) {
+			p *= _mP.expTime * steps;
 		}
-		else if (_state.binding == 1.0) {
-			std::bernoulli_distribution berDist(1 - exp(-_mP.kOff * _mP.expTime * steps));
-			if (berDist(re)) {
-				newState = 0.0;
-			}
-		}
-		_state.binding = newState;
+		probs[curr_binding] += 1;
+
+		std::discrete_distribution<> dist(probs.begin(), probs.end());
+		_state.binding = dist(re);
 	}
 
 private:
@@ -420,7 +417,7 @@ int main(int argc, char *argv[])
 	int buffsize = 800'000;
 	int randomsPeriter = 4;
 	int stepsperbuffer = static_cast<int>(std::floor(buffsize / randomsPeriter));
-	int totalsavings = 7000;//(totalsteps / iterationsbetweenSavings)
+	int totalsavings = 20000;//(totalsteps / iterationsbetweenSavings)
 	int iterationsbetweenSavings = 15'000'000;
 	int iterationsbetweenTrapsUpdate = 15'000'000;
 
@@ -477,7 +474,6 @@ int main(int argc, char *argv[])
 				//const auto cyclesPerStep = static_cast<double>(end - begin) / static_cast<double>(std::floor(buffsize / randomsPeriter));
 				//std::cout << "cyclesPerStep = " << cyclesPerStep << std::endl;
 			} // end of openmp section
-
 		}
 
 		for (const auto& task : tasks) {

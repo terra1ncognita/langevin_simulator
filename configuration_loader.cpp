@@ -45,6 +45,9 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	if (!(jsonobj["ModelParameters"]["Gdepth"].empty())) {
 		conf.modelParameters.G = (conf.modelParameters.kT)*stod(jsonobj["ModelParameters"]["Gdepth"].get<std::string>());
 	}
+	if (!(jsonobj["ModelParameters"]["Gdepth2"].empty())) {
+		conf.modelParameters.G2 = (conf.modelParameters.kT)*stod(jsonobj["ModelParameters"]["Gdepth2"].get<std::string>());
+	}
 	if (!(jsonobj["ModelParameters"]["L"].empty())) {
 		conf.modelParameters.L = stod(jsonobj["ModelParameters"]["L"].get<std::string>());
 	}
@@ -183,11 +186,17 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 		conf.modelParameters.movementTotalForce = stod(jsonobj["ModelParameters"]["movementTotalForce"].get<std::string>());
 	}
 
-	if (!(jsonobj["ModelParameters"]["kOn"].empty())) {
-		conf.modelParameters.kOn = stod(jsonobj["ModelParameters"]["kOn"].get<std::string>());
+	if (!(jsonobj["ModelParameters"]["kOn1"].empty())) {
+		conf.modelParameters.kOn1 = stod(jsonobj["ModelParameters"]["kOn1"].get<std::string>());
 	}
-	if (!(jsonobj["ModelParameters"]["kOff"].empty())) {
-		conf.modelParameters.kOff = stod(jsonobj["ModelParameters"]["kOff"].get<std::string>());
+	if (!(jsonobj["ModelParameters"]["kOff1"].empty())) {
+		conf.modelParameters.kOff1 = stod(jsonobj["ModelParameters"]["kOff1"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["kOn2"].empty())) {
+		conf.modelParameters.kOn2 = stod(jsonobj["ModelParameters"]["kOn2"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["kOff2"].empty())) {
+		conf.modelParameters.kOff2 = stod(jsonobj["ModelParameters"]["kOff2"].get<std::string>());
 	}
 
 
@@ -237,6 +246,30 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	if (!(jsonobj["InitialConditions"]["xBeadr"].empty())) {
 		conf.currentState.xBeadr = stod(jsonobj["InitialConditions"]["xBeadr"].get<std::string>());
 	}
+
+	//TODO: generalize to arbitrary Markov chain
+	if (conf.modelParameters.numStates != 3) {
+		throw std::runtime_error{ "Current implementation is only for 3 states!" };
+	}
+
+	conf.modelParameters.transitionMatrix = new double*[conf.modelParameters.numStates];
+	for (int i = 0; i < conf.modelParameters.numStates; ++i) {
+		conf.modelParameters.transitionMatrix[i] = new double[conf.modelParameters.numStates];
+	}
+
+	conf.modelParameters.transitionMatrix[0][0] = -conf.modelParameters.kOn1;
+	conf.modelParameters.transitionMatrix[0][1] = conf.modelParameters.kOn1;
+	conf.modelParameters.transitionMatrix[0][2] = 0;
+
+	conf.modelParameters.transitionMatrix[1][0] = conf.modelParameters.kOff1;
+	conf.modelParameters.transitionMatrix[1][1] = -conf.modelParameters.kOff1 - conf.modelParameters.kOn2;
+	conf.modelParameters.transitionMatrix[1][2] = conf.modelParameters.kOn2;
+
+	conf.modelParameters.transitionMatrix[2][0] = 0;
+	conf.modelParameters.transitionMatrix[2][1] = conf.modelParameters.kOff2;
+	conf.modelParameters.transitionMatrix[2][2] = -conf.modelParameters.kOff2;
+
+
 	////
 	return conf;
 }

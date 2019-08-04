@@ -31,7 +31,7 @@ struct ModelParameters
 	double kT;
 
 	//Parameters of potential
-	double G ;					// (* kT | Depth of the potential *)
+	double G, G2 ;					// (* kT | Depth of the potential *)
 	double L ;					//(* um | period of the periodic potential *)
 	double sigma;			//(* um | width of the binding well *)
 	double A;           // width of asymmetric potential, um
@@ -86,8 +86,12 @@ struct ModelParameters
 	double prestretchTotalForce;
 	double movementTotalForce;
 
-	double kOn;
-	double kOff;
+	int numStates = 3;
+
+	double kOn1, kOn2;
+	double kOff1, kOff2;
+
+	double** transitionMatrix;
 };
 
 struct SystemState
