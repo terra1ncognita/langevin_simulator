@@ -107,6 +107,7 @@ struct SystemState
 	double logpotentialForce;
 
 	double binding = 0.0;
+	double currentWell = 0.0;
 
 	//double vMol = 0.0;
 	//double vMT = 0.0;

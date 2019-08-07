@@ -87,8 +87,7 @@ double mod(double a, double N)
 // New mapping R->[-L/2, L/2], 0->0 for asymmetric well
 double period_map(double y, double L)
 {
-	double x = y + L / 2.0;
-	return x - floor(x / L)* L - L / 2.0;
+	return y - floor(y / L + 0.5)* L;
 }
 
 class PotentialForce 
@@ -104,17 +103,18 @@ public:
 	double var1 = pow(2.0, log(1.0 + m) / lgs);
 	double var2 = pow(2.0, log(2.0) / lgs);
 	double binding = 0.0;
+	SystemState* state;
 
-	PotentialForce(double G_, double G2_, double L_,  double sigma_, double binding_)
+	PotentialForce(double G_, double G2_, double L_,  double sigma_, SystemState& state_)
 	{
 		G = G_;
 		G2 = G2_;
 		L = L_;
 		powsigma = pow(sigma_, 2);
-		binding = binding_;
+		state = &state_;
 	}
 
-	PotentialForce(double G_, double G2_, double L_, double sigma_, double A_, double m_, double binding_)
+	PotentialForce(double G_, double G2_, double L_, double sigma_, double A_, double m_, SystemState& state)
 	{
 		G = G_;
 		G2 = G2_;
@@ -122,7 +122,7 @@ public:
 		powsigma = pow(sigma_, 2);
 		m = m_;
 		A = A_;
-		binding = binding_;
+		binding = state.binding;
 
 		lgs = log((1.0 + m) / 2.0);
 		var1 = pow(2.0, log(1.0 + m) / lgs);
@@ -132,14 +132,14 @@ public:
 	// TODO refactor to use with period_map
 	double calc(double unmodvar) const
 	{
-		double var = mod(unmodvar, L);
-		if (binding == 0.0) {
+		double var = period_map(unmodvar, L);
+		if (state->binding == 0.0) {
 			return 0.0;
 		}
-		else if (binding == 1.0) {
+		else if (state->binding == 1.0) {
 			return (G*(-L / 2.0 + var)) / (pow(E, pow(L - 2.0 * var, 2) / (8.0*powsigma))*powsigma);//l1d cache 4096 of doubles -> use 50% of it?
 		}
-		else if (binding == 2.0) {
+		else if (state->binding == 2.0) {
 			return (G2*(-L / 2.0 + var)) / (pow(E, pow(L - 2.0 * var, 2) / (8.0*powsigma))*powsigma);
 		}
 	}
@@ -240,7 +240,7 @@ public:
 	void advanceState(unsigned nSteps, const double* rndNumbers) {
 		// configurate force object
 		//PotentialForce potentialForce(_mP.G, _mP.L, _mP.sigma, _mP.A, _mP.m, _state.binding);
-		PotentialForce potentialForce(_mP.G, _mP.G2, _mP.L, _mP.sigma, _state.binding);
+		PotentialForce potentialForce(_mP.G, _mP.G2, _mP.L, _mP.sigma, _state);
 		
 		auto takeRandomNumber = [rndNumbers] () mutable -> double {
 			return *(rndNumbers++);
@@ -276,6 +276,10 @@ public:
 			
 			double next_vMol = (next_xMol - _state.xMol) / _mP.expTime;
 			double next_vMT = (next_xMT - _state.xMT) / _mP.expTime;*/
+
+			if (_state.binding == 1.0 && ( abs((next_xMol - next_xMT) - _state.currentWell) >= _mP.L / 2.0 )) {
+				_state.binding = 0.0;
+			}
 
 			_state.xMT    = next_xMT;
 			_state.xBeadl = next_xBeadl;
@@ -330,17 +334,21 @@ public:
 	}
 
 	void updadeBinding(int steps) {
-		int curr_binding = int(_state.binding);
-		std::vector<double> probs(_mP.transitionMatrix[curr_binding],
-			_mP.transitionMatrix[curr_binding] + _mP.numStates);
+		int prev_binding = int(_state.binding);
+		std::vector<double> probs(_mP.transitionMatrix[prev_binding],
+			_mP.transitionMatrix[prev_binding] + _mP.numStates);
 
 		for (auto& p : probs) {
 			p *= _mP.expTime * steps;
 		}
-		probs[curr_binding] += 1;
+		probs[prev_binding] += 1;
 
 		std::discrete_distribution<> dist(probs.begin(), probs.end());
 		_state.binding = dist(re);
+
+		if ((prev_binding == 0.0) && (_state.binding == 1.0)) {
+			_state.currentWell = _mP.L * floor(((_state.xMol - _state.xMT) + _mP.L /2.0) / _mP.L);
+		}
 	}
 
 private:
