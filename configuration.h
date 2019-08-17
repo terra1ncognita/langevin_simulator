@@ -1,17 +1,25 @@
 #pragma once
 #include <string>
-# include <omp.h>
+#include <omp.h>
 #include <vector>
 #include <string>
 
 // Global parameters of simulations -> define iterations and steps
-//struct SimulationParameters
-//{
-	// simulation parameters
-//	double expTime;//
-	//int microsteps;// 10MHz scanning
-	//int nTotal ;	//10^-2 seconds total
-//};
+struct SimulationParameters
+{
+	double expTime = 1e-12;
+	double simulationTime = 3e-3;
+	int iterationsbetweenSavings = 15'000'000;
+	int iterationsbetweenTrapsUpdate = 15'000'000;
+	int totalsavings = int((simulationTime / expTime) / iterationsbetweenSavings);
+
+	int buffsize = 800'000;
+	int randomsPeriter = 4;
+	int stepsperbuffer = static_cast<int>(std::floor(buffsize / randomsPeriter));
+
+	int macrostepMax = iterationsbetweenSavings / stepsperbuffer;
+	unsigned trapsUpdateTest = iterationsbetweenTrapsUpdate / iterationsbetweenSavings;
+};
 
 
 // Classes for objects that store simulation configs: LoggerParameters, ModelParameters, InitialConditions
@@ -22,22 +30,22 @@ struct LoggerParameters
 	std::string filepath;
 	std::string name;
 };
+
 struct ModelParameters
 {
 	/////
-	double expTime;
 	//Global paramters
-	double T ;					//temperature
+	double T;					//temperature
 	double kT;
 
 	//Parameters of potential
-	double G, G2 ;					// (* kT | Depth of the potential *)
-	double L ;					//(* um | period of the periodic potential *)
+	double G, G2;					// (* kT | Depth of the potential *)
+	double L;					//(* um | period of the periodic potential *)
 	double sigma;			//(* um | width of the binding well *)
 	double A;           // width of asymmetric potential, um
 	double m;           // center of well, um
 									//Parameters of diffusion
-	double DMol ;					//(* um^2/s | free diffusion coefficient of the protein in water *)
+	double DMol;					//(* um^2/s | free diffusion coefficient of the protein in water *)
 	double DBeadL;					// (* um^2/s | free diffusion coefficient of 0.5 um bead in water *)
 	double DBeadR;
 	double DMT;
@@ -51,7 +59,7 @@ struct ModelParameters
 											// Parameters of stiffness
 	double trapstiffL;			//(* pN/um | stiffness of the trap *) 
 	double trapstiffR;
-	double MTstiffL ;			//(* pN/um | stiffness of the MT *) 
+	double MTstiffL;			//(* pN/um | stiffness of the MT *) 
 	double MTstiffR;
 	double MTlowstiff;
 	double MTrelaxedLengthL;
@@ -80,7 +88,7 @@ struct ModelParameters
 	double molStiffStrongSlope;
 
 	double MTlength;
-	double molstiff ;				//(*pN / um| stiffness of the NDC80 *)
+	double molstiff;				//(*pN / um| stiffness of the NDC80 *)
 	double feedbackFreq;
 	double DmblMoveAmplitude;
 	double prestretchTotalForce;
@@ -109,9 +117,6 @@ struct SystemState
 	double binding = 0.0;
 	double currentWell = 0.0;
 
-	//double vMol = 0.0;
-	//double vMT = 0.0;
-
 	//#pragma omp declare simd
 	template <typename F>
 	static void iterateFields(F&& f) {
@@ -133,14 +138,13 @@ struct SystemState
 struct InitialConditions
 {
 	SystemState initialState;
-	
-	double xPed;   ////////////// Is it really iC????
-	//double xTrapl; // Must be negative for prestretch ////////////// Is it really iC????
-	//double xTrapr; // Must be positive for prestretch ////////////// Is it really iC????
+	double xPed;
 };
+
 // Composition of parameters
 struct Configuration
 {
+	SimulationParameters simulationParameters;
 	LoggerParameters loggerParameters;
 	ModelParameters modelParameters;
 	InitialConditions initialConditions;

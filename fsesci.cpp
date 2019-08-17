@@ -163,11 +163,10 @@ class Task
 {
 public:
 	Task(const Configuration& configuration) :
-
+		_sim(configuration.simulationParameters),
 		_mP(configuration.modelParameters),
 		_initC(configuration.initialConditions),
 		_state(configuration.initialConditions.initialState)
-
 	{
 		const auto& loggerParameters = configuration.loggerParameters;
 		SystemState::iterateFields([this, &loggerParameters](double(SystemState::* field), std::string fieldName) {
@@ -257,27 +256,13 @@ public:
 
 			//double MT_Mol_force = potentialForce.asymmetric(_state.xMol - _state.xMT);
 
-			double next_xMT = _state.xMT + (_mP.expTime / _mP.gammaMT)*(-calculateMTspringForce(_state.xMT - _state.xBeadl - _mP.MTlength / 2, 'L') + calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength/2, 'R') - MT_Mol_force)+ sqrt(2*_mP.DMT*_mP.expTime) * rnd_xMT;
-			double next_xBeadl = _state.xBeadl + (_mP.expTime / _mP.gammaBeadL)*(((-_mP.trapstiffL)*(_state.xBeadl - _state.xTrapl)) + calculateMTspringForce(_state.xMT - _state.xBeadl -  _mP.MTlength / 2, 'L')) + sqrt(2*_mP.DBeadL*_mP.expTime) * rnd_xBeadl;
-			double next_xBeadr = _state.xBeadr + (_mP.expTime / _mP.gammaBeadR)*(-calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength / 2, 'R') + ((-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr))) + sqrt(2*_mP.DBeadR*_mP.expTime) * rnd_xBeadr;
-			double next_xMol = _state.xMol + (_mP.expTime / _mP.gammaMol) * (MT_Mol_force - calculateMolspringForce(_state.xMol - _initC.xPed)) + sqrt(2*_mP.DMol*_mP.expTime) * rnd_xMol;
-			
-			//double next_vMol = (next_xMol - _state.xMol) / _mP.expTime;
-			//double next_vMT = (next_xMT - _state.xMT) / _mP.expTime;
-
-			/*double next_xBeadl = _state.xBeadl + (_mP.expTime / _mP.gammaBeadL)*(((-_mP.trapstiffL)*(_state.xBeadl - _state.xTrapl)) + calculateMTspringForce(_state.xMT - _state.xBeadl - _mP.MTlength / 2, 'L')) + sqrt(2 * _mP.DBeadL*_mP.expTime) * rnd_xBeadl;
-			double next_xBeadr = _state.xBeadr + (_mP.expTime / _mP.gammaBeadR)*(-calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength / 2, 'R') + ((-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr))) + sqrt(2 * _mP.DBeadR*_mP.expTime) * rnd_xBeadr;
-
-			double next_xMT = (_mP.expTime / _mP.gammaMT)*(-calculateMTspringForce(_state.xMT - _state.xBeadl - _mP.MTlength / 2, 'L') + calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength / 2, 'R')) + sqrt(2 * _mP.DMT*_mP.expTime) * rnd_xMT;
-			double next_xMol = (_mP.expTime / _mP.gammaMol) *(- calculateMolspringForce(_state.xMol - _initC.xPed)) + sqrt(2 * _mP.DMol*_mP.expTime) * rnd_xMol;
-			
-			next_xMol = _state.xMol + (_mP.gammaQuasiviscous * _mP.gammaMT * next_xMT + (_mP.gammaMT + _mP.gammaQuasiviscous) * _mP.gammaMol * next_xMol) / (_mP.gammaMT * _mP.gammaQuasiviscous + _mP.gammaMol * (_mP.gammaMT + _mP.gammaQuasiviscous));
-			next_xMT = _state.xMT + (_mP.gammaQuasiviscous * _mP.gammaMol * next_xMol + (_mP.gammaMol + _mP.gammaQuasiviscous) * _mP.gammaMT * next_xMT) / (_mP.gammaMT * _mP.gammaQuasiviscous + _mP.gammaMol * (_mP.gammaMT + _mP.gammaQuasiviscous));
-			
-			double next_vMol = (next_xMol - _state.xMol) / _mP.expTime;
-			double next_vMT = (next_xMT - _state.xMT) / _mP.expTime;*/
+			double next_xMT = _state.xMT + (_sim.expTime / _mP.gammaMT)*(-calculateMTspringForce(_state.xMT - _state.xBeadl - _mP.MTlength / 2, 'L') + calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength/2, 'R') - MT_Mol_force)+ sqrt(2*_mP.DMT*_sim.expTime) * rnd_xMT;
+			double next_xBeadl = _state.xBeadl + (_sim.expTime / _mP.gammaBeadL)*(((-_mP.trapstiffL)*(_state.xBeadl - _state.xTrapl)) + calculateMTspringForce(_state.xMT - _state.xBeadl -  _mP.MTlength / 2, 'L')) + sqrt(2*_mP.DBeadL*_sim.expTime) * rnd_xBeadl;
+			double next_xBeadr = _state.xBeadr + (_sim.expTime / _mP.gammaBeadR)*(-calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength / 2, 'R') + ((-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr))) + sqrt(2*_mP.DBeadR*_sim.expTime) * rnd_xBeadr;
+			double next_xMol = _state.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force - calculateMolspringForce(_state.xMol - _initC.xPed)) + sqrt(2*_mP.DMol*_sim.expTime) * rnd_xMol;
 
 			if (_state.binding == 1.0 && ( abs((next_xMol - next_xMT) - _state.currentWell) >= _mP.L / 2.0 )) {
+				std::cout << "out" << std::endl;
 				_state.binding = 0.0;
 			}
 
@@ -285,11 +270,7 @@ public:
 			_state.xBeadl = next_xBeadl;
 			_state.xBeadr = next_xBeadr;
 			_state.xMol   = next_xMol;
-			_state.Time += _mP.expTime;
-			//_state.vMol = next_vMol;
-			//_state.vMT = next_vMT;
-
-			//double MT_Mol_force = _mP.gammaQuasiviscous * (_state.vMT - _state.vMol);
+			_state.Time += _sim.expTime;
 
 			_loggingBuffer.xMT    +=  _state.xMT;   
 			_loggingBuffer.xBeadl +=  _state.xBeadl;
@@ -339,7 +320,7 @@ public:
 			_mP.transitionMatrix[prev_binding] + _mP.numStates);
 
 		for (auto& p : probs) {
-			p *= _mP.expTime * steps;
+			p *= _sim.expTime * steps;
 		}
 		probs[prev_binding] += 1;
 
@@ -349,6 +330,10 @@ public:
 		if ((prev_binding == 0.0) && (_state.binding == 1.0)) {
 			_state.currentWell = _mP.L * floor(((_state.xMol - _state.xMT) + _mP.L /2.0) / _mP.L);
 		}
+
+		if (prev_binding != _state.binding) {
+			std::cout << prev_binding << " -> " << _state.binding << " currWell = " << _state.currentWell / _mP.L << std::endl;
+		}
 	}
 
 private:
@@ -357,12 +342,12 @@ public:
 	SystemState _state;
 	SystemState _loggingBuffer;
 	SystemState _forcefeedbackBuffer;
+	const SimulationParameters _sim;
 	const ModelParameters _mP;
 	const InitialConditions _initC;
 	std::default_random_engine re;
 	std::time_t _t;
 };
-
 
 
 int main(int argc, char *argv[])
@@ -371,75 +356,32 @@ int main(int argc, char *argv[])
 	{
 		std::cout << "Sorry users, no help donations today." << std::endl;
 	}
-	char * param_input_filename = getCmdOption(argv, argv + argc, "-paramsfile");
-	char * output_filename = getCmdOption(argv, argv + argc, "-resultfile");
-	char * charnThreads = getCmdOption(argv, argv + argc, "-nthreads");
+	char* param_input_filename = getCmdOption(argv, argv + argc, "-paramsfile");
+	char* output_filename = getCmdOption(argv, argv + argc, "-resultfile");
+	char* charnThreads = getCmdOption(argv, argv + argc, "-nthreads");
+	char* sim_filename = getCmdOption(argv, argv + argc, "-taskfile");
 
-	std::string inputparamfile;
-	inputparamfile.append(param_input_filename);
+	std::string inputparamfile(param_input_filename);
 	unsigned nThreads = std::stoi(charnThreads);
 	
 	// Create and load simulation parameters and configuration, values are taken from json file
-	//const auto simulationParameters = load_simulationparams(inputparamfile);
-	const auto configurations = load_configuration(inputparamfile,nThreads);
+	const auto configurations = load_configuration(inputparamfile, nThreads);
+
+	SimulationParameters sim;
+	if (sim_filename != NULL) {
+		sim = load_simulationparams(std::string(sim_filename));
+	}
+	else {
+		sim = SimulationParameters();
+	}
 
 	std::vector<std::unique_ptr<Task>> tasks;
 	for (const auto& configuration : configurations) {
-		auto task = std::make_unique<Task>( configuration);
+		auto task = std::make_unique<Task>(configuration);
 		tasks.push_back(std::move(task));
 	}
 
-	// Check if number of configurations correspond to predefined threads number
-	/*if (configurations.size() != nThreads) {
-		throw std::runtime_error{ "Please check the number of configurations in json corresponds to the number of threads implemented in simulator" };
-	}
-	*/
-	/*
-
-	///////////////////////////////
-	//////////////////////////////
-	///////////// Iterations
-	///////////////////////////
-	/*
-	const int frequency = (int)round(sP.microsteps);
-	const int totalsimsteps = (int)round((sP.microsteps)*(sP.nTotal));
-	const int nsteps = (int)round(3*(totalsimsteps / frequency) / intbufferSize);
-		*/
-
-
-		/*
-		int frequency = sP.microsteps;
-		int totalsimsteps = sP.microsteps*(sP.nTotal);
-		int nsteps = 3 * (totalsimsteps / frequency) / intbufferSize;
-		int dd = 2;
-
-		frequency 100'000
-		totalsimsteps 100'000'000'000
-		buffer 1'000'000
-		randms per simstep 3
-
-		saved step range is 10'000 -> nTotal
-		microsteps is macrostep*(buffersize/3)
-		*/
-
-	int buffsize = 800'000;
-	int randomsPeriter = 4;
-	int stepsperbuffer = static_cast<int>(std::floor(buffsize / randomsPeriter));
-	int totalsavings = 20000;//(totalsteps / iterationsbetweenSavings)
-	int iterationsbetweenSavings = 15'000'000;
-	int iterationsbetweenTrapsUpdate = 15'000'000;
-
-	if (iterationsbetweenSavings % stepsperbuffer != 0) {
-		throw std::runtime_error{ "Please check that iterationsbetweenSavings/stepsperbuffer is integer" };
-	}
-	if (iterationsbetweenTrapsUpdate %  iterationsbetweenSavings != 0) {
-		throw std::runtime_error{ "Please check that iterationsbetweenTrapsUpdate/iterationsbetweenSavings is integer" };
-	}
-
-	int macrostepMax = iterationsbetweenSavings / stepsperbuffer;
-	unsigned trapsUpdateTest = iterationsbetweenTrapsUpdate / iterationsbetweenSavings;
-
-	MklGaussianParallelGenerator generator1(0.0, 1.0, buffsize, 4);
+	MklGaussianParallelGenerator generator1(0.0, 1.0, sim.buffsize, 4);
 
 	int tasksperthread = tasks.size() / nThreads;
 	std::cout << tasksperthread << std::endl;
@@ -449,38 +391,21 @@ int main(int argc, char *argv[])
 		task->forcefeedbackBuffertoZero();
 	}
 
-	/*
-	generator1.generateNumbers();
-	const auto buffData = generator1.getNumbersBuffer();
-
-	for (int t = 0; t < totalsavings; ++t) {
-		tasks[0]->updadeBinding(iterationsbetweenSavings);
-		tasks[0]->advanceState(stepsperbuffer, buffData);
-		std::cout << tasks[0]->_state.binding << " " << tasks[0]->_loggingBuffer.logpotentialForce << std::endl;
-	}
-	*/
-
-	for (int savedSampleIter = 0; savedSampleIter < totalsavings; savedSampleIter++) {
+	for (int savedSampleIter = 0; savedSampleIter < sim.totalsavings; savedSampleIter++) {
 
 		for (const auto& task : tasks) {
-			task->updadeBinding(iterationsbetweenSavings);
+			task->updadeBinding(sim.iterationsbetweenSavings);
 		}
 
-		for (int macrostep = 0; macrostep < macrostepMax; macrostep++) {
+		for (int macrostep = 0; macrostep < sim.macrostepMax; macrostep++) {
 			generator1.generateNumbers();
 			const auto buffData = generator1.getNumbersBuffer();
 
 			#pragma omp parallel num_threads(nThreads) shared(buffData, tasks)
 			{
-				//const auto begin = __rdtsc();
-				//tasks[omp_get_thread_num()]->advanceState(stepsperbuffer, buffData);
 				for (int taskrun = 0; taskrun < tasksperthread; taskrun++) {
-					tasks[omp_get_thread_num()+ taskrun*nThreads]->advanceState(stepsperbuffer, buffData);
-					
+					tasks[omp_get_thread_num()+ taskrun*nThreads]->advanceState(sim.stepsperbuffer, buffData);
 				}
-				//const auto end = __rdtsc();
-				//const auto cyclesPerStep = static_cast<double>(end - begin) / static_cast<double>(std::floor(buffsize / randomsPeriter));
-				//std::cout << "cyclesPerStep = " << cyclesPerStep << std::endl;
 			} // end of openmp section
 		}
 
@@ -494,29 +419,29 @@ int main(int argc, char *argv[])
 			task->_forcefeedbackBuffer.logpotentialForce += task->_loggingBuffer.logpotentialForce;
 			//task->_forcefeedbackBuffer.Time   += task->_loggingBuffer.Time;
 
-			task->_loggingBuffer.xMT    = task->_loggingBuffer.xMT / static_cast<double>(iterationsbetweenSavings);
-			task->_loggingBuffer.xBeadl = task->_loggingBuffer.xBeadl / static_cast<double>(iterationsbetweenSavings);
-			task->_loggingBuffer.xBeadr = task->_loggingBuffer.xBeadr / static_cast<double>(iterationsbetweenSavings);
-			task->_loggingBuffer.xTrapl = task->_loggingBuffer.xTrapl / static_cast<double>(iterationsbetweenSavings);
-			task->_loggingBuffer.xTrapr = task->_loggingBuffer.xTrapr / static_cast<double>(iterationsbetweenSavings);
-			task->_loggingBuffer.xMol   = task->_loggingBuffer.xMol / static_cast<double>(iterationsbetweenSavings);
-			task->_loggingBuffer.logpotentialForce= task->_loggingBuffer.logpotentialForce / static_cast<double>(iterationsbetweenSavings);
+			task->_loggingBuffer.xMT    = task->_loggingBuffer.xMT / static_cast<double>(sim.iterationsbetweenSavings);
+			task->_loggingBuffer.xBeadl = task->_loggingBuffer.xBeadl / static_cast<double>(sim.iterationsbetweenSavings);
+			task->_loggingBuffer.xBeadr = task->_loggingBuffer.xBeadr / static_cast<double>(sim.iterationsbetweenSavings);
+			task->_loggingBuffer.xTrapl = task->_loggingBuffer.xTrapl / static_cast<double>(sim.iterationsbetweenSavings);
+			task->_loggingBuffer.xTrapr = task->_loggingBuffer.xTrapr / static_cast<double>(sim.iterationsbetweenSavings);
+			task->_loggingBuffer.xMol   = task->_loggingBuffer.xMol / static_cast<double>(sim.iterationsbetweenSavings);
+			task->_loggingBuffer.logpotentialForce= task->_loggingBuffer.logpotentialForce / static_cast<double>(sim.iterationsbetweenSavings);
 			//task->_loggingBuffer.Time   = task->_loggingBuffer.Time / static_cast<double>(iterationsbetweenSavings);
 
 			task->writeStateTolog();
 			task->loggingBuffertoZero();
 		}
 		
-		if ((savedSampleIter % trapsUpdateTest) == 0) {
+		if ((savedSampleIter % sim.trapsUpdateTest) == 0) {
 			for (const auto& task : tasks) {
 
-				task->_forcefeedbackBuffer.xMT    = task->_forcefeedbackBuffer.xMT / static_cast<double>(iterationsbetweenTrapsUpdate);
-				task->_forcefeedbackBuffer.xBeadl = task->_forcefeedbackBuffer.xBeadl / static_cast<double>(iterationsbetweenTrapsUpdate);
-				task->_forcefeedbackBuffer.xBeadr = task->_forcefeedbackBuffer.xBeadr / static_cast<double>(iterationsbetweenTrapsUpdate);
-				task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapl / static_cast<double>(iterationsbetweenTrapsUpdate);
-				task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapr / static_cast<double>(iterationsbetweenTrapsUpdate);
-				task->_forcefeedbackBuffer.xMol   = task->_forcefeedbackBuffer.xMol / static_cast<double>(iterationsbetweenTrapsUpdate);
-				task->_forcefeedbackBuffer.logpotentialForce = task->_forcefeedbackBuffer.logpotentialForce / static_cast<double>(iterationsbetweenTrapsUpdate);
+				task->_forcefeedbackBuffer.xMT    = task->_forcefeedbackBuffer.xMT / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
+				task->_forcefeedbackBuffer.xBeadl = task->_forcefeedbackBuffer.xBeadl / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
+				task->_forcefeedbackBuffer.xBeadr = task->_forcefeedbackBuffer.xBeadr / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
+				task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapl / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
+				task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapr / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
+				task->_forcefeedbackBuffer.xMol   = task->_forcefeedbackBuffer.xMol / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
+				task->_forcefeedbackBuffer.logpotentialForce = task->_forcefeedbackBuffer.logpotentialForce / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
 
 				//task->_forcefeedbackBuffer.Time   = task->_forcefeedbackBuffer.Time / static_cast<double>(iterationsbetweenTrapsUpdate);
 				//task->writeStateTolog();
@@ -559,16 +484,8 @@ int main(int argc, char *argv[])
 		}
 
 		if (savedSampleIter % 10 == 0) {
-			double procent = round(100 * 100 * savedSampleIter / (totalsavings)) / 100;
+			double procent = round(100 * 100 * savedSampleIter / sim.totalsavings) / 100;
 			std::cout << procent << "%" << std::endl;
-			
-			//std::cout << __rdtsc() << std::endl;
-			//std::cout << nst << std::endl;
 		}
 	}
 }
-
-//std::chrono
-//_rdtscp  in #immintrin.h
-
-//		(*/),(+-)

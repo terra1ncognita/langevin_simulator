@@ -3,24 +3,52 @@
 
 
 using json = nlohmann::json;
-//const double E = std::exp(1.0);
 const double kBoltz = 1.38064852e-5;// (*pN um *)
 
-
-
 /// Assign Simulation Parameters
-//SimulationParameters assign_simulation_parameters_from_json(SimulationParameters simp, json jsonobjsimp) {
-//	if (!(jsonobjsimp["expTime"].empty())) {
-//		simp.expTime = stod(jsonobjsimp["expTime"].get<std::string>());
-//	}
-	/*if (!(jsonobjsimp["microsteps"].empty())) {
-		simp.microsteps = (int)round(stod(jsonobjsimp["microsteps"].get<std::string>()));
+SimulationParameters assign_simulation_parameters_from_json(SimulationParameters simp, json jsonobjsimp) {
+	if (!(jsonobjsimp["expTime"].empty())) {
+		simp.expTime = stod(jsonobjsimp["expTime"].get<std::string>());
 	}
-	if (!(jsonobjsimp["nTotal"].empty())) {
-		simp.nTotal = (int)round(stod(jsonobjsimp["nTotal"].get<std::string>()));
-	}*/
-//	return simp;
-//}
+	if (!(jsonobjsimp["simulationTime"].empty())) {
+		simp.simulationTime = stod(jsonobjsimp["simulationTime"].get<std::string>());
+	}
+	if (!(jsonobjsimp["iterationsbetweenSavings"].empty())) {
+		simp.iterationsbetweenSavings = stoi(jsonobjsimp["iterationsbetweenSavings"].get<std::string>());
+	}
+	if (!(jsonobjsimp["iterationsbetweenTrapsUpdate"].empty())) {
+		simp.iterationsbetweenTrapsUpdate = stoi(jsonobjsimp["iterationsbetweenTrapsUpdate"].get<std::string>());
+	}
+
+	if (!(jsonobjsimp["totalsavings"].empty())) {
+		simp.totalsavings = stoi(jsonobjsimp["totalsavings"].get<std::string>());
+	}
+	else {
+		simp.totalsavings = int(simp.simulationTime / simp.iterationsbetweenSavings);
+	}
+
+	if (!(jsonobjsimp["buffsize"].empty())) {
+		simp.buffsize = stoi(jsonobjsimp["buffsize"].get<std::string>());
+	}
+	if (!(jsonobjsimp["randomsPeriter"].empty())) {
+		simp.randomsPeriter = stoi(jsonobjsimp["randomsPeriter"].get<std::string>());
+	}
+	if (!(jsonobjsimp["stepsperbuffer"].empty())) {
+		simp.stepsperbuffer = stoi(jsonobjsimp["stepsperbuffer"].get<std::string>());
+	}
+
+	if (simp.iterationsbetweenSavings % simp.stepsperbuffer != 0) {
+		throw std::runtime_error{ "Please check that iterationsbetweenSavings/stepsperbuffer is integer" };
+	}
+	if (simp.iterationsbetweenTrapsUpdate % simp.iterationsbetweenSavings != 0) {
+		throw std::runtime_error{ "Please check that iterationsbetweenTrapsUpdate/iterationsbetweenSavings is integer" };
+	}
+
+	simp.macrostepMax = simp.iterationsbetweenSavings / simp.stepsperbuffer;
+	simp.trapsUpdateTest = simp.iterationsbetweenTrapsUpdate / simp.iterationsbetweenSavings;
+
+	return simp;
+}
 
 // Assign configuration from json object
 Configuration assign_config_from_json(Configuration conf, json jsonobj) {
@@ -34,10 +62,6 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	
 	//// Assign Model Parameters from json
 	
-	if (!(jsonobj["ModelParameters"]["expTime"].empty())) {
-		conf.modelParameters.expTime = stod(jsonobj["ModelParameters"]["expTime"].get<std::string>());
-			
-	}
 	if (!(jsonobj["ModelParameters"]["T"].empty())) {
 		conf.modelParameters.T= stod(jsonobj["ModelParameters"]["T"].get<std::string>());
 		conf.modelParameters.kT = kBoltz*conf.modelParameters.T;
@@ -269,26 +293,22 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	conf.modelParameters.transitionMatrix[2][1] = conf.modelParameters.kOff2;
 	conf.modelParameters.transitionMatrix[2][2] = -conf.modelParameters.kOff2;
 
-
-	////
 	return conf;
 }
 
 
-////Simulation params loader
-//SimulationParameters load_simulationparams(std::string paramInputFilename) {
-//	json fulljson = parse_json_string(readfile(paramInputFilename));
-//	json jsonsimp = fulljson["SimulationParameters"];
-//	SimulationParameters simp = {};
-//	return assign_simulation_parameters_from_json(simp, jsonsimp);
-	 
-//}
+//Simulation params loader
+SimulationParameters load_simulationparams(std::string paramInputFilename) {
+	json fulljson = parse_json_string(readfile(paramInputFilename));
+	json jsonsimp = fulljson["SimulationParameters"];
+	SimulationParameters simp = {};
+	return assign_simulation_parameters_from_json(simp, jsonsimp);
+}
 
 //// Configuration creator new
 std::vector <Configuration> load_configuration(std::string paramInputFilename, unsigned nThreads) {
 	std::vector <std::string> configs = split(paramInputFilename, ";");
-	if (configs.size()% nThreads !=0) {
-	
+	if (configs.size() % nThreads != 0) {
 		throw std::runtime_error{ "Number of configs is not multiple of number of cores" };
 	}
 	std::vector <Configuration> configurationsVector;
@@ -299,33 +319,5 @@ std::vector <Configuration> load_configuration(std::string paramInputFilename, u
 		iterate = assign_config_from_json(iterate, defaultjson);
 		configurationsVector.push_back(iterate);
 	}
-
 	return configurationsVector;
-
 }
-
-
-//// Configuration creator
-/*
-std::vector <Configuration> load_configuration(std::string paramInputFilename) {
-	json fulljson = parse_json_string(readfile(paramInputFilename));
-	json defaultjson = fulljson["Configuration"];
-	Configuration default;
-	default = assign_config_from_json(default, defaultjson);
-
-
-
-	std::vector <Configuration> configurationsVector;
-	Configuration iterate;
-
-	// iterate the array of configurations
-	for (json::iterator jsonit = defaultjson["Configurations"].begin(); jsonit != defaultjson["Configurations"].end(); ++jsonit) {
-		iterate = default;
-		iterate=assign_config_from_json(iterate, *jsonit);
-		configurationsVector.push_back(iterate);
-	}
-
-	return configurationsVector;
-
-}
-*/
