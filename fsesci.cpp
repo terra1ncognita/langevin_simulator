@@ -283,10 +283,9 @@ public:
 			double next_xBeadr = _state.xBeadr + (_sim.expTime / _mP.gammaBeadR)*(-calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength / 2, 'R') + ((-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr))) + sqrt(2*_mP.DBeadR*_sim.expTime) * rnd_xBeadr;
 			double next_xMol = _state.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force - calculateMolspringForce(_state.xMol - _initC.xPed)) + sqrt(2*_mP.DMol*_sim.expTime) * rnd_xMol;
 
-			/*if (_state.binding == 1.0 && ( abs((next_xMol - next_xMT) - _state.currentWell) >= _mP.L / 2.0 )) {
-				std::cout << "out" << std::endl;
+			if (_state.binding == 1.0 && ( abs((next_xMol - next_xMT) - _state.currentWell) >= _mP.L / 2.0 )) {
 				_state.binding = 0.0;
-			}*/
+			}
 
 			updateState();
 
