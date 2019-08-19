@@ -159,6 +159,25 @@ public:
 	}
 };
 
+class ExponentialGenerator {
+public:
+	
+	ExponentialGenerator(double lambda) :
+		expDist(lambda),
+		re(std::random_device{}())
+	{
+	}
+
+	double operator()() {
+		return expDist(re);
+	}
+
+private:
+	std::default_random_engine re;
+	std::exponential_distribution<double> expDist;
+};
+
+
 class Task
 {
 public:
@@ -166,14 +185,17 @@ public:
 		_sim(configuration.simulationParameters),
 		_mP(configuration.modelParameters),
 		_initC(configuration.initialConditions),
-		_state(configuration.initialConditions.initialState)
+		_state(configuration.initialConditions.initialState),
+		expGen(1.0),
+		expRands(_mP.numStates),
+		livingTimes(_mP.numStates, 0)
 	{
 		const auto& loggerParameters = configuration.loggerParameters;
 		SystemState::iterateFields([this, &loggerParameters](double(SystemState::* field), std::string fieldName) {
 			auto logger = std::make_unique<BinaryFileLogger>(loggerParameters, field, fieldName);// creates object of class BinaryFileLogger but returns to logger variable the unique pointer to it. // for creation of object implicitly with arguments like this also remind yourself the vector.emplace(args) .
 			this->_loggers.push_back(std::move(logger));// unique pointer can't be copied, only moved like this
 		});
-		re.seed(time(&_t));
+		fillVector(expRands);
 	}
 
 	double calculateMolspringForce(double extensionInput) {
@@ -261,10 +283,12 @@ public:
 			double next_xBeadr = _state.xBeadr + (_sim.expTime / _mP.gammaBeadR)*(-calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength / 2, 'R') + ((-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr))) + sqrt(2*_mP.DBeadR*_sim.expTime) * rnd_xBeadr;
 			double next_xMol = _state.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force - calculateMolspringForce(_state.xMol - _initC.xPed)) + sqrt(2*_mP.DMol*_sim.expTime) * rnd_xMol;
 
-			if (_state.binding == 1.0 && ( abs((next_xMol - next_xMT) - _state.currentWell) >= _mP.L / 2.0 )) {
+			/*if (_state.binding == 1.0 && ( abs((next_xMol - next_xMT) - _state.currentWell) >= _mP.L / 2.0 )) {
 				std::cout << "out" << std::endl;
 				_state.binding = 0.0;
-			}
+			}*/
+
+			updateState();
 
 			_state.xMT    = next_xMT;
 			_state.xBeadl = next_xBeadl;
@@ -314,7 +338,8 @@ public:
 		_forcefeedbackBuffer.Time = 0.0;
 	}
 
-	void updadeBinding(int steps) {
+	/*
+	void updateBinding(int steps) {
 		int prev_binding = int(_state.binding);
 		std::vector<double> probs(_mP.transitionMatrix[prev_binding],
 			_mP.transitionMatrix[prev_binding] + _mP.numStates);
@@ -325,7 +350,7 @@ public:
 		probs[prev_binding] += 1;
 
 		std::discrete_distribution<> dist(probs.begin(), probs.end());
-		_state.binding = dist(re);
+		//_state.binding = dist(re);
 
 		if ((prev_binding == 0.0) && (_state.binding == 1.0)) {
 			_state.currentWell = _mP.L * floor(((_state.xMol - _state.xMT) + _mP.L /2.0) / _mP.L);
@@ -334,6 +359,28 @@ public:
 		if (prev_binding != _state.binding) {
 			std::cout << prev_binding << " -> " << _state.binding << " currWell = " << _state.currentWell / _mP.L << std::endl;
 		}
+	}
+	*/
+
+	void fillVector(std::vector<double>& rnds) {
+		std::generate(begin(rnds), end(rnds), expGen);
+	}
+
+	void updateState() {
+		int prev_binding = int(_state.binding);
+		for (int j = 0; j < _mP.numStates; ++j) {
+			if (j == prev_binding) {
+				continue;
+			}
+			livingTimes[j] += _mP.transitionMatrix[prev_binding][j] * _sim.expTime;
+			if (livingTimes[j] > expRands[j]) {
+				fillVector(expRands);
+				livingTimes.assign(_mP.numStates, 0.0);
+				_state.binding = j;
+				//std::cout << prev_binding << " -> " << j << " at " << _state.Time << std::endl;
+				return;
+			}
+		}	
 	}
 
 private:
@@ -345,8 +392,9 @@ public:
 	const SimulationParameters _sim;
 	const ModelParameters _mP;
 	const InitialConditions _initC;
-	std::default_random_engine re;
-	std::time_t _t;
+	ExponentialGenerator expGen;
+	std::vector<double> expRands;
+	std::vector<double> livingTimes;
 };
 
 
@@ -393,9 +441,9 @@ int main(int argc, char *argv[])
 
 	for (int savedSampleIter = 0; savedSampleIter < sim.totalsavings; savedSampleIter++) {
 
-		for (const auto& task : tasks) {
-			task->updadeBinding(sim.iterationsbetweenSavings);
-		}
+		/*for (const auto& task : tasks) {
+			task->updateBinding(sim.iterationsbetweenSavings);
+		}*/
 
 		for (int macrostep = 0; macrostep < sim.macrostepMax; macrostep++) {
 			generator1.generateNumbers();
