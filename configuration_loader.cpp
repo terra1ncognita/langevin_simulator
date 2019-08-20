@@ -24,7 +24,7 @@ SimulationParameters assign_simulation_parameters_from_json(SimulationParameters
 		simp.totalsavings = stoi(jsonobjsimp["totalsavings"].get<std::string>());
 	}
 	else {
-		simp.totalsavings = int(simp.simulationTime / simp.iterationsbetweenSavings);
+		simp.totalsavings = int((simp.simulationTime / simp.expTime) / simp.iterationsbetweenSavings);
 	}
 
 	if (!(jsonobjsimp["buffsize"].empty())) {
@@ -283,13 +283,13 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 
 	conf.modelParameters.transitionMatrix[0][0] = -conf.modelParameters.kOn1;
 	conf.modelParameters.transitionMatrix[0][1] = conf.modelParameters.kOn1;
-	conf.modelParameters.transitionMatrix[0][2] = 0;
+	conf.modelParameters.transitionMatrix[0][2] = 0.0;
 
 	conf.modelParameters.transitionMatrix[1][0] = conf.modelParameters.kOff1;
 	conf.modelParameters.transitionMatrix[1][1] = -conf.modelParameters.kOff1 - conf.modelParameters.kOn2;
 	conf.modelParameters.transitionMatrix[1][2] = conf.modelParameters.kOn2;
 
-	conf.modelParameters.transitionMatrix[2][0] = 0;
+	conf.modelParameters.transitionMatrix[2][0] = 0.0;
 	conf.modelParameters.transitionMatrix[2][1] = conf.modelParameters.kOff2;
 	conf.modelParameters.transitionMatrix[2][2] = -conf.modelParameters.kOff2;
 
@@ -301,7 +301,7 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 SimulationParameters load_simulationparams(std::string paramInputFilename) {
 	json fulljson = parse_json_string(readfile(paramInputFilename));
 	json jsonsimp = fulljson["SimulationParameters"];
-	SimulationParameters simp = {};
+	SimulationParameters simp;
 	return assign_simulation_parameters_from_json(simp, jsonsimp);
 }
 

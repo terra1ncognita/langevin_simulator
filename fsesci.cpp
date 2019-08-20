@@ -188,7 +188,7 @@ public:
 		_state(configuration.initialConditions.initialState),
 		expGen(1.0),
 		expRands(_mP.numStates),
-		livingTimes(_mP.numStates, 0)
+		livingTimes(_mP.numStates, 0.0)
 	{
 		const auto& loggerParameters = configuration.loggerParameters;
 		SystemState::iterateFields([this, &loggerParameters](double(SystemState::* field), std::string fieldName) {
@@ -258,7 +258,7 @@ public:
 	}
 
 	// rndNumbers must contain 3 * nSteps random numbers
-	void advanceState(unsigned nSteps, const double* rndNumbers) {
+	void advanceState(int nSteps, const double* rndNumbers) {
 		// configurate force object
 		//PotentialForce potentialForce(_mP.G, _mP.L, _mP.sigma, _mP.A, _mP.m, _state.binding);
 		PotentialForce potentialForce(_mP.G, _mP.G2, _mP.L, _mP.sigma, _state);
@@ -267,7 +267,7 @@ public:
 			return *(rndNumbers++);
 		};
 
-		for (unsigned i = 0; i < nSteps; i++) {
+		for (int i = 0; i < nSteps; i++) {
 			
 			double rnd_xMT = takeRandomNumber();
 			double rnd_xBeadl = takeRandomNumber();
@@ -278,22 +278,18 @@ public:
 
 			//double MT_Mol_force = potentialForce.asymmetric(_state.xMol - _state.xMT);
 
-			double next_xMT = _state.xMT + (_sim.expTime / _mP.gammaMT)*(-calculateMTspringForce(_state.xMT - _state.xBeadl - _mP.MTlength / 2, 'L') + calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength/2, 'R') - MT_Mol_force)+ sqrt(2*_mP.DMT*_sim.expTime) * rnd_xMT;
-			double next_xBeadl = _state.xBeadl + (_sim.expTime / _mP.gammaBeadL)*(((-_mP.trapstiffL)*(_state.xBeadl - _state.xTrapl)) + calculateMTspringForce(_state.xMT - _state.xBeadl -  _mP.MTlength / 2, 'L')) + sqrt(2*_mP.DBeadL*_sim.expTime) * rnd_xBeadl;
-			double next_xBeadr = _state.xBeadr + (_sim.expTime / _mP.gammaBeadR)*(-calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength / 2, 'R') + ((-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr))) + sqrt(2*_mP.DBeadR*_sim.expTime) * rnd_xBeadr;
-			double next_xMol = _state.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force - calculateMolspringForce(_state.xMol - _initC.xPed)) + sqrt(2*_mP.DMol*_sim.expTime) * rnd_xMol;
-
-			if (_state.binding == 1.0 && ( abs((next_xMol - next_xMT) - _state.currentWell) >= _mP.L / 2.0 )) {
-				_state.binding = 0.0;
-			}
-
-			updateState();
+			double next_xMT = _state.xMT + (_sim.expTime / _mP.gammaMT)*(-calculateMTspringForce(_state.xMT - _state.xBeadl - _mP.MTlength / 2.0, 'L') + calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength/2.0, 'R') - MT_Mol_force)+ sqrt(2.0*_mP.DMT*_sim.expTime) * rnd_xMT;
+			double next_xBeadl = _state.xBeadl + (_sim.expTime / _mP.gammaBeadL)*(((-_mP.trapstiffL)*(_state.xBeadl - _state.xTrapl)) + calculateMTspringForce(_state.xMT - _state.xBeadl -  _mP.MTlength / 2.0, 'L')) + sqrt(2.0*_mP.DBeadL*_sim.expTime) * rnd_xBeadl;
+			double next_xBeadr = _state.xBeadr + (_sim.expTime / _mP.gammaBeadR)*(-calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength / 2.0, 'R') + ((-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr))) + sqrt(2.0*_mP.DBeadR*_sim.expTime) * rnd_xBeadr;
+			double next_xMol = _state.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force - calculateMolspringForce(_state.xMol - _initC.xPed)) + sqrt(2.0*_mP.DMol*_sim.expTime) * rnd_xMol;
 
 			_state.xMT    = next_xMT;
 			_state.xBeadl = next_xBeadl;
 			_state.xBeadr = next_xBeadr;
 			_state.xMol   = next_xMol;
 			_state.Time += _sim.expTime;
+
+			updateState();
 
 			_loggingBuffer.xMT    +=  _state.xMT;   
 			_loggingBuffer.xBeadl +=  _state.xBeadl;
@@ -366,20 +362,30 @@ public:
 	}
 
 	void updateState() {
+
+		if (_state.binding == 1.0 && (abs((_state.xMol - _state.xMT) - _state.currentWell) >= _mP.L / 2.0)) {
+			fillVector(expRands);
+			livingTimes.assign(_mP.numStates, 0.0);
+			_state.binding = 0.0;
+		}
+
 		int prev_binding = int(_state.binding);
-		for (int j = 0; j < _mP.numStates; ++j) {
-			if (j == prev_binding) {
-				continue;
-			}
+		int	j = 0;
+
+		for (j = 0; j < _mP.numStates; ++j) {
 			livingTimes[j] += _mP.transitionMatrix[prev_binding][j] * _sim.expTime;
-			if (livingTimes[j] > expRands[j]) {
+			if (livingTimes[j] > expRands[j] && j != prev_binding) {
 				fillVector(expRands);
 				livingTimes.assign(_mP.numStates, 0.0);
 				_state.binding = j;
-				//std::cout << prev_binding << " -> " << j << " at " << _state.Time << std::endl;
-				return;
+				break;
 			}
-		}	
+		}
+
+		if ((prev_binding == 0.0) && (_state.binding == 1.0)) {
+			_state.currentWell = _mP.L * floor(((_state.xMol - _state.xMT) + _mP.L / 2.0) / _mP.L);
+		}
+		return;
 	}
 
 private:
@@ -406,7 +412,6 @@ int main(int argc, char *argv[])
 	char* param_input_filename = getCmdOption(argv, argv + argc, "-paramsfile");
 	char* output_filename = getCmdOption(argv, argv + argc, "-resultfile");
 	char* charnThreads = getCmdOption(argv, argv + argc, "-nthreads");
-	char* sim_filename = getCmdOption(argv, argv + argc, "-taskfile");
 
 	std::string inputparamfile(param_input_filename);
 	unsigned nThreads = std::stoi(charnThreads);
@@ -415,7 +420,8 @@ int main(int argc, char *argv[])
 	const auto configurations = load_configuration(inputparamfile, nThreads);
 
 	SimulationParameters sim;
-	if (sim_filename != NULL) {
+	if (cmdOptionExists(argv, argv + argc, "-taskfile")) {
+		char* sim_filename = getCmdOption(argv, argv + argc, "-taskfile");
 		sim = load_simulationparams(std::string(sim_filename));
 	}
 	else {
