@@ -129,7 +129,6 @@ public:
 		var2 = pow(2.0, log(2.0) / lgs);
 	}
 	
-	// TODO refactor to use with period_map
 	double calc(double unmodvar) const
 	{
 		double var = period_map(unmodvar, L);
@@ -200,7 +199,7 @@ public:
 
 	double calculateMolspringForce(double extensionInput) {
 		double extension = fabs(extensionInput);
-		int sign = (extensionInput > 0) - (extensionInput < 0);
+		int sign = std::signbit(extensionInput);
 
 		if (extension <= _mP.molStiffBoundary) {
 			return sign * _mP.molStiffWeakSlope*extension;
@@ -213,10 +212,9 @@ public:
 	}
 
 	double calculateMTspringForce(double extensionInput, char side) {
-		//double extensionNm = fabs(extension * 1000);
-		//return (extension/fabs(extension))*(0.0062*extensionNm+(1.529*pow(10,-6)*(pow(extensionNm,2))) + (2.72*pow(10,-7)*pow(extensionNm,3)));
 		double extension = fabs(extensionInput)*2.0;
-		int sign = (extensionInput > 0) - (extensionInput < 0);
+		int sign = std::signbit(extensionInput);
+		//(extensionInput > 0) - (extensionInput < 0);
 
 		if (side == 'L')
 		{
@@ -275,7 +273,6 @@ public:
 			double rnd_xMol = takeRandomNumber();
 			
 			double MT_Mol_force = potentialForce.calc(_state.xMol - _state.xMT);
-
 			//double MT_Mol_force = potentialForce.asymmetric(_state.xMol - _state.xMT);
 
 			double next_xMT = _state.xMT + (_sim.expTime / _mP.gammaMT)*(-calculateMTspringForce(_state.xMT - _state.xBeadl - _mP.MTlength / 2.0, 'L') + calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength/2.0, 'R') - MT_Mol_force)+ sqrt(2.0*_mP.DMT*_sim.expTime) * rnd_xMT;
@@ -306,7 +303,6 @@ public:
 	void writeStateTolog() const {
 		for (const auto& logger : _loggers) {
 			logger->save(&_loggingBuffer);
-			//logger->save(&_forcefeedbackBuffer);
 		}
 	}
 
@@ -332,30 +328,6 @@ public:
 		_forcefeedbackBuffer.logpotentialForce = 0.0;
 		_forcefeedbackBuffer.Time = 0.0;
 	}
-
-	/*
-	void updateBinding(int steps) {
-		int prev_binding = int(_state.binding);
-		std::vector<double> probs(_mP.transitionMatrix[prev_binding],
-			_mP.transitionMatrix[prev_binding] + _mP.numStates);
-
-		for (auto& p : probs) {
-			p *= _sim.expTime * steps;
-		}
-		probs[prev_binding] += 1;
-
-		std::discrete_distribution<> dist(probs.begin(), probs.end());
-		//_state.binding = dist(re);
-
-		if ((prev_binding == 0.0) && (_state.binding == 1.0)) {
-			_state.currentWell = _mP.L * floor(((_state.xMol - _state.xMT) + _mP.L /2.0) / _mP.L);
-		}
-
-		if (prev_binding != _state.binding) {
-			std::cout << prev_binding << " -> " << _state.binding << " currWell = " << _state.currentWell / _mP.L << std::endl;
-		}
-	}
-	*/
 
 	void fillVector(std::vector<double>& rnds) {
 		std::generate(begin(rnds), end(rnds), expGen);
@@ -385,6 +357,7 @@ public:
 		if ((prev_binding == 0.0) && (_state.binding == 1.0)) {
 			_state.currentWell = _mP.L * floor(((_state.xMol - _state.xMT) + _mP.L / 2.0) / _mP.L);
 		}
+
 		return;
 	}
 

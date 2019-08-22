@@ -281,6 +281,8 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 		conf.modelParameters.transitionMatrix[i] = new double[conf.modelParameters.numStates];
 	}
 
+	conf.modelParameters.kOff1 = 0.0;
+
 	conf.modelParameters.transitionMatrix[0][0] = -conf.modelParameters.kOn1;
 	conf.modelParameters.transitionMatrix[0][1] = conf.modelParameters.kOn1;
 	conf.modelParameters.transitionMatrix[0][2] = 0.0;
