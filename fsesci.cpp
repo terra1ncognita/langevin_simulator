@@ -79,15 +79,15 @@ private:
 
 
 /// Old finction for symmetric well
-double mod(double a, double N)
-{
-	return a - N*floor(a / N); //return in range [0, N)
-}
+//double mod(double a, double N)
+//{
+//	return a - N * floor(a / N); //return in range [0, N)
+//}
 
 // New mapping R->[-L/2, L/2], 0->0 for asymmetric well
 double period_map(double y, double L)
 {
-	return y - floor(y / L + 0.5)* L;
+	return y - floor(y / L + 0.5) * L;
 }
 
 class PotentialForce 
@@ -112,6 +112,7 @@ public:
 		L = L_;
 		powsigma = pow(sigma_, 2);
 		state = &state_;
+		std::cout << "Pot init state G " << state->binding << std::endl;
 	}
 
 	PotentialForce(double G_, double G2_, double L_, double sigma_, double A_, double m_, SystemState& state)
@@ -160,7 +161,6 @@ public:
 
 class ExponentialGenerator {
 public:
-	
 	ExponentialGenerator(double lambda) :
 		expDist(lambda),
 		re(std::random_device{}())
@@ -255,6 +255,10 @@ public:
 
 	}
 
+	double takeRandomNumber2(const double* rndNumbers) {
+		return *(rndNumbers++);
+	}
+
 	// rndNumbers must contain 3 * nSteps random numbers
 	void advanceState(int nSteps, const double* rndNumbers) {
 		// configurate force object
@@ -275,10 +279,18 @@ public:
 			double MT_Mol_force = potentialForce.calc(_state.xMol - _state.xMT);
 			//double MT_Mol_force = potentialForce.asymmetric(_state.xMol - _state.xMT);
 
-			double next_xMT = _state.xMT + (_sim.expTime / _mP.gammaMT)*(-calculateMTspringForce(_state.xMT - _state.xBeadl - _mP.MTlength / 2.0, 'L') + calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength/2.0, 'R') - MT_Mol_force)+ sqrt(2.0*_mP.DMT*_sim.expTime) * rnd_xMT;
-			double next_xBeadl = _state.xBeadl + (_sim.expTime / _mP.gammaBeadL)*(((-_mP.trapstiffL)*(_state.xBeadl - _state.xTrapl)) + calculateMTspringForce(_state.xMT - _state.xBeadl -  _mP.MTlength / 2.0, 'L')) + sqrt(2.0*_mP.DBeadL*_sim.expTime) * rnd_xBeadl;
-			double next_xBeadr = _state.xBeadr + (_sim.expTime / _mP.gammaBeadR)*(-calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength / 2.0, 'R') + ((-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr))) + sqrt(2.0*_mP.DBeadR*_sim.expTime) * rnd_xBeadr;
+			double FmtR = calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength / 2.0, 'R');
+			double FmtL = calculateMTspringForce(_state.xMT - _state.xBeadl - _mP.MTlength / 2.0, 'L');
+
+			double next_xMT = _state.xMT + (_sim.expTime / _mP.gammaMT)*(-FmtL + FmtR - MT_Mol_force)+ sqrt(2.0*_mP.DMT*_sim.expTime) * rnd_xMT;
+			double next_xBeadl = _state.xBeadl + (_sim.expTime / _mP.gammaBeadL)*((-_mP.trapstiffL)*(_state.xBeadl - _state.xTrapl) + FmtL) + sqrt(2.0*_mP.DBeadL*_sim.expTime) * rnd_xBeadl;
+			double next_xBeadr = _state.xBeadr + (_sim.expTime / _mP.gammaBeadR)*(-FmtR + (-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr)) + sqrt(2.0*_mP.DBeadR*_sim.expTime) * rnd_xBeadr;
 			double next_xMol = _state.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force - calculateMolspringForce(_state.xMol - _initC.xPed)) + sqrt(2.0*_mP.DMol*_sim.expTime) * rnd_xMol;
+
+			if (std::isnan(next_xBeadr)) {
+				std::cout << "NAN" << std::endl;
+
+			}
 
 			_state.xMT    = next_xMT;
 			_state.xBeadl = next_xBeadl;
@@ -286,8 +298,7 @@ public:
 			_state.xMol   = next_xMol;
 			_state.Time += _sim.expTime;
 
-			updateState();
-
+				
 			_loggingBuffer.xMT    +=  _state.xMT;   
 			_loggingBuffer.xBeadl +=  _state.xBeadl;
 			_loggingBuffer.xBeadr +=  _state.xBeadr;
@@ -295,9 +306,13 @@ public:
 			_loggingBuffer.xTrapr += _state.xTrapr;
 			_loggingBuffer.xMol   +=  _state.xMol;  
 			_loggingBuffer.logpotentialForce += MT_Mol_force;
-			_loggingBuffer.Time   =  _state.Time;   
-			_loggingBuffer.binding = _state.binding;
+
+			updateState();
+			_loggingBuffer.binding += _state.binding;
 		}
+
+		_loggingBuffer.Time = _state.Time;
+		
 	}
 
 	void writeStateTolog() const {
@@ -339,6 +354,8 @@ public:
 			fillVector(expRands);
 			livingTimes.assign(_mP.numStates, 0.0);
 			_state.binding = 0.0;
+
+			//std::cout << _state.xBeadr << std::endl;
 		}
 
 		int prev_binding = int(_state.binding);
@@ -346,17 +363,27 @@ public:
 
 		for (j = 0; j < _mP.numStates; ++j) {
 			livingTimes[j] += _mP.transitionMatrix[prev_binding][j] * _sim.expTime;
+		}
+
+		for (j = 0; j < _mP.numStates; ++j) {
 			if (livingTimes[j] > expRands[j] && j != prev_binding) {
-				fillVector(expRands);
-				livingTimes.assign(_mP.numStates, 0.0);
-				_state.binding = j;
 				break;
 			}
+		}
+
+		if (j != _mP.numStates) {
+			fillVector(expRands);
+			livingTimes.assign(_mP.numStates, 0.0);
+			_state.binding = j;
 		}
 
 		if ((prev_binding == 0.0) && (_state.binding == 1.0)) {
 			_state.currentWell = _mP.L * floor(((_state.xMol - _state.xMT) + _mP.L / 2.0) / _mP.L);
 		}
+
+		/*if (prev_binding != _state.binding) {
+			std::cout << prev_binding << " -> " << _state.binding << std::endl;
+		}*/
 
 		return;
 	}
@@ -430,7 +457,7 @@ int main(int argc, char *argv[])
 			#pragma omp parallel num_threads(nThreads) shared(buffData, tasks)
 			{
 				for (int taskrun = 0; taskrun < tasksperthread; taskrun++) {
-					tasks[omp_get_thread_num()+ taskrun*nThreads]->advanceState(sim.stepsperbuffer, buffData);
+					tasks[omp_get_thread_num() + taskrun*nThreads]->advanceState(sim.stepsperbuffer, buffData);
 				}
 			} // end of openmp section
 		}
@@ -452,7 +479,10 @@ int main(int argc, char *argv[])
 			task->_loggingBuffer.xTrapr = task->_loggingBuffer.xTrapr / static_cast<double>(sim.iterationsbetweenSavings);
 			task->_loggingBuffer.xMol   = task->_loggingBuffer.xMol / static_cast<double>(sim.iterationsbetweenSavings);
 			task->_loggingBuffer.logpotentialForce= task->_loggingBuffer.logpotentialForce / static_cast<double>(sim.iterationsbetweenSavings);
-			//task->_loggingBuffer.Time   = task->_loggingBuffer.Time / static_cast<double>(iterationsbetweenSavings);
+			
+			task->_loggingBuffer.Time   = task->_loggingBuffer.Time - sim.expTime * static_cast<double>(sim.iterationsbetweenSavings);
+			
+			task->_loggingBuffer.binding = task->_loggingBuffer.binding / static_cast<double>(sim.iterationsbetweenSavings);
 
 			task->writeStateTolog();
 			task->loggingBuffertoZero();
