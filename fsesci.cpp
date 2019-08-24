@@ -77,86 +77,58 @@ private:
 	std::vector <double> _buffer;
 };
 
-
-/// Old finction for symmetric well
-//double mod(double a, double N)
-//{
-//	return a - N * floor(a / N); //return in range [0, N)
-//}
-
 // New mapping R->[-L/2, L/2], 0->0 for asymmetric well
 double period_map(double y, double L)
 {
 	return y - floor(y / L + 0.5) * L;
 }
 
-class PotentialForce 
+class PotentialForce
 {
 public:
-	double G = 0.0, G2 = 0.0;
-	double L = 0.0;
-	double E = exp(1.0); 
-	double powsigma = 0.0;
-	double m = 0.0;
-	double A = 0.0;
-	double lgs = log(0.5);
-	double var1 = pow(2.0, log(1.0 + m) / lgs);
-	double var2 = pow(2.0, log(2.0) / lgs);
-	double binding = 0.0;
-	SystemState* state;
+	const ModelParameters* mp;
+	const SystemState* state;
+	const double powsigma;
+	const double lgs = log(0.5), E = exp(1);
+	const double var1, var2;
 
-	PotentialForce(double G_, double G2_, double L_,  double sigma_, SystemState& state_)
+	PotentialForce(const ModelParameters& mp_, SystemState& state_) :
+		powsigma ( pow(mp_.sigma, 2) ),
+		var1 ( pow(2.0, log(1.0 + mp_.m) / lgs) ),
+		var2 ( pow(2.0, log(2.0) / lgs) )
 	{
-		G = G_;
-		G2 = G2_;
-		L = L_;
-		powsigma = pow(sigma_, 2);
+		mp = &mp_;
 		state = &state_;
-		std::cout << "Pot init state G " << state->binding << std::endl;
 	}
 
-	PotentialForce(double G_, double G2_, double L_, double sigma_, double A_, double m_, SystemState& state)
-	{
-		G = G_;
-		G2 = G2_;
-		L = L_;
-		powsigma = pow(sigma_, 2);
-		m = m_;
-		A = A_;
-		binding = state.binding;
-
-		lgs = log((1.0 + m) / 2.0);
-		var1 = pow(2.0, log(1.0 + m) / lgs);
-		var2 = pow(2.0, log(2.0) / lgs);
-	}
-	
 	double calc(double unmodvar) const
 	{
-		double var = period_map(unmodvar, L);
+		double var = period_map(unmodvar, mp->L);
 		if (state->binding == 0.0) {
 			return 0.0;
 		}
 		else if (state->binding == 1.0) {
-			return (G*(-L / 2.0 + var)) / (pow(E, pow(L - 2.0 * var, 2) / (8.0*powsigma))*powsigma);//l1d cache 4096 of doubles -> use 50% of it?
+			return (mp->G * (-mp->L / 2.0 + var)) / (pow(E, pow(mp->L - 2.0 * var, 2) / (8.0*powsigma))*powsigma);//l1d cache 4096 of doubles -> use 50% of it?
 		}
 		else if (state->binding == 2.0) {
-			return (G2*(-L / 2.0 + var)) / (pow(E, pow(L - 2.0 * var, 2) / (8.0*powsigma))*powsigma);
+			return (mp->G2 * (-mp->L / 2.0 + var)) / (pow(E, pow(mp->L - 2.0 * var, 2) / (8.0*powsigma))*powsigma);
 		}
 	}
-
+	
 	double asymmetric(double unmodvar) const
 	{
-		if (binding == 0.0) {
+		if (state->binding == 0.0) {
 			return 0.0;
 		}
-		else if (binding == 1.0) {
-			double x = period_map(unmodvar, L);
-			double tmp1 = pow(1.0 + 2.0 * x / L, log(2.0) / lgs);
+		else if (state->binding == 1.0) {
+			double x = period_map(unmodvar, mp->L);
+			double tmp1 = pow(1.0 + 2.0 * x / mp->L, log(2.0) / lgs);
 
-			return (log(2.0) * A * G * exp(A * (1.0 - 1.0 / (1.0 - pow((-1.0 + var1 / tmp1), 2)))) * tmp1 * (1.0 / tmp1 - 1.0 / var1) /
-				((L + 2.0*x) * pow(-1.0 + var2 / tmp1, 2) * lgs));
+			return (log(2.0) * mp->A * mp->G * exp(mp->A * (1.0 - 1.0 / (1.0 - pow((-1.0 + var1 / tmp1), 2)))) * tmp1 * (1.0 / tmp1 - 1.0 / var1) /
+				((mp->L + 2.0*x) * pow(-1.0 + var2 / tmp1, 2) * lgs));
 		}
 	}
+	
 };
 
 class ExponentialGenerator {
@@ -199,7 +171,7 @@ public:
 
 	double calculateMolspringForce(double extensionInput) {
 		double extension = fabs(extensionInput);
-		int sign = std::signbit(extensionInput);
+		int sign = (extensionInput > 0) - (extensionInput < 0);
 
 		if (extension <= _mP.molStiffBoundary) {
 			return sign * _mP.molStiffWeakSlope*extension;
@@ -213,8 +185,7 @@ public:
 
 	double calculateMTspringForce(double extensionInput, char side) {
 		double extension = fabs(extensionInput)*2.0;
-		int sign = std::signbit(extensionInput);
-		//(extensionInput > 0) - (extensionInput < 0);
+		int sign = (extensionInput > 0) - (extensionInput < 0);
 
 		if (side == 'L')
 		{
@@ -255,21 +226,14 @@ public:
 
 	}
 
-	double takeRandomNumber2(const double* rndNumbers) {
-		return *(rndNumbers++);
-	}
-
-	// rndNumbers must contain 3 * nSteps random numbers
 	void advanceState(int nSteps, const double* rndNumbers) {
-		// configurate force object
-		//PotentialForce potentialForce(_mP.G, _mP.L, _mP.sigma, _mP.A, _mP.m, _state.binding);
-		PotentialForce potentialForce(_mP.G, _mP.G2, _mP.L, _mP.sigma, _state);
+		PotentialForce potentialForce(_mP, _state);
 		
 		auto takeRandomNumber = [rndNumbers] () mutable -> double {
 			return *(rndNumbers++);
 		};
 
-		for (int i = 0; i < nSteps; i++) {
+		for (unsigned i = 0; i < nSteps; i++) {
 			
 			double rnd_xMT = takeRandomNumber();
 			double rnd_xBeadl = takeRandomNumber();
@@ -288,7 +252,7 @@ public:
 			double next_xMol = _state.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force - calculateMolspringForce(_state.xMol - _initC.xPed)) + sqrt(2.0*_mP.DMol*_sim.expTime) * rnd_xMol;
 
 			if (std::isnan(next_xBeadr)) {
-				std::cout << "NAN" << std::endl;
+				std::cout << "NAN = " << next_xBeadr << ", i = " << i << ", rnd = " << rnd_xBeadr << std::endl;
 
 			}
 
@@ -298,7 +262,6 @@ public:
 			_state.xMol   = next_xMol;
 			_state.Time += _sim.expTime;
 
-				
 			_loggingBuffer.xMT    +=  _state.xMT;   
 			_loggingBuffer.xBeadl +=  _state.xBeadl;
 			_loggingBuffer.xBeadr +=  _state.xBeadr;
@@ -306,13 +269,12 @@ public:
 			_loggingBuffer.xTrapr += _state.xTrapr;
 			_loggingBuffer.xMol   +=  _state.xMol;  
 			_loggingBuffer.logpotentialForce += MT_Mol_force;
+			_loggingBuffer.binding += _state.binding;
 
 			updateState();
-			_loggingBuffer.binding += _state.binding;
+			
 		}
-
 		_loggingBuffer.Time = _state.Time;
-		
 	}
 
 	void writeStateTolog() const {
@@ -354,8 +316,6 @@ public:
 			fillVector(expRands);
 			livingTimes.assign(_mP.numStates, 0.0);
 			_state.binding = 0.0;
-
-			//std::cout << _state.xBeadr << std::endl;
 		}
 
 		int prev_binding = int(_state.binding);
@@ -380,10 +340,6 @@ public:
 		if ((prev_binding == 0.0) && (_state.binding == 1.0)) {
 			_state.currentWell = _mP.L * floor(((_state.xMol - _state.xMT) + _mP.L / 2.0) / _mP.L);
 		}
-
-		/*if (prev_binding != _state.binding) {
-			std::cout << prev_binding << " -> " << _state.binding << std::endl;
-		}*/
 
 		return;
 	}
@@ -445,10 +401,6 @@ int main(int argc, char *argv[])
 	}
 
 	for (int savedSampleIter = 0; savedSampleIter < sim.totalsavings; savedSampleIter++) {
-
-		/*for (const auto& task : tasks) {
-			task->updateBinding(sim.iterationsbetweenSavings);
-		}*/
 
 		for (int macrostep = 0; macrostep < sim.macrostepMax; macrostep++) {
 			generator1.generateNumbers();

@@ -59,11 +59,6 @@ struct ModelParameters
 											// Parameters of stiffness
 	double trapstiffL;			//(* pN/um | stiffness of the trap *) 
 	double trapstiffR;
-	double MTstiffL;			//(* pN/um | stiffness of the MT *) 
-	double MTstiffR;
-	double MTlowstiff;
-	double MTrelaxedLengthL;
-	double MTrelaxedLengthR;
 
 	double MTstiffWeakSlopeL;
 	double MTstiffWeakBoundaryL;
