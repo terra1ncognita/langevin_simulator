@@ -30,12 +30,7 @@
 
 #include <fstream>
 
-//static constexpr unsigned nThreads = 2;
-
-// Initialize global constants
-//std::string inputparamfile = "C:\\Users\\Tolya\\Documents\\Visual Studio 2015\\Projects\\Langevien2_New\\x64\\Release\\config_debug_trap50_noT.json";
-
-/// ToDo try to use ofstream rawwrite
+// TODO try to use ofstream rawwrite
 
 class BinaryFileLogger 
 {
@@ -108,10 +103,10 @@ public:
 			return 0.0;
 		}
 		else if (state->binding == 1.0) {
-			return (mp->G * (-mp->L / 2.0 + var)) / (pow(E, pow(mp->L - 2.0 * var, 2) / (8.0*powsigma))*powsigma);//l1d cache 4096 of doubles -> use 50% of it?
+			return -(mp->G * (-mp->L / 2.0 + var)) / (pow(E, pow(mp->L - 2.0 * var, 2) / (8.0*powsigma))*powsigma);//l1d cache 4096 of doubles -> use 50% of it?
 		}
 		else if (state->binding == 2.0) {
-			return (mp->G2 * (-mp->L / 2.0 + var)) / (pow(E, pow(mp->L - 2.0 * var, 2) / (8.0*powsigma))*powsigma);
+			return -(mp->G2 * (-mp->L / 2.0 + var)) / (pow(E, pow(mp->L - 2.0 * var, 2) / (8.0*powsigma))*powsigma);
 		}
 	}
 	
@@ -235,6 +230,8 @@ public:
 
 		for (unsigned i = 0; i < nSteps; i++) {
 			
+			updateState();
+
 			double rnd_xMT = takeRandomNumber();
 			double rnd_xBeadl = takeRandomNumber();
 			double rnd_xBeadr = takeRandomNumber();
@@ -251,10 +248,10 @@ public:
 			double next_xBeadr = _state.xBeadr + (_sim.expTime / _mP.gammaBeadR)*(-FmtR + (-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr)) + sqrt(2.0*_mP.DBeadR*_sim.expTime) * rnd_xBeadr;
 			double next_xMol = _state.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force - calculateMolspringForce(_state.xMol - _initC.xPed)) + sqrt(2.0*_mP.DMol*_sim.expTime) * rnd_xMol;
 
-			if (std::isnan(next_xBeadr)) {
+			/*if (std::isnan(next_xBeadr)) {
 				std::cout << "NAN = " << next_xBeadr << ", i = " << i << ", rnd = " << rnd_xBeadr << std::endl;
 
-			}
+			}*/
 
 			_state.xMT    = next_xMT;
 			_state.xBeadl = next_xBeadl;
@@ -270,8 +267,6 @@ public:
 			_loggingBuffer.xMol   +=  _state.xMol;  
 			_loggingBuffer.logpotentialForce += MT_Mol_force;
 			_loggingBuffer.binding += _state.binding;
-
-			updateState();
 			
 		}
 		_loggingBuffer.Time = _state.Time;
@@ -296,14 +291,14 @@ public:
 	}
 
 	void forcefeedbackBuffertoZero() {
-		_forcefeedbackBuffer.xMT = 0.0;
+		//_forcefeedbackBuffer.xMT = 0.0;
 		_forcefeedbackBuffer.xBeadl = 0.0;
 		_forcefeedbackBuffer.xBeadr = 0.0;
 		_forcefeedbackBuffer.xTrapl = 0.0;
 		_forcefeedbackBuffer.xTrapr = 0.0;
-		_forcefeedbackBuffer.xMol = 0.0;
-		_forcefeedbackBuffer.logpotentialForce = 0.0;
-		_forcefeedbackBuffer.Time = 0.0;
+		//_forcefeedbackBuffer.xMol = 0.0;
+		//_forcefeedbackBuffer.logpotentialForce = 0.0;
+		//_forcefeedbackBuffer.Time = 0.0;
 	}
 
 	void fillVector(std::vector<double>& rnds) {
@@ -415,13 +410,13 @@ int main(int argc, char *argv[])
 		}
 
 		for (const auto& task : tasks) {
-			task->_forcefeedbackBuffer.xMT    += task->_loggingBuffer.xMT;
+			//task->_forcefeedbackBuffer.xMT    += task->_loggingBuffer.xMT;
 			task->_forcefeedbackBuffer.xBeadl += task->_loggingBuffer.xBeadl;
 			task->_forcefeedbackBuffer.xBeadr += task->_loggingBuffer.xBeadr;
 			task->_forcefeedbackBuffer.xTrapl += task->_loggingBuffer.xTrapl;
 			task->_forcefeedbackBuffer.xTrapr += task->_loggingBuffer.xTrapr;
-			task->_forcefeedbackBuffer.xMol   += task->_loggingBuffer.xMol;
-			task->_forcefeedbackBuffer.logpotentialForce += task->_loggingBuffer.logpotentialForce;
+			//task->_forcefeedbackBuffer.xMol   += task->_loggingBuffer.xMol;
+			//task->_forcefeedbackBuffer.logpotentialForce += task->_loggingBuffer.logpotentialForce;
 			//task->_forcefeedbackBuffer.Time   += task->_loggingBuffer.Time;
 
 			task->_loggingBuffer.xMT    = task->_loggingBuffer.xMT / static_cast<double>(sim.iterationsbetweenSavings);
@@ -443,13 +438,13 @@ int main(int argc, char *argv[])
 		if ((savedSampleIter % sim.trapsUpdateTest) == 0) {
 			for (const auto& task : tasks) {
 
-				task->_forcefeedbackBuffer.xMT    = task->_forcefeedbackBuffer.xMT / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
+				//task->_forcefeedbackBuffer.xMT    = task->_forcefeedbackBuffer.xMT / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
 				task->_forcefeedbackBuffer.xBeadl = task->_forcefeedbackBuffer.xBeadl / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
 				task->_forcefeedbackBuffer.xBeadr = task->_forcefeedbackBuffer.xBeadr / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
 				task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapl / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
 				task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapr / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
-				task->_forcefeedbackBuffer.xMol   = task->_forcefeedbackBuffer.xMol / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
-				task->_forcefeedbackBuffer.logpotentialForce = task->_forcefeedbackBuffer.logpotentialForce / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
+				//task->_forcefeedbackBuffer.xMol   = task->_forcefeedbackBuffer.xMol / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
+				//task->_forcefeedbackBuffer.logpotentialForce = task->_forcefeedbackBuffer.logpotentialForce / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
 
 				//task->_forcefeedbackBuffer.Time   = task->_forcefeedbackBuffer.Time / static_cast<double>(iterationsbetweenTrapsUpdate);
 				//task->writeStateTolog();
