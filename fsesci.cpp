@@ -103,10 +103,10 @@ public:
 			return 0.0;
 		}
 		else if (state->binding == 1.0) {
-			return -(mp->G * (-mp->L / 2.0 + var)) / (pow(E, pow(mp->L - 2.0 * var, 2) / (8.0*powsigma))*powsigma);//l1d cache 4096 of doubles -> use 50% of it?
+			return (mp->G * var / powsigma) * pow(E, -pow(var, 2) / (2.0*powsigma));//l1d cache 4096 of doubles -> use 50% of it?
 		}
 		else if (state->binding == 2.0) {
-			return -(mp->G2 * (-mp->L / 2.0 + var)) / (pow(E, pow(mp->L - 2.0 * var, 2) / (8.0*powsigma))*powsigma);
+			return (mp->G2 * var / powsigma) * pow(E, -pow(var, 2) / (2.0*powsigma));
 		}
 	}
 	
