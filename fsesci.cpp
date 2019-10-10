@@ -78,6 +78,7 @@ double period_map(double y, double L)
 	return y - floor(y / L + 0.5) * L;
 }
 
+
 class PotentialForce
 {
 public:
@@ -96,6 +97,7 @@ public:
 		state = &state_;
 	}
 
+	
 	double calc(double unmodvar) const
 	{
 		double var = period_map(unmodvar, mp->L);
@@ -105,9 +107,11 @@ public:
 		else if (state->binding == 1.0) {
 			return (mp->G * var / powsigma) * pow(E, -pow(var, 2) / (2.0*powsigma));//l1d cache 4096 of doubles -> use 50% of it?
 		}
+		/*
 		else if (state->binding == 2.0) {
 			return (mp->G2 * var / powsigma) * pow(E, -pow(var, 2) / (2.0*powsigma));
 		}
+		*/
 	}
 	
 	double asymmetric(double unmodvar) const
@@ -121,6 +125,25 @@ public:
 
 			return (log(2.0) * mp->A * mp->G * exp(mp->A * (1.0 - 1.0 / (1.0 - pow((-1.0 + var1 / tmp1), 2)))) * tmp1 * (1.0 / tmp1 - 1.0 / var1) /
 				((mp->L + 2.0*x) * pow(-1.0 + var2 / tmp1, 2) * lgs));
+		}
+	}
+
+	double calc_rotational_force(double angle) const
+	{
+		return -(pow(mp->domainsDistance, 2) * exp(2 - 2 * mp->domainsDistance* sin(angle) / mp->rotWellWidth) *
+			mp->rotWellDepth * (mp->rotWellWidth - mp->domainsDistance * sin(angle)) * sin(2 * angle)) / pow(mp->domainsDistance, 3);
+	}
+	
+	double two_domains(double unmodvar, double angle) const
+	{
+		double var = period_map(unmodvar, mp->L);
+		double deltaG = mp->rotWellDepth * pow((mp->domainsDistance* sin(angle) / mp->rotWellWidth), 2) * exp(2*(1 - mp->domainsDistance* sin(angle) / mp->rotWellWidth));
+
+		if (state->binding == 0.0) {
+			return 0.0;
+		}
+		else if (state->binding == 1.0) {
+			return ((mp->G + deltaG) * var / powsigma) * pow(E, -pow(var, 2) / (2.0*powsigma));//l1d cache 4096 of doubles -> use 50% of it?
 		}
 	}
 	
@@ -239,15 +262,17 @@ public:
 			
 			double MT_Mol_force = potentialForce.calc(_state.xMol - _state.xMT);
 			//double MT_Mol_force = potentialForce.asymmetric(_state.xMol - _state.xMT);
+			double rot_pot_force = potentialForce.calc_rotational_force(_state.phi);
 
 			double FmtR = calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength / 2.0, 'R');
 			double FmtL = calculateMTspringForce(_state.xMT - _state.xBeadl - _mP.MTlength / 2.0, 'L');
+			double molSpringForce = calculateMolspringForce(_state.xMol - _initC.xPed);
 
 			double next_xMT = _state.xMT + (_sim.expTime / _mP.gammaMT)*(-FmtL + FmtR - MT_Mol_force)+ sqrt(2.0*_mP.DMT*_sim.expTime) * rnd_xMT;
 			double next_xBeadl = _state.xBeadl + (_sim.expTime / _mP.gammaBeadL)*((-_mP.trapstiffL)*(_state.xBeadl - _state.xTrapl) + FmtL) + sqrt(2.0*_mP.DBeadL*_sim.expTime) * rnd_xBeadl;
 			double next_xBeadr = _state.xBeadr + (_sim.expTime / _mP.gammaBeadR)*(-FmtR + (-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr)) + sqrt(2.0*_mP.DBeadR*_sim.expTime) * rnd_xBeadr;
-			double next_xMol = _state.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force - calculateMolspringForce(_state.xMol - _initC.xPed)) + sqrt(2.0*_mP.DMol*_sim.expTime) * rnd_xMol;
-
+			double next_xMol = _state.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force - molSpringForce) + sqrt(2.0*_mP.DMol*_sim.expTime) * rnd_xMol;
+			double next_phi = _state.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*_state.phi - molSpringForce * _mP.molLength*sin(_state.phi) + rot_pot_force);
 			/*if (std::isnan(next_xBeadr)) {
 				std::cout << "NAN = " << next_xBeadr << ", i = " << i << ", rnd = " << rnd_xBeadr << std::endl;
 
@@ -301,10 +326,11 @@ public:
 		//_forcefeedbackBuffer.Time = 0.0;
 	}
 
+	
 	void fillVector(std::vector<double>& rnds) {
 		std::generate(begin(rnds), end(rnds), expGen);
 	}
-
+	
 	void updateState() {
 
 		if (_state.binding == 1.0 && (abs((_state.xMol - _state.xMT) - _state.currentWell) >= _mP.L / 2.0)) {

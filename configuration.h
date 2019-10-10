@@ -89,10 +89,17 @@ struct ModelParameters
 	double prestretchTotalForce;
 	double movementTotalForce;
 
-	int numStates = 3;
+	double rotFriction;
+	double rotStiffness;
+	double molLength;
+	double domainsDistance;
+	double rotWellWidth;
+	double rotWellDepth;
 
-	double kOn1, kOn2;
-	double kOff1, kOff2;
+	int numStates = 2;
+
+	double kOn1, kOff1;
+	// double kOn2, kOff2;
 
 	double** transitionMatrix;
 };
@@ -112,6 +119,8 @@ struct SystemState
 	double binding = 0.0;
 	double currentWell = 0.0;
 
+	double phi = 0.0;
+
 	//#pragma omp declare simd
 	template <typename F>
 	static void iterateFields(F&& f) {
@@ -126,7 +135,7 @@ struct SystemState
 		f(&SystemState::direction, "direction");
 		f(&SystemState::logpotentialForce, "logpotentialForce");
 
-		f(&SystemState::binding, "binding");
+		// f(&SystemState::binding, "binding");
 	}
 };
 

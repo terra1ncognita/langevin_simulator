@@ -216,11 +216,37 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	if (!(jsonobj["ModelParameters"]["kOff1"].empty())) {
 		conf.modelParameters.kOff1 = stod(jsonobj["ModelParameters"]["kOff1"].get<std::string>());
 	}
-	if (!(jsonobj["ModelParameters"]["kOn2"].empty())) {
+	/*if (!(jsonobj["ModelParameters"]["kOn2"].empty())) {
 		conf.modelParameters.kOn2 = stod(jsonobj["ModelParameters"]["kOn2"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["kOff2"].empty())) {
+	}*/
+	/*if (!(jsonobj["ModelParameters"]["kOff2"].empty())) {
 		conf.modelParameters.kOff2 = stod(jsonobj["ModelParameters"]["kOff2"].get<std::string>());
+	}*/
+
+	/*double rotFriction;
+	double rotStiffness;
+	double molLength;
+	double domainsDistance;
+	double rotWellWidth;
+	double rotWellDepth;*/
+
+	if (!(jsonobj["ModelParameters"]["rotFriction"].empty())) {
+		conf.modelParameters.rotFriction = stod(jsonobj["ModelParameters"]["rotFriction"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["rotStiffness"].empty())) {
+		conf.modelParameters.rotStiffness = stod(jsonobj["ModelParameters"]["rotStiffness"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["molLength"].empty())) {
+		conf.modelParameters.molLength = stod(jsonobj["ModelParameters"]["molLength"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["domainsDistance"].empty())) {
+		conf.modelParameters.domainsDistance = stod(jsonobj["ModelParameters"]["domainsDistance"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["rotWellWidth"].empty())) {
+		conf.modelParameters.rotWellWidth = stod(jsonobj["ModelParameters"]["rotWellWidth"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["rotWellDepth"].empty())) {
+		conf.modelParameters.rotWellDepth = (conf.modelParameters.kT) * stod(jsonobj["ModelParameters"]["rotWellDepth"].get<std::string>());
 	}
 
 
@@ -272,8 +298,8 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	}
 
 	//TODO: generalize to arbitrary Markov chain
-	if (conf.modelParameters.numStates != 3) {
-		throw std::runtime_error{ "Current implementation is only for 3 states!" };
+	if (conf.modelParameters.numStates != 2) {
+		throw std::runtime_error{ "Current implementation is only for 2 states!" };
 	}
 
 	conf.modelParameters.transitionMatrix = new double*[conf.modelParameters.numStates];
@@ -285,15 +311,9 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 
 	conf.modelParameters.transitionMatrix[0][0] = -conf.modelParameters.kOn1;
 	conf.modelParameters.transitionMatrix[0][1] = conf.modelParameters.kOn1;
-	conf.modelParameters.transitionMatrix[0][2] = 0.0;
 
-	conf.modelParameters.transitionMatrix[1][0] = conf.modelParameters.kOff1;
-	conf.modelParameters.transitionMatrix[1][1] = -conf.modelParameters.kOff1 - conf.modelParameters.kOn2;
-	conf.modelParameters.transitionMatrix[1][2] = conf.modelParameters.kOn2;
-
-	conf.modelParameters.transitionMatrix[2][0] = 0.0;
-	conf.modelParameters.transitionMatrix[2][1] = conf.modelParameters.kOff2;
-	conf.modelParameters.transitionMatrix[2][2] = -conf.modelParameters.kOff2;
+	conf.modelParameters.transitionMatrix[1][1] = conf.modelParameters.kOff1;
+	conf.modelParameters.transitionMatrix[1][2] = -conf.modelParameters.kOff1;
 
 	return conf;
 }
