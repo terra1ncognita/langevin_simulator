@@ -136,6 +136,7 @@ struct SystemState
 		f(&SystemState::logpotentialForce, "logpotentialForce");
 
 		f(&SystemState::binding, "binding");
+		f(&SystemState::phi, "phi");
 	}
 };
 

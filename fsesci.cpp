@@ -284,6 +284,8 @@ public:
 			_state.xMol   = next_xMol;
 			_state.Time += _sim.expTime;
 
+			_state.phi = next_phi;
+
 			_loggingBuffer.xMT    +=  _state.xMT;   
 			_loggingBuffer.xBeadl +=  _state.xBeadl;
 			_loggingBuffer.xBeadr +=  _state.xBeadr;
@@ -292,7 +294,7 @@ public:
 			_loggingBuffer.xMol   +=  _state.xMol;  
 			_loggingBuffer.logpotentialForce += MT_Mol_force;
 			_loggingBuffer.binding += _state.binding;
-			
+			_loggingBuffer.phi += _state.phi;
 		}
 		_loggingBuffer.Time = _state.Time;
 	}
@@ -313,6 +315,7 @@ public:
 		_loggingBuffer.logpotentialForce = 0.0;
 		_loggingBuffer.Time = 0.0;
 		_loggingBuffer.binding = 0.0;
+		_loggingBuffer.phi = 0.0;
 	}
 
 	void forcefeedbackBuffertoZero() {
@@ -456,6 +459,7 @@ int main(int argc, char *argv[])
 			task->_loggingBuffer.Time   = task->_loggingBuffer.Time - sim.expTime * static_cast<double>(sim.iterationsbetweenSavings);
 			
 			task->_loggingBuffer.binding = task->_loggingBuffer.binding / static_cast<double>(sim.iterationsbetweenSavings);
+			task->_loggingBuffer.phi = task->_loggingBuffer.phi / static_cast<double>(sim.iterationsbetweenSavings);
 
 			task->writeStateTolog();
 			task->loggingBuffertoZero();
