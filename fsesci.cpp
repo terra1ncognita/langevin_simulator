@@ -300,6 +300,7 @@ fillVector(expRands);
 			_loggingBuffer.logpotentialForce += MT_Mol_force;
 			_loggingBuffer.binding += _state.binding;
 			_loggingBuffer.phi += _state.phi;
+			_loggingBuffer.molSpringForce += molSpringForce;
 		}
 		_loggingBuffer.Time = _state.Time;
 	}
@@ -321,6 +322,7 @@ fillVector(expRands);
 		_loggingBuffer.Time = 0.0;
 		_loggingBuffer.binding = 0.0;
 		_loggingBuffer.phi = 0.0;
+		_loggingBuffer.molSpringForce = 0.0;
 	}
 
 	void forcefeedbackBuffertoZero() {
@@ -465,6 +467,7 @@ int main(int argc, char *argv[])
 			
 			task->_loggingBuffer.binding = task->_loggingBuffer.binding / static_cast<double>(sim.iterationsbetweenSavings);
 			task->_loggingBuffer.phi = task->_loggingBuffer.phi / static_cast<double>(sim.iterationsbetweenSavings);
+			task->_loggingBuffer.molSpringForce = task->_loggingBuffer.molSpringForce / static_cast<double>(sim.iterationsbetweenSavings);
 
 			task->writeStateTolog();
 			task->loggingBuffertoZero();
