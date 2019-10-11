@@ -259,6 +259,7 @@ public:
 			double rnd_xBeadl = takeRandomNumber();
 			double rnd_xBeadr = takeRandomNumber();
 			double rnd_xMol = takeRandomNumber();
+			double rnd_phi = takeRandomNumber();
 			
 			double MT_Mol_force = potentialForce.calc(_state.xMol - _state.xMT);
 			//double MT_Mol_force = potentialForce.asymmetric(_state.xMol - _state.xMT);
@@ -272,7 +273,7 @@ public:
 			double next_xBeadl = _state.xBeadl + (_sim.expTime / _mP.gammaBeadL)*((-_mP.trapstiffL)*(_state.xBeadl - _state.xTrapl) + FmtL) + sqrt(2.0*_mP.DBeadL*_sim.expTime) * rnd_xBeadl;
 			double next_xBeadr = _state.xBeadr + (_sim.expTime / _mP.gammaBeadR)*(-FmtR + (-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr)) + sqrt(2.0*_mP.DBeadR*_sim.expTime) * rnd_xBeadr;
 			double next_xMol = _state.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force - molSpringForce) + sqrt(2.0*_mP.DMol*_sim.expTime) * rnd_xMol;
-			double next_phi = _state.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*_state.phi - molSpringForce * _mP.molLength*sin(_state.phi) + rot_pot_force);
+			double next_phi = _state.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*_state.phi - molSpringForce * _mP.molLength*sin(_state.phi) + rot_pot_force) + sqrt(2.0*_mP.kT*_sim.expTime/_mP.rotFriction) * rnd_phi;
 			/*if (std::isnan(next_xBeadr)) {
 				std::cout << "NAN = " << next_xBeadr << ", i = " << i << ", rnd = " << rnd_xBeadr << std::endl;
 

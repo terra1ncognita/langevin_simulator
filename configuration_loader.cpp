@@ -223,13 +223,6 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 		conf.modelParameters.kOff2 = stod(jsonobj["ModelParameters"]["kOff2"].get<std::string>());
 	}*/
 
-	/*double rotFriction;
-	double rotStiffness;
-	double molLength;
-	double domainsDistance;
-	double rotWellWidth;
-	double rotWellDepth;*/
-
 	if (!(jsonobj["ModelParameters"]["rotFriction"].empty())) {
 		conf.modelParameters.rotFriction = stod(jsonobj["ModelParameters"]["rotFriction"].get<std::string>());
 	}
@@ -295,6 +288,9 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	}
 	if (!(jsonobj["InitialConditions"]["xBeadr"].empty())) {
 		conf.currentState.xBeadr = stod(jsonobj["InitialConditions"]["xBeadr"].get<std::string>());
+	}
+	if (!(jsonobj["InitialConditions"]["phi"].empty())) {
+		conf.currentState.phi = stod(jsonobj["InitialConditions"]["phi"].get<std::string>());
 	}
 
 	//TODO: generalize to arbitrary Markov chain
