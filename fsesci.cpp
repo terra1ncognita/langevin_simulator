@@ -179,12 +179,12 @@ public:
 		expRands(_mP.numStates),
 		livingTimes(_mP.numStates, 0.0)
 	{
-		const auto& loggerParameters = configuration.loggerParameters;
-		SystemState::iterateFields([this, &loggerParameters](double(SystemState::* field), std::string fieldName) {
-			auto logger = std::make_unique<BinaryFileLogger>(loggerParameters, field, fieldName);// creates object of class BinaryFileLogger but returns to logger variable the unique pointer to it. // for creation of object implicitly with arguments like this also remind yourself the vector.emplace(args) .
-			this->_loggers.push_back(std::move(logger));// unique pointer can't be copied, only moved like this
-		});
-		fillVector(expRands);
+const auto& loggerParameters = configuration.loggerParameters;
+SystemState::iterateFields([this, &loggerParameters](double(SystemState::* field), std::string fieldName) {
+	auto logger = std::make_unique<BinaryFileLogger>(loggerParameters, field, fieldName);// creates object of class BinaryFileLogger but returns to logger variable the unique pointer to it. // for creation of object implicitly with arguments like this also remind yourself the vector.emplace(args) .
+	this->_loggers.push_back(std::move(logger));// unique pointer can't be copied, only moved like this
+});
+fillVector(expRands);
 	}
 
 	double calculateMolspringForce(double extensionInput) {
@@ -246,13 +246,13 @@ public:
 
 	void advanceState(int nSteps, const double* rndNumbers) {
 		PotentialForce potentialForce(_mP, _state);
-		
-		auto takeRandomNumber = [rndNumbers] () mutable -> double {
+
+		auto takeRandomNumber = [rndNumbers]() mutable -> double {
 			return *(rndNumbers++);
 		};
 
 		for (unsigned i = 0; i < nSteps; i++) {
-			
+
 			updateState();
 
 			double rnd_xMT = takeRandomNumber();
@@ -260,7 +260,7 @@ public:
 			double rnd_xBeadr = takeRandomNumber();
 			double rnd_xMol = takeRandomNumber();
 			double rnd_phi = takeRandomNumber();
-			
+
 			double MT_Mol_force = potentialForce.calc(_state.xMol - _state.xMT);
 			//double MT_Mol_force = potentialForce.asymmetric(_state.xMol - _state.xMT);
 			double rot_pot_force = potentialForce.calc_rotational_force(_state.phi);
@@ -269,15 +269,19 @@ public:
 			double FmtL = calculateMTspringForce(_state.xMT - _state.xBeadl - _mP.MTlength / 2.0, 'L');
 			double molSpringForce = calculateMolspringForce(_state.xMol - _initC.xPed);
 
-			double next_xMT = _state.xMT + (_sim.expTime / _mP.gammaMT)*(-FmtL + FmtR - MT_Mol_force)+ sqrt(2.0*_mP.DMT*_sim.expTime) * rnd_xMT;
+			double next_xMT = _state.xMT + (_sim.expTime / _mP.gammaMT)*(-FmtL + FmtR - MT_Mol_force) + sqrt(2.0*_mP.DMT*_sim.expTime) * rnd_xMT;
 			double next_xBeadl = _state.xBeadl + (_sim.expTime / _mP.gammaBeadL)*((-_mP.trapstiffL)*(_state.xBeadl - _state.xTrapl) + FmtL) + sqrt(2.0*_mP.DBeadL*_sim.expTime) * rnd_xBeadl;
 			double next_xBeadr = _state.xBeadr + (_sim.expTime / _mP.gammaBeadR)*(-FmtR + (-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr)) + sqrt(2.0*_mP.DBeadR*_sim.expTime) * rnd_xBeadr;
 			double next_xMol = _state.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force - molSpringForce) + sqrt(2.0*_mP.DMol*_sim.expTime) * rnd_xMol;
-			double next_phi = _state.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*_state.phi - molSpringForce * _mP.molLength*sin(_state.phi) + rot_pot_force) + sqrt(2.0*_mP.kT*_sim.expTime/_mP.rotFriction) * rnd_phi;
+			double next_phi = _state.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*_state.phi - molSpringForce * _mP.molLength*sin(_state.phi) + rot_pot_force) + sqrt(2.0*_mP.kT*_sim.expTime / _mP.rotFriction) * rnd_phi;
 			/*if (std::isnan(next_xBeadr)) {
 				std::cout << "NAN = " << next_xBeadr << ", i = " << i << ", rnd = " << rnd_xBeadr << std::endl;
 
 			}*/
+
+			if (next_phi < 0){
+				next_phi = -next_phi;
+			}
 
 			_state.xMT    = next_xMT;
 			_state.xBeadl = next_xBeadl;
