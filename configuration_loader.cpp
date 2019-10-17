@@ -241,6 +241,9 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	if (!(jsonobj["ModelParameters"]["rotWellDepth"].empty())) {
 		conf.modelParameters.rotWellDepth = (conf.modelParameters.kT) * stod(jsonobj["ModelParameters"]["rotWellDepth"].get<std::string>());
 	}
+	if (!(jsonobj["ModelParameters"]["iniPhi"].empty())) {
+		conf.modelParameters.iniPhi = stod(jsonobj["ModelParameters"]["iniPhi"].get<std::string>());
+	}
 
 
 	//// Assign Initial Conditions from json

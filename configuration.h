@@ -95,6 +95,7 @@ struct ModelParameters
 	double domainsDistance;
 	double rotWellWidth;
 	double rotWellDepth;
+	double iniPhi;
 
 	int numStates = 2;
 
