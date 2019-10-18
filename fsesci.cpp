@@ -262,8 +262,9 @@ public:
 			double rnd_xMol = takeRandomNumber();
 			double rnd_phi = takeRandomNumber();
 
-			double MT_Mol_force = potentialForce.calc(_state.xMol - _state.xMT);
+			//double MT_Mol_force = potentialForce.calc(_state.xMol - _state.xMT);
 			//double MT_Mol_force = potentialForce.asymmetric(_state.xMol - _state.xMT);
+			double MT_Mol_force = potentialForce.two_domains(_state.xMol - _state.xMT, _state.phi);
 			double rot_pot_force = potentialForce.calc_rotational_force(_state.phi);
 
 			double FmtR = calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength / 2.0, 'R');
@@ -277,7 +278,6 @@ public:
 			double next_phi = _state.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*(_state.phi - _mP.iniPhi) + (_state.binding == 0) * (- molSpringForce * _mP.molLength*cos(_state.phi) + rot_pot_force)) + sqrt(2.0*_mP.kT*_sim.expTime / _mP.rotFriction) * rnd_phi;
 			/*if (std::isnan(next_xBeadr)) {
 				std::cout << "NAN = " << next_xBeadr << ", i = " << i << ", rnd = " << rnd_xBeadr << std::endl;
-
 			}*/
 
 			if (next_phi < 0){
