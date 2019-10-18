@@ -11,6 +11,8 @@
 #include <cmath>
 #include <vector>
 #include <algorithm>
+
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include <iomanip>
 #include <map>
@@ -245,8 +247,7 @@ public:
 
 	void advanceState(int nSteps, const double* rndNumbers) {
 		PotentialForce potentialForce(_mP, _state);
-		double _PI = 3.1415926536;
-
+		
 		auto takeRandomNumber = [rndNumbers]() mutable -> double {
 			return *(rndNumbers++);
 		};
@@ -282,8 +283,8 @@ public:
 			if (next_phi < 0){
 				next_phi = -next_phi;
 			}
-			else if (next_phi > _PI) {
-				next_phi = 2 * _PI - next_phi;
+			else if (next_phi > M_PI) {
+				next_phi = 2 * M_PI - next_phi;
 			}
 
 			_state.xMT    = next_xMT;
