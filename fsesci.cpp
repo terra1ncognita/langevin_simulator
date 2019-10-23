@@ -131,6 +131,9 @@ public:
 
 	double calc_rotational_force(double angle) const
 	{
+		if (angle >= M_PI_2) {
+			return 0.0;
+		}
 		return -(pow(mp->domainsDistance, 2) * exp(2 - 2 * mp->domainsDistance* sin(angle) / mp->rotWellWidth) *
 			mp->rotWellDepth * (mp->rotWellWidth - mp->domainsDistance * sin(angle)) * sin(2 * angle)) / pow(mp->domainsDistance, 3);
 	}
@@ -138,7 +141,10 @@ public:
 	double two_domains(double unmodvar, double angle) const
 	{
 		double var = period_map(unmodvar, mp->L);
-		double deltaG = mp->rotWellDepth * pow((mp->domainsDistance* sin(angle) / mp->rotWellWidth), 2) * exp(2*(1 - mp->domainsDistance* sin(angle) / mp->rotWellWidth));
+		double deltaG = 0.0;
+		if (angle >= M_PI_2) {
+			deltaG = mp->rotWellDepth * pow((mp->domainsDistance* sin(angle) / mp->rotWellWidth), 2) * exp(2 * (1 - mp->domainsDistance* sin(angle) / mp->rotWellWidth));
+		}
 
 		if (state->binding == 0.0) {
 			return 0.0;
