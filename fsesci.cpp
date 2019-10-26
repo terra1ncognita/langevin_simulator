@@ -141,9 +141,12 @@ public:
 	double two_domains(double unmodvar, double angle) const
 	{
 		double var = period_map(unmodvar, mp->L);
-		double deltaG = 0.0;
-		if (angle >= M_PI_2) {
+		double deltaG;
+		if (angle < M_PI_2) {
 			deltaG = mp->rotWellDepth * pow((mp->domainsDistance* sin(angle) / mp->rotWellWidth), 2) * exp(2 * (1 - mp->domainsDistance* sin(angle) / mp->rotWellWidth));
+		}
+		else {
+			deltaG = 0.0;
 		}
 
 		if (state->binding == 0.0) {
@@ -282,9 +285,6 @@ public:
 			double next_xBeadr = _state.xBeadr + (_sim.expTime / _mP.gammaBeadR)*(-FmtR + (-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr)) + sqrt(2.0*_mP.DBeadR*_sim.expTime) * rnd_xBeadr;
 			double next_xMol = _state.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force - molSpringForce) + sqrt(2.0*_mP.DMol*_sim.expTime) * rnd_xMol;
 			double next_phi = _state.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*(_state.phi - _mP.iniPhi) + (_state.binding == 1.0) * (- molSpringForce * _mP.molLength*sin(_state.phi) + rot_pot_force)) + sqrt(2.0*_mP.kT*_sim.expTime / _mP.rotFriction) * rnd_phi;
-			/*if (std::isnan(next_xBeadr)) {
-				std::cout << "NAN = " << next_xBeadr << ", i = " << i << ", rnd = " << rnd_xBeadr << std::endl;
-			}*/
 
 			if (next_phi < 0){
 				next_phi = -next_phi;
@@ -297,9 +297,8 @@ public:
 			_state.xBeadl = next_xBeadl;
 			_state.xBeadr = next_xBeadr;
 			_state.xMol   = next_xMol;
-			_state.Time += _sim.expTime;
-
 			_state.phi = next_phi;
+			_state.Time += _sim.expTime;
 
 			_loggingBuffer.xMT    +=  _state.xMT;   
 			_loggingBuffer.xBeadl +=  _state.xBeadl;
@@ -310,7 +309,7 @@ public:
 			_loggingBuffer.logpotentialForce += MT_Mol_force;
 			_loggingBuffer.binding += _state.binding;
 			_loggingBuffer.phi += _state.phi;
-			_loggingBuffer.molSpringForce += molSpringForce;
+			_loggingBuffer.molSpringForce += rot_pot_force;
 		}
 		_loggingBuffer.Time = _state.Time;
 	}
@@ -336,16 +335,11 @@ public:
 	}
 
 	void forcefeedbackBuffertoZero() {
-		//_forcefeedbackBuffer.xMT = 0.0;
 		_forcefeedbackBuffer.xBeadl = 0.0;
 		_forcefeedbackBuffer.xBeadr = 0.0;
 		_forcefeedbackBuffer.xTrapl = 0.0;
 		_forcefeedbackBuffer.xTrapr = 0.0;
-		//_forcefeedbackBuffer.xMol = 0.0;
-		//_forcefeedbackBuffer.logpotentialForce = 0.0;
-		//_forcefeedbackBuffer.Time = 0.0;
 	}
-
 	
 	void fillVector(std::vector<double>& rnds) {
 		std::generate(begin(rnds), end(rnds), expGen);
@@ -456,14 +450,10 @@ int main(int argc, char *argv[])
 		}
 
 		for (const auto& task : tasks) {
-			//task->_forcefeedbackBuffer.xMT    += task->_loggingBuffer.xMT;
 			task->_forcefeedbackBuffer.xBeadl += task->_loggingBuffer.xBeadl;
 			task->_forcefeedbackBuffer.xBeadr += task->_loggingBuffer.xBeadr;
 			task->_forcefeedbackBuffer.xTrapl += task->_loggingBuffer.xTrapl;
 			task->_forcefeedbackBuffer.xTrapr += task->_loggingBuffer.xTrapr;
-			//task->_forcefeedbackBuffer.xMol   += task->_loggingBuffer.xMol;
-			//task->_forcefeedbackBuffer.logpotentialForce += task->_loggingBuffer.logpotentialForce;
-			//task->_forcefeedbackBuffer.Time   += task->_loggingBuffer.Time;
 
 			task->_loggingBuffer.xMT    = task->_loggingBuffer.xMT / static_cast<double>(sim.iterationsbetweenSavings);
 			task->_loggingBuffer.xBeadl = task->_loggingBuffer.xBeadl / static_cast<double>(sim.iterationsbetweenSavings);
@@ -485,17 +475,10 @@ int main(int argc, char *argv[])
 		
 		if ((savedSampleIter % sim.trapsUpdateTest) == 0) {
 			for (const auto& task : tasks) {
-
-				//task->_forcefeedbackBuffer.xMT    = task->_forcefeedbackBuffer.xMT / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
 				task->_forcefeedbackBuffer.xBeadl = task->_forcefeedbackBuffer.xBeadl / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
 				task->_forcefeedbackBuffer.xBeadr = task->_forcefeedbackBuffer.xBeadr / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
 				task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapl / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
 				task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapr / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
-				//task->_forcefeedbackBuffer.xMol   = task->_forcefeedbackBuffer.xMol / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
-				//task->_forcefeedbackBuffer.logpotentialForce = task->_forcefeedbackBuffer.logpotentialForce / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
-
-				//task->_forcefeedbackBuffer.Time   = task->_forcefeedbackBuffer.Time / static_cast<double>(iterationsbetweenTrapsUpdate);
-				//task->writeStateTolog();
 
 				int tmpDirection = task->_forcefeedbackBuffer.direction;
 
