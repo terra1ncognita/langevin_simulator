@@ -122,6 +122,7 @@ struct SystemState
 
 	double phi = 0.0;
 	double molSpringForce = 0.0;
+	double deltaG = 0.0;
 
 	//#pragma omp declare simd
 	template <typename F>
@@ -140,6 +141,7 @@ struct SystemState
 		f(&SystemState::binding, "binding");
 		f(&SystemState::phi, "phi");
 		f(&SystemState::molSpringForce, "molSpringForce");
+		f(&SystemState::deltaG, "deltaG");
 	}
 };
 

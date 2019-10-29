@@ -84,7 +84,7 @@ class PotentialForce
 {
 public:
 	const ModelParameters* mp;
-	const SystemState* state;
+	SystemState* state;
 	const double powsigma;
 	const double lgs = log(0.5), E = exp(1);
 	const double var1, var2;
@@ -148,6 +148,7 @@ public:
 		else {
 			deltaG = 0.0;
 		}
+		state->deltaG = deltaG;
 
 		if (state->binding == 0.0) {
 			return 0.0;
@@ -310,6 +311,7 @@ public:
 			_loggingBuffer.binding += _state.binding;
 			_loggingBuffer.phi += _state.phi;
 			_loggingBuffer.molSpringForce += rot_pot_force;
+			_loggingBuffer.deltaG += _state.deltaG;
 		}
 		_loggingBuffer.Time = _state.Time;
 	}
@@ -332,6 +334,7 @@ public:
 		_loggingBuffer.binding = 0.0;
 		_loggingBuffer.phi = 0.0;
 		_loggingBuffer.molSpringForce = 0.0;
+		_loggingBuffer.deltaG = 0.0;
 	}
 
 	void forcefeedbackBuffertoZero() {
@@ -468,6 +471,7 @@ int main(int argc, char *argv[])
 			task->_loggingBuffer.binding = task->_loggingBuffer.binding / static_cast<double>(sim.iterationsbetweenSavings);
 			task->_loggingBuffer.phi = task->_loggingBuffer.phi / static_cast<double>(sim.iterationsbetweenSavings);
 			task->_loggingBuffer.molSpringForce = task->_loggingBuffer.molSpringForce / static_cast<double>(sim.iterationsbetweenSavings);
+			task->_loggingBuffer.deltaG = task->_loggingBuffer.deltaG / static_cast<double>(sim.iterationsbetweenSavings);
 
 			task->writeStateTolog();
 			task->loggingBuffertoZero();
