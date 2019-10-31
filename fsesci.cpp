@@ -196,6 +196,10 @@ public:
 			this->_loggers.push_back(std::move(logger));// unique pointer can't be copied, only moved like this
 		});
 		fillVector(expRands);
+
+		if (!_mP.bindingDynamics) {
+			_state.binding = 1.0;
+		}
 	}
 
 	double calculateMolspringForce(double extensionInput) {
@@ -264,7 +268,9 @@ public:
 
 		for (unsigned i = 0; i < nSteps; i++) {
 
-			updateState();
+			if (_mP.bindingDynamics) {
+				updateState();
+			}
 
 			double rnd_xMT = takeRandomNumber();
 			double rnd_xBeadl = takeRandomNumber();

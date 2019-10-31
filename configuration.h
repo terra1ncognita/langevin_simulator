@@ -103,6 +103,8 @@ struct ModelParameters
 	// double kOn2, kOff2;
 
 	double** transitionMatrix;
+
+	bool bindingDynamics;
 };
 
 struct SystemState
