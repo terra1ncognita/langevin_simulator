@@ -247,9 +247,6 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 
 
 	//// Assign Initial Conditions from json
-	if (!(jsonobj["InitialConditions"]["xPed"].empty())) {
-		conf.initialConditions.xPed = stod(jsonobj["InitialConditions"]["xPed"].get<std::string>());
-	}
 	if (!(jsonobj["InitialConditions"]["xMol"].empty())) {
 		conf.initialConditions.initialState.xMol = stod(jsonobj["InitialConditions"]["xMol"].get<std::string>());
 	}

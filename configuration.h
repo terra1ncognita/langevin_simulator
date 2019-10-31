@@ -121,7 +121,7 @@ struct SystemState
 	double currentWell = 0.0;
 
 	double phi = 0.0;
-	double molSpringForce = 0.0;
+	double potTorque = 0.0;
 	double deltaG = 0.0;
 
 	//#pragma omp declare simd
@@ -140,7 +140,7 @@ struct SystemState
 
 		f(&SystemState::binding, "binding");
 		f(&SystemState::phi, "phi");
-		f(&SystemState::molSpringForce, "molSpringForce");
+		f(&SystemState::potTorque, "potTorque");
 		f(&SystemState::deltaG, "deltaG");
 	}
 };
@@ -148,7 +148,6 @@ struct SystemState
 struct InitialConditions
 {
 	SystemState initialState;
-	double xPed;
 };
 
 // Composition of parameters

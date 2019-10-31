@@ -129,31 +129,31 @@ public:
 		}
 	}
 
-	double calc_rotational_force(double angle) const
+	double calc_potential_torque(double angle) const
 	{
 		if (angle >= M_PI_2) {
 			return 0.0;
 		}
-		return -(pow(mp->domainsDistance, 2) * exp(2 - 2 * mp->domainsDistance* sin(angle) / mp->rotWellWidth) *
+		return -(pow(mp->domainsDistance, 2) * exp(2 - 2 * mp->domainsDistance * sin(angle) / mp->rotWellWidth) *
 			mp->rotWellDepth * (mp->rotWellWidth - mp->domainsDistance * sin(angle)) * sin(2 * angle)) / pow(mp->domainsDistance, 3);
 	}
 	
 	double two_domains(double unmodvar, double angle) const
 	{
 		double var = period_map(unmodvar, mp->L);
-		double deltaG;
-		if (angle < M_PI_2) {
-			deltaG = mp->rotWellDepth * pow((mp->domainsDistance* sin(angle) / mp->rotWellWidth), 2) * exp(2 * (1 - mp->domainsDistance* sin(angle) / mp->rotWellWidth));
-		}
-		else {
-			deltaG = 0.0;
-		}
-		state->deltaG = deltaG;
+		double deltaG = 0.0;
 
 		if (state->binding == 0.0) {
 			return 0.0;
 		}
-		else if (state->binding == 1.0) {
+
+		if (angle < M_PI_2) {
+			deltaG = mp->rotWellDepth * pow((mp->domainsDistance * sin(angle) / mp->rotWellWidth), 2) * exp(2 * (1 - mp->domainsDistance * sin(angle) / mp->rotWellWidth));
+		}
+	
+		state->deltaG = deltaG;
+		
+		if (state->binding == 1.0) {
 			return ((mp->G + deltaG) * var / powsigma) * pow(E, -pow(var, 2) / (2.0*powsigma));//l1d cache 4096 of doubles -> use 50% of it?
 		}
 	}
@@ -275,17 +275,17 @@ public:
 			//double MT_Mol_force = potentialForce.calc(_state.xMol - _state.xMT);
 			//double MT_Mol_force = potentialForce.asymmetric(_state.xMol - _state.xMT);
 			double MT_Mol_force = potentialForce.two_domains(_state.xMol - _state.xMT, _state.phi);
-			double rot_pot_force = potentialForce.calc_rotational_force(_state.phi);
+			double pot_torque = potentialForce.calc_potential_torque(_state.phi);
 
 			double FmtR = calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength / 2.0, 'R');
 			double FmtL = calculateMTspringForce(_state.xMT - _state.xBeadl - _mP.MTlength / 2.0, 'L');
-			double molSpringForce = calculateMolspringForce(_state.xMol - _initC.xPed);
+			double molSpringForce = calculateMolspringForce(_state.xMol);
 
 			double next_xMT = _state.xMT + (_sim.expTime / _mP.gammaMT)*(-FmtL + FmtR - MT_Mol_force) + sqrt(2.0*_mP.DMT*_sim.expTime) * rnd_xMT;
 			double next_xBeadl = _state.xBeadl + (_sim.expTime / _mP.gammaBeadL)*((-_mP.trapstiffL)*(_state.xBeadl - _state.xTrapl) + FmtL) + sqrt(2.0*_mP.DBeadL*_sim.expTime) * rnd_xBeadl;
 			double next_xBeadr = _state.xBeadr + (_sim.expTime / _mP.gammaBeadR)*(-FmtR + (-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr)) + sqrt(2.0*_mP.DBeadR*_sim.expTime) * rnd_xBeadr;
 			double next_xMol = _state.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force - molSpringForce) + sqrt(2.0*_mP.DMol*_sim.expTime) * rnd_xMol;
-			double next_phi = _state.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*(_state.phi - _mP.iniPhi) + (_state.binding == 1.0) * (- molSpringForce * _mP.molLength*sin(_state.phi) + rot_pot_force)) + sqrt(2.0*_mP.kT*_sim.expTime / _mP.rotFriction) * rnd_phi;
+			double next_phi = _state.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*(_state.phi - _mP.iniPhi) + (_state.binding > 0.0) * (- molSpringForce * _mP.molLength*sin(_state.phi) + pot_torque)) + sqrt(2.0*_mP.kT*_sim.expTime / _mP.rotFriction) * rnd_phi;
 
 			if (next_phi < 0){
 				next_phi = -next_phi;
@@ -298,7 +298,7 @@ public:
 			_state.xBeadl = next_xBeadl;
 			_state.xBeadr = next_xBeadr;
 			_state.xMol   = next_xMol;
-			_state.phi = next_phi;
+			_state.phi    = next_phi;
 			_state.Time += _sim.expTime;
 
 			_loggingBuffer.xMT    +=  _state.xMT;   
@@ -310,7 +310,7 @@ public:
 			_loggingBuffer.logpotentialForce += MT_Mol_force;
 			_loggingBuffer.binding += _state.binding;
 			_loggingBuffer.phi += _state.phi;
-			_loggingBuffer.molSpringForce += rot_pot_force;
+			_loggingBuffer.potTorque += pot_torque;
 			_loggingBuffer.deltaG += _state.deltaG;
 		}
 		_loggingBuffer.Time = _state.Time;
@@ -333,7 +333,7 @@ public:
 		_loggingBuffer.Time = 0.0;
 		_loggingBuffer.binding = 0.0;
 		_loggingBuffer.phi = 0.0;
-		_loggingBuffer.molSpringForce = 0.0;
+		_loggingBuffer.potTorque = 0.0;
 		_loggingBuffer.deltaG = 0.0;
 	}
 
@@ -470,7 +470,7 @@ int main(int argc, char *argv[])
 			
 			task->_loggingBuffer.binding = task->_loggingBuffer.binding / static_cast<double>(sim.iterationsbetweenSavings);
 			task->_loggingBuffer.phi = task->_loggingBuffer.phi / static_cast<double>(sim.iterationsbetweenSavings);
-			task->_loggingBuffer.molSpringForce = task->_loggingBuffer.molSpringForce / static_cast<double>(sim.iterationsbetweenSavings);
+			task->_loggingBuffer.potTorque = task->_loggingBuffer.potTorque / static_cast<double>(sim.iterationsbetweenSavings);
 			task->_loggingBuffer.deltaG = task->_loggingBuffer.deltaG / static_cast<double>(sim.iterationsbetweenSavings);
 
 			task->writeStateTolog();
