@@ -246,7 +246,7 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	}
 
 	if (!(jsonobj["ModelParameters"]["bindingDynamics"].empty())) {
-		conf.modelParameters.bindingDynamics = bool(stoi(jsonobj["ModelParameters"]["bindingDynamics"].get<std::string>()));
+		conf.modelParameters.bindingDynamics = stod(jsonobj["ModelParameters"]["bindingDynamics"].get<std::string>());
 	}
 
 

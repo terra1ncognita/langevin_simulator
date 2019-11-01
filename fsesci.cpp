@@ -197,7 +197,7 @@ public:
 		});
 		fillVector(expRands);
 
-		if (!_mP.bindingDynamics) {
+		if (_mP.bindingDynamics == 0.0) {
 			_state.binding = 1.0;
 		}
 	}
@@ -268,7 +268,7 @@ public:
 
 		for (unsigned i = 0; i < nSteps; i++) {
 
-			if (_mP.bindingDynamics) {
+			if (_mP.bindingDynamics == 1.0) {
 				updateState();
 			}
 
@@ -428,13 +428,17 @@ int main(int argc, char *argv[])
 		sim = SimulationParameters();
 	}
 
+	std::cout << "Loaded sim params" << std::endl;
+
 	std::vector<std::unique_ptr<Task>> tasks;
 	for (const auto& configuration : configurations) {
 		auto task = std::make_unique<Task>(configuration);
 		tasks.push_back(std::move(task));
 	}
+	std::cout << "Created ptrs" << std::endl;
 
 	MklGaussianParallelGenerator generator1(0.0, 1.0, sim.buffsize, 4);
+	std::cout << "Created generator" << std::endl;
 
 	int tasksperthread = tasks.size() / nThreads;
 	std::cout << tasksperthread << std::endl;
