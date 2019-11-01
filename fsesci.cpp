@@ -197,7 +197,7 @@ public:
 		});
 		fillVector(expRands);
 
-		if (_mP.bindingDynamics == 0.0) {
+		if (!(_mP.bindingDynamics)) {
 			_state.binding = 1.0;
 		}
 	}
@@ -268,7 +268,7 @@ public:
 
 		for (unsigned i = 0; i < nSteps; i++) {
 
-			if (_mP.bindingDynamics == 1.0) {
+			if (_mP.bindingDynamics) {
 				updateState();
 			}
 
