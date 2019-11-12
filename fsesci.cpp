@@ -293,20 +293,20 @@ public:
 			double next_xBeadl = _state.xBeadl + (_sim.expTime / _mP.gammaBeadL)*((-_mP.trapstiffL)*(_state.xBeadl - _state.xTrapl) + FmtL) + sqrt(2.0*_mP.DBeadL*_sim.expTime) * rnd_xBeadl;
 			double next_xBeadr = _state.xBeadr + (_sim.expTime / _mP.gammaBeadR)*(-FmtR + (-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr)) + sqrt(2.0*_mP.DBeadR*_sim.expTime) * rnd_xBeadr;
 			double next_xMol = _state.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force - molSpringForce) + sqrt(2.0*_mP.DMol*_sim.expTime) * rnd_xMol;
-			//double next_phi = _state.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*(_state.phi - _mP.iniPhi) + (_state.binding > 0.0) * (-molSpringForce * _mP.molLength*sin(_state.phi) + pot_torque));// +sqrt(2.0*_mP.kT*_sim.expTime / _mP.rotFriction) * rnd_phi;
+			double next_phi = _state.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*(_state.phi - _mP.iniPhi) + (_state.binding > 0.0) * (-molSpringForce * _mP.molLength*sin(_state.phi) + pot_torque)) + sqrt(2.0*_mP.kT*_sim.expTime / _mP.rotFriction) * rnd_phi;
 
-			//if (next_phi < 0){
-			//	next_phi = -next_phi;
-			//}
-			//else if (next_phi > M_PI) {
-			//	next_phi = 2 * M_PI - next_phi;
-			//}
+			if (next_phi < 0){
+				next_phi = -next_phi;
+			}
+			else if (next_phi > M_PI) {
+				next_phi = 2 * M_PI - next_phi;
+			}
 
 			_state.xMT    = next_xMT;
 			_state.xBeadl = next_xBeadl;
 			_state.xBeadr = next_xBeadr;
 			_state.xMol   = next_xMol;
-			//_state.phi    = next_phi;
+			_state.phi    = next_phi;
 			_state.Time += _sim.expTime;
 
 			_loggingBuffer.xMT    +=  _state.xMT;   
