@@ -1,6 +1,6 @@
 #include "configuration_loader.h"
 #include "library.h"
-
+#include<fstream>
 
 using json = nlohmann::json;
 const double kBoltz = 1.38064852e-5;// (*pN um *)
@@ -329,7 +329,15 @@ SimulationParameters load_simulationparams(std::string paramInputFilename) {
 
 //// Configuration creator new
 std::vector <Configuration> load_configuration(std::string paramInputFilename, unsigned nThreads) {
-	std::vector <std::string> configs = split(paramInputFilename, ";");
+
+	std::ifstream fin(paramInputFilename);
+	std::vector<std::string> configs;
+	std::copy(std::istream_iterator<std::string>(fin),
+		std::istream_iterator<std::string>(),
+		std::back_inserter(configs));
+	fin.close();
+
+	//std::vector <std::string> configs = split(paramInputFilename, ";");
 	if (configs.size() % nThreads != 0) {
 		throw std::runtime_error{ "Number of configs is not multiple of number of cores" };
 	}
