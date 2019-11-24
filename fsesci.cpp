@@ -67,7 +67,7 @@ private:
 		_buffer.clear();
 	}
 
-	static constexpr std::size_t _buffsize = 4096 / sizeof(double);//4096 default, was 1024
+	static constexpr std::size_t _buffsize = 8192 / sizeof(double);//4096 default, was 1024
 	std::ofstream _file;
 	double(SystemState::* _loggedField);
 	std::vector <double> _buffer;
