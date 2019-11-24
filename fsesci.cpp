@@ -45,16 +45,20 @@ public:
 
 		try {
 			_file.open(loggerParams.filepath + loggerParams.name + "_results_" + coordinateName + ".binary", std::ios::binary);
-			/*if (_file.bad()) {
-				std::cout << "Bad" << std::endl;
-			}
-			if (!_file.is_open()) {
-				throw std::runtime_error{ "the file was not created" };
-			}*/
 		}
 		catch (const std::exception & ex) {
 			std::cerr << ex.what() << std::endl;
 			throw;
+		}
+		if (!_file.bad()) {
+			std::string err_msg = "the file was not created";
+			std::cerr << err_msg << std::endl;
+			throw std::runtime_error{ err_msg };
+		}
+		if (!_file.is_open()) {
+			std::string err_msg = "the file was not opened";
+			std::cerr << err_msg << std::endl;
+			throw std::runtime_error{ err_msg };
 		}
 
 		_buffer.reserve(_buffsize);
