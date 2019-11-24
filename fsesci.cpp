@@ -37,13 +37,28 @@ class BinaryFileLogger
 {
 public:
 	BinaryFileLogger(LoggerParameters loggerParams, double (SystemState::* loggedField), std::string coordinateName):
-		_file{ loggerParams.filepath + loggerParams.name + "_results_" + coordinateName + ".binary", std::ios::binary },
 		_loggedField{ loggedField }
 	{
-		if (!_file) {
-			throw std::runtime_error{ "the file was not created" };
+		if (_file.is_open()) {
+			_file.close();
 		}
+
+		try {
+			_file.open(loggerParams.filepath + loggerParams.name + "_results_" + coordinateName + ".binary", std::ios::binary);
+			/*if (_file.bad()) {
+				std::cout << "Bad" << std::endl;
+			}
+			if (!_file.is_open()) {
+				throw std::runtime_error{ "the file was not created" };
+			}*/
+		}
+		catch (const std::exception & ex) {
+			std::cerr << ex.what() << std::endl;
+			throw;
+		}
+
 		_buffer.reserve(_buffsize);
+		std::cout << loggerParams.filepath + loggerParams.name + "_results_" + coordinateName + ".binary" << " cap " << _buffer.capacity() << ", size " << _buffer.size() << std::endl;
 	}
 	~BinaryFileLogger() {
 		flush();
@@ -67,7 +82,7 @@ private:
 		_buffer.clear();
 	}
 
-	static constexpr std::size_t _buffsize = 8192 / sizeof(double);//4096 default, was 1024
+	static constexpr std::size_t _buffsize = 4096 / sizeof(double);//4096 default, was 1024
 	std::ofstream _file;
 	double(SystemState::* _loggedField);
 	std::vector <double> _buffer;
@@ -195,6 +210,7 @@ public:
 			auto logger = std::make_unique<BinaryFileLogger>(loggerParameters, field, fieldName);// creates object of class BinaryFileLogger but returns to logger variable the unique pointer to it. // for creation of object implicitly with arguments like this also remind yourself the vector.emplace(args) .
 			this->_loggers.push_back(std::move(logger));// unique pointer can't be copied, only moved like this
 		});
+
 		fillVector(expRands);
 
 		if (!(_mP.bindingDynamics)) {
@@ -433,7 +449,11 @@ int main(int argc, char *argv[])
 	std::cout << "Loaded sim params" << std::endl;
 
 	std::vector<std::unique_ptr<Task>> tasks;
+	tasks.reserve(configurations.size());
+	int it = 0;
 	for (const auto& configuration : configurations) {
+		it = it + 1;
+		std::cout << it << std::endl;
 		auto task = std::make_unique<Task>(configuration);
 		tasks.push_back(std::move(task));
 	}

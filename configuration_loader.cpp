@@ -33,8 +33,12 @@ SimulationParameters assign_simulation_parameters_from_json(SimulationParameters
 	if (!(jsonobjsimp["randomsPeriter"].empty())) {
 		simp.randomsPeriter = stoi(jsonobjsimp["randomsPeriter"].get<std::string>());
 	}
+
 	if (!(jsonobjsimp["stepsperbuffer"].empty())) {
 		simp.stepsperbuffer = stoi(jsonobjsimp["stepsperbuffer"].get<std::string>());
+	}
+	else {
+		simp.stepsperbuffer = static_cast<int>(std::floor(simp.buffsize / simp.randomsPeriter));
 	}
 
 	if (simp.iterationsbetweenSavings % simp.stepsperbuffer != 0) {
