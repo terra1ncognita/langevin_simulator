@@ -13,11 +13,12 @@ struct SimulationParameters
 	int iterationsbetweenTrapsUpdate = 15'000'000;
 	int totalsavings = int((simulationTime / expTime) / iterationsbetweenSavings);
 
-	int buffsize = 800'000;
 	int randomsPeriter = 4;
+	int buffsize = 15'000'000 * randomsPeriter;
 	int stepsperbuffer = static_cast<int>(std::floor(buffsize / randomsPeriter));
 
-	int macrostepMax = iterationsbetweenSavings / stepsperbuffer;
+	int savingsPerMacrostep = stepsperbuffer / iterationsbetweenSavings;
+	int macrostepMax = totalsavings / savingsPerMacrostep;
 	unsigned trapsUpdateTest = iterationsbetweenTrapsUpdate / iterationsbetweenSavings;
 };
 
@@ -25,8 +26,8 @@ struct SimulationParameters
 // Classes for objects that store simulation configs: LoggerParameters, ModelParameters, InitialConditions
 struct LoggerParameters
 {
-	enum class FilenameTemplate { PrefixName };
-	FilenameTemplate filenametemplate;
+	//enum class FilenameTemplate { PrefixName };
+	//FilenameTemplate filenametemplate;
 	std::string filepath;
 	std::string name;
 };

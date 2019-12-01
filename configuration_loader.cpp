@@ -41,14 +41,19 @@ SimulationParameters assign_simulation_parameters_from_json(SimulationParameters
 		simp.stepsperbuffer = static_cast<int>(std::floor(simp.buffsize / simp.randomsPeriter));
 	}
 
-	if (simp.iterationsbetweenSavings % simp.stepsperbuffer != 0) {
-		throw std::runtime_error{ "Please check that iterationsbetweenSavings/stepsperbuffer is integer" };
+	if (simp.stepsperbuffer % simp.iterationsbetweenSavings != 0) {
+		throw std::runtime_error{ "Please check that totalsavings/stepsperbuffer is integer" };
 	}
+	simp.savingsPerMacrostep = simp.stepsperbuffer / simp.iterationsbetweenSavings;
+
+	if (simp.totalsavings % simp.savingsPerMacrostep != 0) {
+		throw std::runtime_error{ "Please check that totalsavings/stepsperbuffer is integer" };
+	}
+	simp.macrostepMax = simp.totalsavings / simp.savingsPerMacrostep;
+
 	if (simp.iterationsbetweenTrapsUpdate % simp.iterationsbetweenSavings != 0) {
 		throw std::runtime_error{ "Please check that iterationsbetweenTrapsUpdate/iterationsbetweenSavings is integer" };
 	}
-
-	simp.macrostepMax = simp.iterationsbetweenSavings / simp.stepsperbuffer;
 	simp.trapsUpdateTest = simp.iterationsbetweenTrapsUpdate / simp.iterationsbetweenSavings;
 
 	return simp;
