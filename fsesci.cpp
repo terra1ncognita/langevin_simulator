@@ -585,15 +585,15 @@ int main(int argc, char *argv[])
 			} // end of openmp section
 
 			int counter = macrostep + 1;
-			if (counter % 10 == 0) {
-				double procent = 100 * counter / sim.totalsavings;
-				double total_percentage = (100 * batch_id + procent) / tasksperthread;
+			if (counter % 20 == 0) {
+				double procent = 100.0 * static_cast<double>(counter) / sim.macrostepMax;
+				double total_percentage = (100.0 * batch_id + procent) / tasksperthread;
 
 				auto curr = std::chrono::system_clock::now();
 				std::chrono::duration<double> dt = (curr - start_batch);
 				double elapsed_seconds = dt.count();
-				int minutes = static_cast<int>(floor(elapsed_seconds / 60));
-				double seconds = elapsed_seconds - 60 * minutes;
+				int minutes = static_cast<int>(floor(elapsed_seconds / 60.0));
+				double seconds = elapsed_seconds - 60.0 * minutes;
 
 				cout << "Batch " << procent << "%, total " << total_percentage << "%, elapsed " << minutes << " min " << seconds << " s" << endl;
 			}
