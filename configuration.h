@@ -104,7 +104,7 @@ struct ModelParameters
 
 	double** transitionMatrix;
 
-	bool bindingDynamics;
+	bool bindingDynamics = true;
 };
 
 struct SystemState

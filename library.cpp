@@ -56,9 +56,13 @@ std::vector<std::string> split(const std::string& str, const std::string& delim)
 	do
 	{
 		pos = str.find(delim, prev);
-		if (pos == std::string::npos) pos = str.length();
+		if (pos == std::string::npos){
+			pos = str.length();
+		}
 		std::string token = str.substr(prev, pos - prev);
-		if (!token.empty()) tokens.push_back(token);
+		if (!token.empty()) {
+			tokens.push_back(token);
+		}
 		prev = pos + delim.length();
 	} while (pos < str.length() && prev < str.length());
 	return tokens;

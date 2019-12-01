@@ -1,6 +1,6 @@
 #include "configuration_loader.h"
 #include "library.h"
-
+#include<fstream>
 
 using json = nlohmann::json;
 const double kBoltz = 1.38064852e-5;// (*pN um *)
@@ -33,8 +33,12 @@ SimulationParameters assign_simulation_parameters_from_json(SimulationParameters
 	if (!(jsonobjsimp["randomsPeriter"].empty())) {
 		simp.randomsPeriter = stoi(jsonobjsimp["randomsPeriter"].get<std::string>());
 	}
+
 	if (!(jsonobjsimp["stepsperbuffer"].empty())) {
 		simp.stepsperbuffer = stoi(jsonobjsimp["stepsperbuffer"].get<std::string>());
+	}
+	else {
+		simp.stepsperbuffer = static_cast<int>(std::floor(simp.buffsize / simp.randomsPeriter));
 	}
 
 	if (simp.iterationsbetweenSavings % simp.stepsperbuffer != 0) {
@@ -329,7 +333,15 @@ SimulationParameters load_simulationparams(std::string paramInputFilename) {
 
 //// Configuration creator new
 std::vector <Configuration> load_configuration(std::string paramInputFilename, unsigned nThreads) {
-	std::vector <std::string> configs = split(paramInputFilename, ";");
+
+	std::ifstream fin(paramInputFilename);
+	std::vector<std::string> configs;
+	std::copy(std::istream_iterator<std::string>(fin),
+		std::istream_iterator<std::string>(),
+		std::back_inserter(configs));
+	fin.close();
+
+	//std::vector <std::string> configs = split(paramInputFilename, ";");
 	if (configs.size() % nThreads != 0) {
 		throw std::runtime_error{ "Number of configs is not multiple of number of cores" };
 	}

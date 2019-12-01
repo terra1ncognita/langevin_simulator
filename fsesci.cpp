@@ -37,13 +37,32 @@ class BinaryFileLogger
 {
 public:
 	BinaryFileLogger(LoggerParameters loggerParams, double (SystemState::* loggedField), std::string coordinateName):
-		_file{ loggerParams.filepath + loggerParams.name + "_results_" + coordinateName + ".binary", std::ios::binary },
 		_loggedField{ loggedField }
 	{
-		if (!_file) {
-			throw std::runtime_error{ "the file was not created" };
+		if (_file.is_open()) {
+			_file.close();
 		}
+
+		try {
+			_file.open(loggerParams.filepath + loggerParams.name + "_results_" + coordinateName + ".binary", std::ios::binary);
+		}
+		catch (const std::exception & ex) {
+			std::cerr << ex.what() << std::endl;
+			throw;
+		}
+		if (!_file.bad()) {
+			std::string err_msg = "the file was not created";
+			std::cerr << err_msg << std::endl;
+			throw std::runtime_error{ err_msg };
+		}
+		if (!_file.is_open()) {
+			std::string err_msg = "the file was not opened";
+			std::cerr << err_msg << std::endl;
+			throw std::runtime_error{ err_msg };
+		}
+
 		_buffer.reserve(_buffsize);
+		std::cout << loggerParams.filepath + loggerParams.name + "_results_" + coordinateName + ".binary" << " cap " << _buffer.capacity() << ", size " << _buffer.size() << std::endl;
 	}
 	~BinaryFileLogger() {
 		flush();
@@ -195,9 +214,10 @@ public:
 			auto logger = std::make_unique<BinaryFileLogger>(loggerParameters, field, fieldName);// creates object of class BinaryFileLogger but returns to logger variable the unique pointer to it. // for creation of object implicitly with arguments like this also remind yourself the vector.emplace(args) .
 			this->_loggers.push_back(std::move(logger));// unique pointer can't be copied, only moved like this
 		});
+
 		fillVector(expRands);
 
-		if (!_mP.bindingDynamics) {
+		if (!(_mP.bindingDynamics)) {
 			_state.binding = 1.0;
 		}
 	}
@@ -266,6 +286,8 @@ public:
 			return *(rndNumbers++);
 		};
 
+		_state.phi = _mP.iniPhi;
+
 		for (unsigned i = 0; i < nSteps; i++) {
 
 			if (_mP.bindingDynamics) {
@@ -291,7 +313,7 @@ public:
 			double next_xBeadl = _state.xBeadl + (_sim.expTime / _mP.gammaBeadL)*((-_mP.trapstiffL)*(_state.xBeadl - _state.xTrapl) + FmtL) + sqrt(2.0*_mP.DBeadL*_sim.expTime) * rnd_xBeadl;
 			double next_xBeadr = _state.xBeadr + (_sim.expTime / _mP.gammaBeadR)*(-FmtR + (-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr)) + sqrt(2.0*_mP.DBeadR*_sim.expTime) * rnd_xBeadr;
 			double next_xMol = _state.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force - molSpringForce) + sqrt(2.0*_mP.DMol*_sim.expTime) * rnd_xMol;
-			double next_phi = _state.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*(_state.phi - _mP.iniPhi) + (_state.binding > 0.0) * (- molSpringForce * _mP.molLength*sin(_state.phi) + pot_torque)) + sqrt(2.0*_mP.kT*_sim.expTime / _mP.rotFriction) * rnd_phi;
+			double next_phi = _state.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*(_state.phi - _mP.iniPhi) + (_state.binding > 0.0) * (-molSpringForce * _mP.molLength*sin(_state.phi) + pot_torque)) + sqrt(2.0*_mP.kT*_sim.expTime / _mP.rotFriction) * rnd_phi;
 
 			if (next_phi < 0){
 				next_phi = -next_phi;
@@ -428,13 +450,21 @@ int main(int argc, char *argv[])
 		sim = SimulationParameters();
 	}
 
+	std::cout << "Loaded sim params" << std::endl;
+
 	std::vector<std::unique_ptr<Task>> tasks;
+	tasks.reserve(configurations.size());
+	int it = 0;
 	for (const auto& configuration : configurations) {
+		it = it + 1;
+		std::cout << it << std::endl;
 		auto task = std::make_unique<Task>(configuration);
 		tasks.push_back(std::move(task));
 	}
+	std::cout << "Created ptrs" << std::endl;
 
 	MklGaussianParallelGenerator generator1(0.0, 1.0, sim.buffsize, 4);
+	std::cout << "Created generator" << std::endl;
 
 	int tasksperthread = tasks.size() / nThreads;
 	std::cout << tasksperthread << std::endl;
