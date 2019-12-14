@@ -26,17 +26,36 @@ bool cmdOptionExists(char** begin, char** end, const std::string& option)
 std::string readfile(std::string filename) {
 	std::string filecontents = "";
 	std::string line;
-	std::ifstream myfile(filename);
-	if (myfile.is_open())
-	{
-		while (getline(myfile, line))
-		{
-			filecontents = filecontents + line;
-		}
-		myfile.close();
+	std::ifstream fin;
+
+	if (fin.is_open()) {
+		fin.close();
 	}
 
-	else std::cout << "Unable to open file";
+	try {
+		fin.open(filename);
+	}
+	catch (const std::exception & ex) {
+		std::cerr << ex.what() << std::endl;
+		throw;
+	}
+	if (fin.bad()) {
+		std::string err_msg = "the file " + filename + " was not created";
+		std::cerr << err_msg << std::endl;
+		throw std::runtime_error{ err_msg };
+	}
+	if (!fin.is_open()) {
+		std::string err_msg = "the file " + filename + "  was not opened";
+		std::cerr << err_msg << std::endl;
+		throw std::runtime_error{ err_msg };
+	}
+	else {
+		while (getline(fin, line)){
+			filecontents = filecontents + line;
+		}
+		fin.close();
+	}
+	
 	return filecontents;
 }
 // function to parse json objects

@@ -30,6 +30,11 @@
 #include "mkl_gaussian_parallel_generator.h"
 
 #include <fstream>
+#include <chrono>
+
+using std::cout;
+using std::cerr;
+using std::endl;
 
 // TODO try to use ofstream rawwrite
 
@@ -39,34 +44,38 @@ public:
 	BinaryFileLogger(LoggerParameters loggerParams, double (SystemState::* loggedField), std::string coordinateName):
 		_loggedField{ loggedField }
 	{
+		auto filename = loggerParams.filepath + loggerParams.name + "_results_" + coordinateName + ".binary";
+
 		if (_file.is_open()) {
 			_file.close();
 		}
 
 		try {
-			_file.open(loggerParams.filepath + loggerParams.name + "_results_" + coordinateName + ".binary", std::ios::binary);
+			_file.open(filename, std::ios::binary);
 		}
 		catch (const std::exception & ex) {
-			std::cerr << ex.what() << std::endl;
+			cerr << ex.what() << endl;
 			throw;
 		}
-		if (!_file.bad()) {
-			std::string err_msg = "the file was not created";
-			std::cerr << err_msg << std::endl;
+		if (_file.bad()) {
+			std::string err_msg = "the file " + filename + " was not created";
+			cerr << err_msg << endl;
 			throw std::runtime_error{ err_msg };
 		}
 		if (!_file.is_open()) {
-			std::string err_msg = "the file was not opened";
-			std::cerr << err_msg << std::endl;
+			std::string err_msg = "the file " + filename + "  was not opened";
+			cerr << err_msg << endl;
 			throw std::runtime_error{ err_msg };
 		}
 
 		_buffer.reserve(_buffsize);
-		std::cout << loggerParams.filepath + loggerParams.name + "_results_" + coordinateName + ".binary" << " cap " << _buffer.capacity() << ", size " << _buffer.size() << std::endl;
 	}
+
 	~BinaryFileLogger() {
 		flush();
+		_file.close();
 	}
+
 	void save(const SystemState* systemState) {
 		_buffer.push_back(systemState->*_loggedField);
 		if (_buffer.size() >= _buffsize) {
@@ -209,6 +218,9 @@ public:
 		expRands(_mP.numStates),
 		livingTimes(_mP.numStates, 0.0)
 	{
+		loggingBuffertoZero();
+		forcefeedbackBuffertoZero();
+
 		const auto& loggerParameters = configuration.loggerParameters;
 		SystemState::iterateFields([this, &loggerParameters](double(SystemState::* field), std::string fieldName) {
 			auto logger = std::make_unique<BinaryFileLogger>(loggerParameters, field, fieldName);// creates object of class BinaryFileLogger but returns to logger variable the unique pointer to it. // for creation of object implicitly with arguments like this also remind yourself the vector.emplace(args) .
@@ -285,8 +297,6 @@ public:
 		auto takeRandomNumber = [rndNumbers]() mutable -> double {
 			return *(rndNumbers++);
 		};
-
-		_state.phi = _mP.iniPhi;
 
 		for (unsigned i = 0; i < nSteps; i++) {
 
@@ -414,8 +424,7 @@ private:
 	std::vector<std::unique_ptr<BinaryFileLogger>> _loggers;
 public:
 	SystemState _state;
-	SystemState _loggingBuffer;
-	SystemState _forcefeedbackBuffer;
+	SystemState _loggingBuffer, _forcefeedbackBuffer;
 	const SimulationParameters _sim;
 	const ModelParameters _mP;
 	const InitialConditions _initC;
@@ -425,11 +434,81 @@ public:
 };
 
 
+void write_results(const std::unique_ptr<Task>& task, const SimulationParameters& sim) {
+	task->_forcefeedbackBuffer.xBeadl += task->_loggingBuffer.xBeadl;
+	task->_forcefeedbackBuffer.xBeadr += task->_loggingBuffer.xBeadr;
+	task->_forcefeedbackBuffer.xTrapl += task->_loggingBuffer.xTrapl;
+	task->_forcefeedbackBuffer.xTrapr += task->_loggingBuffer.xTrapr;
+
+	task->_loggingBuffer.xMT = task->_loggingBuffer.xMT / static_cast<double>(sim.iterationsbetweenSavings);
+	task->_loggingBuffer.xBeadl = task->_loggingBuffer.xBeadl / static_cast<double>(sim.iterationsbetweenSavings);
+	task->_loggingBuffer.xBeadr = task->_loggingBuffer.xBeadr / static_cast<double>(sim.iterationsbetweenSavings);
+	task->_loggingBuffer.xTrapl = task->_loggingBuffer.xTrapl / static_cast<double>(sim.iterationsbetweenSavings);
+	task->_loggingBuffer.xTrapr = task->_loggingBuffer.xTrapr / static_cast<double>(sim.iterationsbetweenSavings);
+	task->_loggingBuffer.xMol = task->_loggingBuffer.xMol / static_cast<double>(sim.iterationsbetweenSavings);
+	task->_loggingBuffer.logpotentialForce = task->_loggingBuffer.logpotentialForce / static_cast<double>(sim.iterationsbetweenSavings);
+
+	task->_loggingBuffer.Time = task->_loggingBuffer.Time - sim.expTime * static_cast<double>(sim.iterationsbetweenSavings) / 2;
+
+	task->_loggingBuffer.binding = task->_loggingBuffer.binding / static_cast<double>(sim.iterationsbetweenSavings);
+	task->_loggingBuffer.phi = task->_loggingBuffer.phi / static_cast<double>(sim.iterationsbetweenSavings);
+	task->_loggingBuffer.potTorque = task->_loggingBuffer.potTorque / static_cast<double>(sim.iterationsbetweenSavings);
+	task->_loggingBuffer.deltaG = task->_loggingBuffer.deltaG / static_cast<double>(sim.iterationsbetweenSavings);
+
+	task->writeStateTolog();
+	task->loggingBuffertoZero();
+}
+
+void force_clamp_update(const std::unique_ptr<Task>& task, const SimulationParameters& sim) {
+	task->_forcefeedbackBuffer.xBeadl = task->_forcefeedbackBuffer.xBeadl / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
+	task->_forcefeedbackBuffer.xBeadr = task->_forcefeedbackBuffer.xBeadr / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
+	task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapl / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
+	task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapr / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
+
+	int tmpDirection = task->_forcefeedbackBuffer.direction;
+
+	if (tmpDirection == 1.0)
+	{
+		//moving to the right, leading bead right, trailing bead left, positive X increment
+		if (task->_forcefeedbackBuffer.xBeadr >= task->_initC.initialState.xBeadr + task->_mP.DmblMoveAmplitude) {
+			task->_forcefeedbackBuffer.direction = -1.0;
+			task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xBeadl + (task->_initC.initialState.xTrapl - task->_initC.initialState.xBeadl) - (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffL);
+			task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapl + (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
+		}
+		else {
+			task->_forcefeedbackBuffer.xTrapr = (task->_initC.initialState.xTrapr - task->_initC.initialState.xBeadr) + task->_forcefeedbackBuffer.xBeadr + (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffR);
+			task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapr - (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
+		}
+	}
+	if (tmpDirection == -1.0)
+	{
+		//moving to the left, leading bead left, trailing bead right, negative X increment
+		if (task->_forcefeedbackBuffer.xBeadl <= task->_initC.initialState.xBeadl - task->_mP.DmblMoveAmplitude) {
+			task->_forcefeedbackBuffer.direction = 1.0;
+			task->_forcefeedbackBuffer.xTrapr = (task->_initC.initialState.xTrapr - task->_initC.initialState.xBeadr) + task->_forcefeedbackBuffer.xBeadr + (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffR);
+			task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapr - task->_initC.initialState.xTrapr + task->_initC.initialState.xTrapl;
+		}
+		else {
+			task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xBeadl + (task->_initC.initialState.xTrapl - task->_initC.initialState.xBeadl) - (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffL);
+			task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapl + (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
+		}
+	}
+
+	task->_state.xTrapl = task->_forcefeedbackBuffer.xTrapl;
+	task->_state.xTrapr = task->_forcefeedbackBuffer.xTrapr;
+
+	task->_loggingBuffer.direction = task->_forcefeedbackBuffer.direction;
+	task->forcefeedbackBuffertoZero();
+}
+
+
 int main(int argc, char *argv[])
 {
+	auto start_main = std::chrono::system_clock::now();
+
 	if (cmdOptionExists(argv, argv + argc, "-h"))
 	{
-		std::cout << "Sorry users, no help donations today." << std::endl;
+		cout << "Sorry users, no help donations today." << endl;
 	}
 	char* param_input_filename = getCmdOption(argv, argv + argc, "-paramsfile");
 	char* output_filename = getCmdOption(argv, argv + argc, "-resultfile");
@@ -449,32 +528,45 @@ int main(int argc, char *argv[])
 	else {
 		sim = SimulationParameters();
 	}
-
-	std::cout << "Loaded sim params" << std::endl;
-
-	std::vector<std::unique_ptr<Task>> tasks;
-	tasks.reserve(configurations.size());
-	int it = 0;
-	for (const auto& configuration : configurations) {
-		it = it + 1;
-		std::cout << it << std::endl;
-		auto task = std::make_unique<Task>(configuration);
-		tasks.push_back(std::move(task));
-	}
-	std::cout << "Created ptrs" << std::endl;
+	cout << "Loaded simultaion parameters" << endl;
 
 	MklGaussianParallelGenerator generator1(0.0, 1.0, sim.buffsize, 4);
-	std::cout << "Created generator" << std::endl;
+	cout << "Created random numbers generator" << endl;
 
-	int tasksperthread = tasks.size() / nThreads;
-	std::cout << tasksperthread << std::endl;
+	int tasksperthread = configurations.size() / nThreads;
+	cout << "Total number of batches is " << tasksperthread << endl;
+	cout << std::setprecision(2) << std::fixed << endl;
 
-	for (const auto& task : tasks) {
-		task->loggingBuffertoZero();
-		task->forcefeedbackBuffertoZero();
-	}
+	for (int batch_id = 0; batch_id < tasksperthread; batch_id++) {
+		// Loop of task batches. One batch fully laods all threads with exactly one task.
 
-	for (int savedSampleIter = 0; savedSampleIter < sim.totalsavings; savedSampleIter++) {
+		cout << "Start batch #" << batch_id << endl;
+		auto start_batch = std::chrono::system_clock::now();
+
+		std::vector<Configuration> batch;
+		batch.reserve(nThreads);
+
+		for (int conf_id = batch_id * nThreads; conf_id < (batch_id + 1) * nThreads; conf_id++) {
+			batch.push_back(std::move(configurations[conf_id]));
+		}
+
+		cout << "Contains " << batch.size() << " simulations: ";
+		for (const auto& conf:batch) {
+			cout << conf.loggerParameters.name << " ";
+		}
+		cout << endl;
+		
+		std::vector<std::unique_ptr<Task>> tasks;
+		tasks.reserve(batch.size());
+
+		for (const auto& configuration : batch) {
+			std::unique_ptr<Task> task = std::make_unique<Task>(configuration);
+
+			task->loggingBuffertoZero();
+			task->forcefeedbackBuffertoZero();
+
+			tasks.push_back(std::move(task));
+		}
 
 		for (int macrostep = 0; macrostep < sim.macrostepMax; macrostep++) {
 			generator1.generateNumbers();
@@ -482,84 +574,52 @@ int main(int argc, char *argv[])
 
 			#pragma omp parallel num_threads(nThreads) shared(buffData, tasks)
 			{
-				for (int taskrun = 0; taskrun < tasksperthread; taskrun++) {
-					tasks[omp_get_thread_num() + taskrun*nThreads]->advanceState(sim.stepsperbuffer, buffData);
+				for (int savedSampleIter = 0; savedSampleIter < sim.savingsPerMacrostep; savedSampleIter++) {
+					tasks[omp_get_thread_num()]->advanceState(sim.iterationsbetweenSavings, buffData);
+					write_results(tasks[omp_get_thread_num()], sim);
+
+					if ((savedSampleIter % sim.trapsUpdateTest) == 0) {
+						force_clamp_update(tasks[omp_get_thread_num()], sim);
+					}
 				}
 			} // end of openmp section
-		}
 
-		for (const auto& task : tasks) {
-			task->_forcefeedbackBuffer.xBeadl += task->_loggingBuffer.xBeadl;
-			task->_forcefeedbackBuffer.xBeadr += task->_loggingBuffer.xBeadr;
-			task->_forcefeedbackBuffer.xTrapl += task->_loggingBuffer.xTrapl;
-			task->_forcefeedbackBuffer.xTrapr += task->_loggingBuffer.xTrapr;
+			int counter = macrostep + 1;
+			if (counter % 20 == 0) {
+				double procent = 100.0 * static_cast<double>(counter) / sim.macrostepMax;
+				double total_percentage = (100.0 * batch_id + procent) / tasksperthread;
 
-			task->_loggingBuffer.xMT    = task->_loggingBuffer.xMT / static_cast<double>(sim.iterationsbetweenSavings);
-			task->_loggingBuffer.xBeadl = task->_loggingBuffer.xBeadl / static_cast<double>(sim.iterationsbetweenSavings);
-			task->_loggingBuffer.xBeadr = task->_loggingBuffer.xBeadr / static_cast<double>(sim.iterationsbetweenSavings);
-			task->_loggingBuffer.xTrapl = task->_loggingBuffer.xTrapl / static_cast<double>(sim.iterationsbetweenSavings);
-			task->_loggingBuffer.xTrapr = task->_loggingBuffer.xTrapr / static_cast<double>(sim.iterationsbetweenSavings);
-			task->_loggingBuffer.xMol   = task->_loggingBuffer.xMol / static_cast<double>(sim.iterationsbetweenSavings);
-			task->_loggingBuffer.logpotentialForce= task->_loggingBuffer.logpotentialForce / static_cast<double>(sim.iterationsbetweenSavings);
-			
-			task->_loggingBuffer.Time   = task->_loggingBuffer.Time - sim.expTime * static_cast<double>(sim.iterationsbetweenSavings);
-			
-			task->_loggingBuffer.binding = task->_loggingBuffer.binding / static_cast<double>(sim.iterationsbetweenSavings);
-			task->_loggingBuffer.phi = task->_loggingBuffer.phi / static_cast<double>(sim.iterationsbetweenSavings);
-			task->_loggingBuffer.potTorque = task->_loggingBuffer.potTorque / static_cast<double>(sim.iterationsbetweenSavings);
-			task->_loggingBuffer.deltaG = task->_loggingBuffer.deltaG / static_cast<double>(sim.iterationsbetweenSavings);
+				auto curr = std::chrono::system_clock::now();
+				std::chrono::duration<double> dt = (curr - start_batch);
+				double elapsed_seconds = dt.count();
+				int minutes = static_cast<int>(floor(elapsed_seconds / 60.0));
+				double seconds = elapsed_seconds - 60.0 * minutes;
 
-			task->writeStateTolog();
-			task->loggingBuffertoZero();
-		}
-		
-		if ((savedSampleIter % sim.trapsUpdateTest) == 0) {
-			for (const auto& task : tasks) {
-				task->_forcefeedbackBuffer.xBeadl = task->_forcefeedbackBuffer.xBeadl / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
-				task->_forcefeedbackBuffer.xBeadr = task->_forcefeedbackBuffer.xBeadr / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
-				task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapl / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
-				task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapr / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
-
-				int tmpDirection = task->_forcefeedbackBuffer.direction;
-
-				if (tmpDirection == 1.0)
-				{
-					//moving to the right, leading bead right, trailing bead left, positive X increment
-					if (task->_forcefeedbackBuffer.xBeadr >= task->_initC.initialState.xBeadr +  task->_mP.DmblMoveAmplitude) {
-						task->_forcefeedbackBuffer.direction = -1.0;
-						task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xBeadl + (task->_initC.initialState.xTrapl - task->_initC.initialState.xBeadl) - (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffL);
-						task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapl + (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
-					}
-					else {
-						task->_forcefeedbackBuffer.xTrapr = (task->_initC.initialState.xTrapr - task->_initC.initialState.xBeadr) + task->_forcefeedbackBuffer.xBeadr + (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffR);
-						task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapr - (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
-					}
-				}
-				if (tmpDirection == -1.0)
-				{
-					//moving to the left, leading bead left, trailing bead right, negative X increment
-					if (task->_forcefeedbackBuffer.xBeadl <= task->_initC.initialState.xBeadl -task->_mP.DmblMoveAmplitude) {
-						task->_forcefeedbackBuffer.direction = 1.0;
-						task->_forcefeedbackBuffer.xTrapr = (task->_initC.initialState.xTrapr - task->_initC.initialState.xBeadr) + task->_forcefeedbackBuffer.xBeadr + (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffR);
-						task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapr - task->_initC.initialState.xTrapr + task->_initC.initialState.xTrapl;
-					}
-					else {
-						task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xBeadl + (task->_initC.initialState.xTrapl - task->_initC.initialState.xBeadl)  - (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffL);
-						task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapl + (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
-					}
-				}
-					
-				task->_state.xTrapl = task->_forcefeedbackBuffer.xTrapl;
-				task->_state.xTrapr = task->_forcefeedbackBuffer.xTrapr;
-
-				task->_loggingBuffer.direction = task->_forcefeedbackBuffer.direction;
-				task->forcefeedbackBuffertoZero();
+				cout << "Batch " << procent << "%, total " << total_percentage << "%, elapsed " << minutes << " min " << seconds << " s" << endl;
 			}
 		}
 
-		if (savedSampleIter % 10 == 0) {
-			double procent = round(100 * 100 * savedSampleIter / sim.totalsavings) / 100;
-			std::cout << procent << "%" << std::endl;
-		}
+		auto curr = std::chrono::system_clock::now();
+		std::chrono::duration<double> dt = (curr - start_batch);
+		double elapsed_seconds = dt.count();
+		int minutes = static_cast<int>(floor(elapsed_seconds / 60));
+		double seconds = elapsed_seconds - 60 * minutes;
+
+		cout << endl << "Finished batch #" << batch_id << " in " << minutes << " min " << seconds << " s" << endl;
+
+		dt = (curr - start_main);
+		elapsed_seconds = dt.count();
+		minutes = static_cast<int>(floor(elapsed_seconds / 60));
+		seconds = elapsed_seconds - 60 * minutes;
+		cout << "Elapsed " << minutes << " min " << seconds << " s from program start" << endl << endl;
 	}
+
+	auto curr = std::chrono::system_clock::now();
+	std::chrono::duration<double> dt = (curr - start_main);
+	double elapsed_seconds = dt.count();
+	int minutes = static_cast<int>(floor(elapsed_seconds / 60));
+	double seconds = elapsed_seconds - 60 * minutes;
+	cout << endl << "All simulations finished in " << minutes << " min " << seconds << " s from program start" << endl;
+
+	return 0;
 }
