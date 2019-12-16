@@ -405,7 +405,7 @@ int main(int argc, char *argv[])
 	}
 	cout << "Loaded simultaion parameters" << endl;
 
-	MklGaussianParallelGenerator generator1(0.0, 1.0, sim.buffsize, 4);
+	MklGaussianParallelGenerator generator1(0.0, 1.0, sim.buffsize * nThreads, 4);
 	cout << "Created random numbers generator" << endl;
 
 	int tasksperthread = configurations.size() / nThreads;
@@ -447,7 +447,7 @@ int main(int argc, char *argv[])
 			#pragma omp parallel num_threads(nThreads) shared(buffData, tasks)
 			{
 				for (int savedSampleIter = 0; savedSampleIter < sim.savingsPerMacrostep; savedSampleIter++) {
-					tasks[omp_get_thread_num()]->advanceState(sim.iterationsbetweenSavings, buffData);
+					tasks[omp_get_thread_num()]->advanceState(sim.iterationsbetweenSavings, buffData + sim.buffsize * omp_get_thread_num());
 					write_results(tasks[omp_get_thread_num()], sim);
 				}
 			} // end of openmp section
