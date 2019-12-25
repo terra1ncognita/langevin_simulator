@@ -116,6 +116,8 @@ public:
 	const double powsigma;
 	const double lgs = log(0.5), E = exp(1);
 	const double var1, var2;
+	const double pos = 2.0, B = 0.8;
+
 
 	PotentialForce(const ModelParameters& mp_, SystemState& state_) :
 		powsigma ( pow(mp_.sigma, 2) ),
@@ -163,7 +165,9 @@ public:
 			return 0.0;
 		}
 		return -(pow(mp->domainsDistance, 2) * exp(2 - 2 * mp->domainsDistance * sin(angle) / mp->rotWellWidth) *
-			mp->rotWellDepth * (mp->rotWellWidth - mp->domainsDistance * sin(angle)) * sin(2 * angle)) / pow(mp->domainsDistance, 3);
+			2 * mp->rotWellDepth * (mp->rotWellWidth - mp->domainsDistance * sin(angle)) * sin(2 * angle)) / pow(mp->domainsDistance, 3) + 
+			(pow(mp->domainsDistance, 2) * exp(2 - 2 * mp->domainsDistance * sin(angle) / (mp->rotWellWidth * pos)) *
+				2 * mp->rotWellDepth * B * (mp->rotWellWidth * pos - mp->domainsDistance * sin(angle)) * sin(2 * angle)) / pow(mp->domainsDistance, 3);
 	}
 	
 	double two_domains(double unmodvar, double angle) const
@@ -176,7 +180,8 @@ public:
 		}
 
 		if (angle < M_PI_2) {
-			deltaG = mp->rotWellDepth * pow((mp->domainsDistance * sin(angle) / mp->rotWellWidth), 2) * exp(2 * (1 - mp->domainsDistance * sin(angle) / mp->rotWellWidth));
+			deltaG = 2 * mp->rotWellDepth * pow((mp->domainsDistance * sin(angle) / mp->rotWellWidth), 2) * exp(2 * (1 - mp->domainsDistance * sin(angle) / mp->rotWellWidth)) -
+				2 * mp->rotWellDepth * B * pow((mp->domainsDistance * sin(angle) / (mp->rotWellWidth * pos)), 2) * exp(2 * (1 - mp->domainsDistance * sin(angle) / (mp->rotWellWidth * pos)));
 		}
 	
 		state->deltaG = deltaG;
