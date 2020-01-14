@@ -165,9 +165,51 @@ public:
 			return 0.0;
 		}
 		return -(pow(mp->domainsDistance, 2) * exp(2 - 2 * mp->domainsDistance * sin(angle) / mp->rotWellWidth) *
-			2 * mp->rotWellDepth * (mp->rotWellWidth - mp->domainsDistance * sin(angle)) * sin(2 * angle)) / pow(mp->domainsDistance, 3) + 
-			(pow(mp->domainsDistance, 2) * exp(2 - 2 * mp->domainsDistance * sin(angle) / (mp->rotWellWidth * pos)) *
-				2 * mp->rotWellDepth * B * (mp->rotWellWidth * pos - mp->domainsDistance * sin(angle)) * sin(2 * angle)) / pow(mp->domainsDistance, 3);
+			2 * mp->rotWellDepth * (mp->rotWellWidth - mp->domainsDistance * sin(angle)) * sin(2 * angle)) / pow(mp->domainsDistance, 3);
+	}
+
+	double morze(double x, double r0, double depth) const
+	{
+		return 2 * depth * pow((x / r0), 2) * exp(2 * (1 - x / r0));
+	}
+
+	double morze_angle_derivative(double angle, double r0, double depth) const
+		/*
+		Assume relationship x =  mp->domainsDistance * sin(angle)
+		*/
+	{
+		return -(pow(mp->domainsDistance, 2) * exp(2 - 2 * mp->domainsDistance * sin(angle) / mp->rotWellWidth) *
+			2 * mp->rotWellDepth * (mp->rotWellWidth - mp->domainsDistance * sin(angle)) * sin(2 * angle)) / pow(mp->domainsDistance, 3);
+	}
+
+	double well_barrier_torque(double angle) const
+	{
+		if (angle >= M_PI_2) {
+			return 0.0;
+		}
+		return morze_angle_derivative(angle, mp->rotWellWidth, mp->rotWellDepth) + 
+			morze_angle_derivative(angle, mp->rotWellWidth, -B * mp->rotWellDepth);
+	}
+
+	double well_barrier_force(double unmodvar, double angle) const
+	{
+		double var = period_map(unmodvar, mp->L);
+		double deltaG = 0.0;
+
+		if (state->binding == 0.0) {
+			return 0.0;
+		}
+
+		if (angle < M_PI_2) {
+			deltaG = morze(mp->domainsDistance * sin(angle), mp->rotWellWidth, mp->rotWellDepth) +
+				morze(mp->domainsDistance * sin(angle), pos * mp->rotWellWidth, -B * mp->rotWellDepth);
+		}
+
+		state->deltaG = deltaG;
+
+		if (state->binding == 1.0) {
+			return ((mp->G + deltaG) * var / powsigma) * pow(E, -pow(var, 2) / (2.0*powsigma));//l1d cache 4096 of doubles -> use 50% of it?
+		}
 	}
 	
 	double two_domains(double unmodvar, double angle) const
@@ -180,8 +222,7 @@ public:
 		}
 
 		if (angle < M_PI_2) {
-			deltaG = 2 * mp->rotWellDepth * pow((mp->domainsDistance * sin(angle) / mp->rotWellWidth), 2) * exp(2 * (1 - mp->domainsDistance * sin(angle) / mp->rotWellWidth)) -
-				2 * mp->rotWellDepth * B * pow((mp->domainsDistance * sin(angle) / (mp->rotWellWidth * pos)), 2) * exp(2 * (1 - mp->domainsDistance * sin(angle) / (mp->rotWellWidth * pos)));
+			deltaG = 2 * mp->rotWellDepth * pow((mp->domainsDistance * sin(angle) / mp->rotWellWidth), 2) * exp(2 * (1 - mp->domainsDistance * sin(angle) / mp->rotWellWidth));
 		}
 	
 		state->deltaG = deltaG;
@@ -317,8 +358,8 @@ public:
 
 			//double MT_Mol_force = potentialForce.calc(_state.xMol - _state.xMT);
 			//double MT_Mol_force = potentialForce.asymmetric(_state.xMol - _state.xMT);
-			double MT_Mol_force = potentialForce.two_domains(_state.xMol - _state.xMT, _state.phi);
-			double pot_torque = potentialForce.calc_potential_torque(_state.phi);
+			double MT_Mol_force = potentialForce.well_barrier_force(_state.xMol - _state.xMT, _state.phi);
+			double pot_torque = potentialForce.well_barrier_torque(_state.phi);
 
 			double FmtR = calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength / 2.0, 'R');
 			double FmtL = calculateMTspringForce(_state.xMT - _state.xBeadl - _mP.MTlength / 2.0, 'L');
