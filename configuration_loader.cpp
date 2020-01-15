@@ -258,6 +258,10 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 		conf.modelParameters.bindingDynamics = bool(stoi(jsonobj["ModelParameters"]["bindingDynamics"].get<std::string>()));
 	}
 
+	if (!(jsonobj["ModelParameters"]["B"].empty())) {
+		conf.modelParameters.bindingDynamics = stod(jsonobj["ModelParameters"]["B"].get<std::string>());
+	}
+
 
 	//// Assign Initial Conditions from json
 	if (!(jsonobj["InitialConditions"]["xMol"].empty())) {
