@@ -116,7 +116,7 @@ public:
 	const double powsigma;
 	const double lgs = log(0.5), E = exp(1);
 	const double var1, var2;
-	const double pos = 2.0, B = 0.8;
+	const double pos = 2.0;
 
 
 	PotentialForce(const ModelParameters& mp_, SystemState& state_) :
@@ -188,7 +188,7 @@ public:
 			return 0.0;
 		}
 		return morze_angle_derivative(angle, mp->rotWellWidth, mp->rotWellDepth) + 
-			morze_angle_derivative(angle, mp->rotWellWidth, -B * mp->rotWellDepth);
+			morze_angle_derivative(angle, mp->rotWellWidth, -mp->B * mp->rotWellDepth);
 	}
 
 	double well_barrier_force(double unmodvar, double angle) const
@@ -202,7 +202,7 @@ public:
 
 		if (angle < M_PI_2) {
 			deltaG = morze(mp->domainsDistance * sin(angle), mp->rotWellWidth, mp->rotWellDepth) +
-				morze(mp->domainsDistance * sin(angle), pos * mp->rotWellWidth, -B * mp->rotWellDepth);
+				morze(mp->domainsDistance * sin(angle), pos * mp->rotWellWidth, -mp->B * mp->rotWellDepth);
 		}
 
 		state->deltaG = deltaG;
