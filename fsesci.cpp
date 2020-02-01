@@ -95,7 +95,7 @@ private:
 		_buffer.clear();
 	}
 
-	static constexpr std::size_t _buffsize = 4096 / sizeof(double);//4096 default, was 1024
+	static constexpr std::size_t _buffsize = 4096 * 16 / sizeof(double);//4096 default, was 1024
 	std::ofstream _file;
 	double(SystemState::* _loggedField);
 	std::vector <double> _buffer;
@@ -308,12 +308,14 @@ public:
 			_state.phi    = next_phi;
 			_state.Time += _sim.expTime;
 
-			_loggingBuffer.binding += _state.binding;
-			_loggingBuffer.phi += _state.phi;
-			_loggingBuffer.potTorque += pot_torque;
-			_loggingBuffer.deltaG += _state.deltaG;
+			_loggingBuffer.binding = _state.binding;
+			_loggingBuffer.phi = _state.phi;
+			_loggingBuffer.potTorque = pot_torque;
+			_loggingBuffer.deltaG = _state.deltaG;
+			_loggingBuffer.Time = _state.Time;
+			writeStateTolog();
 		}
-		_loggingBuffer.Time = _state.Time;
+		
 	}
 
 	void writeStateTolog() const {
@@ -436,7 +438,7 @@ int main(int argc, char *argv[])
 			{
 				for (int savedSampleIter = 0; savedSampleIter < sim.savingsPerMacrostep; savedSampleIter++) {
 					tasks[omp_get_thread_num()]->advanceState(sim.iterationsbetweenSavings, buffData);
-					write_results(tasks[omp_get_thread_num()], sim);
+					// write_results(tasks[omp_get_thread_num()], sim);
 				}
 			} // end of openmp section
 
