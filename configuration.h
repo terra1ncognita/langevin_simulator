@@ -36,6 +36,7 @@ struct ModelParameters
 {
 	/////
 	//Global paramters
+	std::string name = "";
 	double T;					//temperature
 	double kT;
 

@@ -71,6 +71,10 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	
 	//// Assign Model Parameters from json
 	
+	if (!(jsonobj["Name"].empty())) {
+		conf.modelParameters.name = jsonobj["Name"].get<std::string>();
+	}
+
 	if (!(jsonobj["ModelParameters"]["T"].empty())) {
 		conf.modelParameters.T= stod(jsonobj["ModelParameters"]["T"].get<std::string>());
 		conf.modelParameters.kT = kBoltz*conf.modelParameters.T;
@@ -259,7 +263,7 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	}
 
 	if (!(jsonobj["ModelParameters"]["B"].empty())) {
-		conf.modelParameters.bindingDynamics = stod(jsonobj["ModelParameters"]["B"].get<std::string>());
+		conf.modelParameters.B = stod(jsonobj["ModelParameters"]["B"].get<std::string>());
 	}
 
 

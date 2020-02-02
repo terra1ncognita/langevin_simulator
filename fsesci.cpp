@@ -95,7 +95,7 @@ private:
 		_buffer.clear();
 	}
 
-	static constexpr std::size_t _buffsize = 4096 * 16 / sizeof(double);//4096 default, was 1024
+	static constexpr std::size_t _buffsize = 4096 * 64 / sizeof(double);//4096 default, was 1024
 	std::ofstream _file;
 	double(SystemState::* _loggedField);
 	std::vector <double> _buffer;
@@ -165,21 +165,41 @@ public:
 			return 0.0;
 		}
 		return -(pow(mp->domainsDistance, 2) * exp(2 - 2 * mp->domainsDistance * sin(angle) / mp->rotWellWidth) *
-			2 * mp->rotWellDepth * (mp->rotWellWidth - mp->domainsDistance * sin(angle)) * sin(2 * angle)) / pow(mp->domainsDistance, 3);
+			mp->rotWellDepth * (mp->rotWellWidth - mp->domainsDistance * sin(angle)) * sin(2 * angle)) / pow(mp->domainsDistance, 3);
+	}
+
+	double two_domains(double unmodvar, double angle) const
+	{
+		double var = period_map(unmodvar, mp->L);
+		double deltaG = 0.0;
+
+		if (state->binding == 0.0) {
+			return 0.0;
+		}
+
+		if (angle < M_PI_2) {
+			deltaG = mp->rotWellDepth * pow((mp->domainsDistance * sin(angle) / mp->rotWellWidth), 2) * exp(2 * (1 - mp->domainsDistance * sin(angle) / mp->rotWellWidth));
+		}
+
+		state->deltaG = deltaG;
+
+		if (state->binding == 1.0) {
+			return ((mp->G + deltaG) * var / powsigma) * pow(E, -pow(var, 2) / (2.0 * powsigma));//l1d cache 4096 of doubles -> use 50% of it?
+		}
 	}
 
 	double morze(double x, double r0, double depth) const
 	{
-		return 2 * depth * pow((x / r0), 2) * exp(2 * (1 - x / r0));
+		return depth * pow((x / r0), 2) * exp(2 * (1 - x / r0));
 	}
 
-	double morze_angle_derivative(double angle, double r0, double depth) const
+	double morze_angle_derivative(double angle, double r0, double d, double depth) const
 		/*
 		Assume relationship x =  mp->domainsDistance * sin(angle)
 		*/
 	{
-		return -(pow(mp->domainsDistance, 2) * exp(2 - 2 * mp->domainsDistance * sin(angle) / mp->rotWellWidth) *
-			2 * mp->rotWellDepth * (mp->rotWellWidth - mp->domainsDistance * sin(angle)) * sin(2 * angle)) / pow(mp->domainsDistance, 3);
+		return -depth * (pow(d, 2) * exp(2 - 2 * d * sin(angle) / r0) *
+			  (r0 - d * sin(angle)) * sin(2 * angle)) / pow(r0, 3);
 	}
 
 	double well_barrier_torque(double angle) const
@@ -187,8 +207,8 @@ public:
 		if (angle >= M_PI_2) {
 			return 0.0;
 		}
-		return morze_angle_derivative(angle, mp->rotWellWidth, mp->rotWellDepth) + 
-			morze_angle_derivative(angle, mp->rotWellWidth, -mp->B * mp->rotWellDepth);
+		return morze_angle_derivative(angle, mp->rotWellWidth, mp->domainsDistance, mp->rotWellDepth) +
+			morze_angle_derivative(angle, pos * mp->rotWellWidth, mp->domainsDistance, -mp->B * mp->rotWellDepth);
 	}
 
 	double well_barrier_force(double unmodvar, double angle) const
@@ -210,28 +230,7 @@ public:
 		if (state->binding == 1.0) {
 			return ((mp->G + deltaG) * var / powsigma) * pow(E, -pow(var, 2) / (2.0*powsigma));//l1d cache 4096 of doubles -> use 50% of it?
 		}
-	}
-	
-	double two_domains(double unmodvar, double angle) const
-	{
-		double var = period_map(unmodvar, mp->L);
-		double deltaG = 0.0;
-
-		if (state->binding == 0.0) {
-			return 0.0;
-		}
-
-		if (angle < M_PI_2) {
-			deltaG = 2 * mp->rotWellDepth * pow((mp->domainsDistance * sin(angle) / mp->rotWellWidth), 2) * exp(2 * (1 - mp->domainsDistance * sin(angle) / mp->rotWellWidth));
-		}
-	
-		state->deltaG = deltaG;
-		
-		if (state->binding == 1.0) {
-			return ((mp->G + deltaG) * var / powsigma) * pow(E, -pow(var, 2) / (2.0*powsigma));//l1d cache 4096 of doubles -> use 50% of it?
-		}
-	}
-	
+	}	
 };
 
 class ExponentialGenerator {
@@ -279,6 +278,17 @@ public:
 		}
 	}
 
+	void log_well_torque(std::string path_prefix) {
+		PotentialForce pf(_mP, _state);
+		std::ofstream out;
+		out.open(path_prefix + "potential_" + _mP.name + ".txt");
+
+		for (double x = 0; x < M_PI_2; x += 0.0001) {
+			out << x << " " << pf.well_barrier_torque(x) << endl;
+		}
+		out.close();
+	}
+
 	void advanceState(int nSteps, const double* rndNumbers) {
 		PotentialForce potentialForce(_mP, _state);
 		
@@ -296,7 +306,8 @@ public:
 
 			// double next_phi = _state.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*(_state.phi - _mP.iniPhi) + (_state.binding > 0.0) * (-_mP.movementTotalForce * _mP.molLength*sin(_state.phi) + pot_torque)) + sqrt(2.0*_mP.kT*_sim.expTime / _mP.rotFriction) * rnd_phi;
 
-			double next_phi = _state.phi + (_sim.expTime / _mP.rotFriction) * pot_torque + sqrt(2.0*_mP.kT*_sim.expTime / _mP.rotFriction) * rnd_phi;
+			double thermal = sqrt(2.0 * _mP.kT * _sim.expTime / _mP.rotFriction) * rnd_phi;
+			double next_phi = _state.phi + (_sim.expTime / _mP.rotFriction) * pot_torque + thermal;
 
 			if (next_phi < 0){
 				next_phi = -next_phi;
@@ -308,14 +319,13 @@ public:
 			_state.phi    = next_phi;
 			_state.Time += _sim.expTime;
 
-			_loggingBuffer.binding = _state.binding;
-			_loggingBuffer.phi = _state.phi;
-			_loggingBuffer.potTorque = pot_torque;
-			_loggingBuffer.deltaG = _state.deltaG;
-			_loggingBuffer.Time = _state.Time;
-			writeStateTolog();
+			_loggingBuffer.binding    +=  _state.binding;
+			_loggingBuffer.phi        +=  _state.phi;
+			_loggingBuffer.potTorque  +=  pot_torque;
+			_loggingBuffer.deltaG     +=  _state.deltaG;
+			//writeStateTolog();
 		}
-		
+		_loggingBuffer.Time = _state.Time;
 	}
 
 	void writeStateTolog() const {
@@ -363,7 +373,6 @@ void write_results(const std::unique_ptr<Task>& task, const SimulationParameters
 	task->writeStateTolog();
 	task->loggingBuffertoZero();
 }
-
 
 int main(int argc, char *argv[])
 {
@@ -426,7 +435,7 @@ int main(int argc, char *argv[])
 			std::unique_ptr<Task> task = std::make_unique<Task>(configuration);
 
 			task->loggingBuffertoZero();
-
+			task->log_well_torque("D:\\test_langevin\\");
 			tasks.push_back(std::move(task));
 		}
 
@@ -438,7 +447,7 @@ int main(int argc, char *argv[])
 			{
 				for (int savedSampleIter = 0; savedSampleIter < sim.savingsPerMacrostep; savedSampleIter++) {
 					tasks[omp_get_thread_num()]->advanceState(sim.iterationsbetweenSavings, buffData);
-					// write_results(tasks[omp_get_thread_num()], sim);
+					write_results(tasks[omp_get_thread_num()], sim);
 				}
 			} // end of openmp section
 
@@ -480,4 +489,16 @@ int main(int argc, char *argv[])
 	cout << endl << "All simulations finished in " << minutes << " min " << seconds << " s from program start" << endl;
 
 	return 0;
+}
+
+void log_time(std::string msg, std::chrono::system_clock::time_point staring_point)
+{
+	auto curr = std::chrono::system_clock::now();
+	std::chrono::duration<double> dt = (curr - staring_point);
+
+	double elapsed_seconds = dt.count();
+	int minutes = static_cast<int>(floor(elapsed_seconds / 60));
+	double seconds = elapsed_seconds - 60 * minutes;
+
+	cout << msg << " " << minutes << " min " << seconds << " s" << endl;
 }
