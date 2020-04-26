@@ -231,9 +231,6 @@ public:
 			return ((mp->G + deltaG) * var / powsigma) * pow(E, -pow(var, 2) / (2.0*powsigma));//l1d cache 4096 of doubles -> use 50% of it?
 		}
 	}
-	
-	
-	
 };
 
 class ExponentialGenerator {

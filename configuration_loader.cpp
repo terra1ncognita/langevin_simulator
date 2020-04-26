@@ -5,7 +5,7 @@
 using json = nlohmann::json;
 const double kBoltz = 1.38064852e-5;// (*pN um *)
 
-/// Assign Simulation Parameters
+// Assign Simulation Parameters
 SimulationParameters assign_simulation_parameters_from_json(SimulationParameters simp, json jsonobjsimp) {
 	if (!(jsonobjsimp["expTime"].empty())) {
 		simp.expTime = stod(jsonobjsimp["expTime"].get<std::string>());
