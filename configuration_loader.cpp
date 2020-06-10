@@ -147,29 +147,27 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	if (!(jsonobj["ModelParameters"]["iniPhi"].empty())) {
 		conf.modelParameters.iniPhi = stod(jsonobj["ModelParameters"]["iniPhi"].get<std::string>());
 	}
-
 	if (!(jsonobj["ModelParameters"]["bindingDynamics"].empty())) {
 		conf.modelParameters.bindingDynamics = bool(stoi(jsonobj["ModelParameters"]["bindingDynamics"].get<std::string>()));
 	}
 
 
 	//// Assign Initial Conditions from json
+	//// Assign Dynamic Coordinates from json initial conditions
 	if (!(jsonobj["InitialConditions"]["xMol"].empty())) {
 		conf.initialConditions.initialState.xMol = stod(jsonobj["InitialConditions"]["xMol"].get<std::string>());
+		conf.currentState.xMol = stod(jsonobj["InitialConditions"]["xMol"].get<std::string>());
 	}
 	if (!(jsonobj["InitialConditions"]["direction"].empty())) {
 		conf.currentState.direction = stod(jsonobj["InitialConditions"]["direction"].get<std::string>());
 		conf.initialConditions.initialState.direction = stod(jsonobj["InitialConditions"]["direction"].get<std::string>());
 	}
-	//// Assign Dynamic Coordinates from json initial conditions
-	
-	if (!(jsonobj["InitialConditions"]["xMol"].empty())) {
-		conf.currentState.xMol = stod(jsonobj["InitialConditions"]["xMol"].get<std::string>());
-	}
 	if (!(jsonobj["InitialConditions"]["phi"].empty())) {
 		conf.currentState.phi = stod(jsonobj["InitialConditions"]["phi"].get<std::string>());
+		conf.initialConditions.initialState.phi = stod(jsonobj["InitialConditions"]["phi"].get<std::string>());
 	}
 
+	
 	//TODO: generalize to arbitrary Markov chain
 	if (conf.modelParameters.numStates != 2) {
 		throw std::runtime_error{ "Current implementation is only for 2 states!" };

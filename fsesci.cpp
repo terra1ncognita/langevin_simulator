@@ -163,7 +163,7 @@ public:
 			return 0.0;
 		}
 		return -(pow(mp->domainsDistance, 2) * exp(2 - 2 * mp->domainsDistance * sin(angle) / mp->rotWellWidth) *
-			mp->rotWellDepth * (mp->rotWellWidth - mp->domainsDistance * sin(angle)) * sin(2 * angle)) / pow(mp->domainsDistance, 3);
+			mp->rotWellDepth * (mp->rotWellWidth - mp->domainsDistance * sin(angle)) * sin(2 * angle)) / pow(mp->rotWellWidth, 3);
 	}
 	
 	double two_domains(double unmodvar, double angle) const
@@ -233,7 +233,7 @@ public:
 		}
 	}
 
-	double calculateMolspringForce(double extensionInput) {
+	/*double calculateMolspringForce(double extensionInput) {
 		double extension = fabs(extensionInput);
 		int sign = (extensionInput > 0) - (extensionInput < 0);
 
@@ -246,10 +246,11 @@ public:
 		}
 
 	}
-
+*/
 
 	void advanceState(int nSteps, const double* rndNumbers) {
 		PotentialForce potentialForce(_mP, _state);
+		bool bound_flg = true;
 		
 		auto takeRandomNumber = [rndNumbers]() mutable -> double {
 			return *(rndNumbers++);
@@ -259,6 +260,7 @@ public:
 
 			if (_mP.bindingDynamics) {
 				updateState();
+				bound_flg = _state.binding > 0;
 			}
 
 			double rnd_xMol = takeRandomNumber();
@@ -268,7 +270,7 @@ public:
 			double pot_torque = potentialForce.calc_potential_torque(_state.phi);
 
 			double next_xMol = _state.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force) + sqrt(2.0*_mP.DMol*_sim.expTime) * rnd_xMol;
-			double next_phi = _state.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*(_state.phi - _mP.iniPhi) + (_state.binding > 0.0) * (pot_torque)) + sqrt(2.0*_mP.kT*_sim.expTime / _mP.rotFriction) * rnd_phi;
+			double next_phi = _state.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*(_state.phi - _mP.iniPhi) + bound_flg * (pot_torque)) + sqrt(2.0*_mP.kT*_sim.expTime / _mP.rotFriction) * rnd_phi;
 
 			if (next_phi < 0){
 				next_phi = -next_phi;
@@ -277,16 +279,16 @@ public:
 				next_phi = 2 * M_PI - next_phi;
 			}
 
-			_state.xMol   = next_xMol;
-			_state.phi    = next_phi;
+			_state.xMol  = next_xMol;
+			_state.phi   = next_phi;
 			_state.Time += _sim.expTime;
 
-			_loggingBuffer.xMol   +=  _state.xMol;  
+			_loggingBuffer.xMol              += _state.xMol;  
 			_loggingBuffer.logpotentialForce += MT_Mol_force;
-			_loggingBuffer.binding += _state.binding;
-			_loggingBuffer.phi += _state.phi;
-			_loggingBuffer.potTorque += pot_torque;
-			_loggingBuffer.deltaG += _state.deltaG;
+			_loggingBuffer.binding           += _state.binding;
+			_loggingBuffer.phi               += _state.phi;
+			_loggingBuffer.potTorque         += pot_torque;
+			_loggingBuffer.deltaG            += _state.deltaG;
 		}
 		_loggingBuffer.Time = _state.Time;
 	}
