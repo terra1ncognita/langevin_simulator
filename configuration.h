@@ -1,43 +1,53 @@
 #pragma once
 #include <string>
-# include <omp.h>
+#include <omp.h>
 #include <vector>
 #include <string>
 
 // Global parameters of simulations -> define iterations and steps
-//struct SimulationParameters
-//{
-	// simulation parameters
-//	double expTime;//
-	//int microsteps;// 10MHz scanning
-	//int nTotal ;	//10^-2 seconds total
-//};
+struct SimulationParameters
+{
+	double expTime = 1e-12;
+	double simulationTime = 3e-3;
+	int iterationsbetweenSavings = 15'000'000;
+	int iterationsbetweenTrapsUpdate = 15'000'000;
+	int totalsavings = int((simulationTime / expTime) / iterationsbetweenSavings);
+
+	int randomsPeriter = 4;
+	int buffsize = 15'000'000 * randomsPeriter;
+	int stepsperbuffer = static_cast<int>(std::floor(buffsize / randomsPeriter));
+
+	int savingsPerMacrostep = stepsperbuffer / iterationsbetweenSavings;
+	int macrostepMax = totalsavings / savingsPerMacrostep;
+	unsigned trapsUpdateTest = iterationsbetweenTrapsUpdate / iterationsbetweenSavings;
+};
 
 
 // Classes for objects that store simulation configs: LoggerParameters, ModelParameters, InitialConditions
 struct LoggerParameters
 {
-	enum class FilenameTemplate { PrefixName };
-	FilenameTemplate filenametemplate;
+	//enum class FilenameTemplate { PrefixName };
+	//FilenameTemplate filenametemplate;
 	std::string filepath;
 	std::string name;
 };
+
 struct ModelParameters
 {
 	/////
-	double expTime;
 	//Global paramters
-	double T ;					//temperature
+	std::string name = "";
+	double T;					//temperature
 	double kT;
 
 	//Parameters of potential
-	double G ;					// (* kT | Depth of the potential *)
-	double L ;					//(* um | period of the periodic potential *)
+	double G, G2;					// (* kT | Depth of the potential *)
+	double L;					//(* um | period of the periodic potential *)
 	double sigma;			//(* um | width of the binding well *)
 	double A;           // width of asymmetric potential, um
 	double m;           // center of well, um
 									//Parameters of diffusion
-	double DMol ;					//(* um^2/s | free diffusion coefficient of the protein in water *)
+	double DMol;					//(* um^2/s | free diffusion coefficient of the protein in water *)
 	double DBeadL;					// (* um^2/s | free diffusion coefficient of 0.5 um bead in water *)
 	double DBeadR;
 	double DMT;
@@ -51,11 +61,6 @@ struct ModelParameters
 											// Parameters of stiffness
 	double trapstiffL;			//(* pN/um | stiffness of the trap *) 
 	double trapstiffR;
-	double MTstiffL ;			//(* pN/um | stiffness of the MT *) 
-	double MTstiffR;
-	double MTlowstiff;
-	double MTrelaxedLengthL;
-	double MTrelaxedLengthR;
 
 	double MTstiffWeakSlopeL;
 	double MTstiffWeakBoundaryL;
@@ -80,14 +85,29 @@ struct ModelParameters
 	double molStiffStrongSlope;
 
 	double MTlength;
-	double molstiff ;				//(*pN / um| stiffness of the NDC80 *)
+	double molstiff;				//(*pN / um| stiffness of the NDC80 *)
 	double feedbackFreq;
 	double DmblMoveAmplitude;
 	double prestretchTotalForce;
 	double movementTotalForce;
 
-	double kOn;
-	double kOff;
+	double rotFriction;
+	double rotStiffness;
+	double molLength;
+	double domainsDistance;
+	double rotWellWidth;
+	double rotWellDepth;
+	double iniPhi;
+
+	int numStates = 2;
+
+	double kOn1, kOff1;
+	// double kOn2, kOff2;
+
+	double** transitionMatrix;
+
+	bool bindingDynamics = true;
+	double B = 0.0;
 };
 
 struct SystemState
@@ -98,14 +118,16 @@ struct SystemState
 	double xBeadr;
 	double xTrapl; 
 	double xTrapr; 
-	double Time=0.0;
+	double Time = 0.0;
 	double direction = 1.0;
 	double logpotentialForce;
 
 	double binding = 0.0;
+	double currentWell = 0.0;
 
-	double vMol = 0.0;
-	double vMT = 0.0;
+	double phi = 0.0;
+	double potTorque = 0.0;
+	double deltaG = 0.0;
 
 	//#pragma omp declare simd
 	template <typename F>
@@ -121,21 +143,22 @@ struct SystemState
 		f(&SystemState::direction, "direction");
 		f(&SystemState::logpotentialForce, "logpotentialForce");
 
-		f(&SystemState::direction, "binding");
+		f(&SystemState::binding, "binding");
+		f(&SystemState::phi, "phi");
+		f(&SystemState::potTorque, "potTorque");
+		f(&SystemState::deltaG, "deltaG");
 	}
 };
 
 struct InitialConditions
 {
 	SystemState initialState;
-	
-	double xPed;   ////////////// Is it really iC????
-	//double xTrapl; // Must be negative for prestretch ////////////// Is it really iC????
-	//double xTrapr; // Must be positive for prestretch ////////////// Is it really iC????
 };
+
 // Composition of parameters
 struct Configuration
 {
+	SimulationParameters simulationParameters;
 	LoggerParameters loggerParameters;
 	ModelParameters modelParameters;
 	InitialConditions initialConditions;

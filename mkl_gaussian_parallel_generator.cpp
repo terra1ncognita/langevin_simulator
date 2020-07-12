@@ -4,11 +4,10 @@
 #include <omp.h>
 
 
-
 MklGaussianParallelGenerator::MklGaussianParallelGenerator(double mean, double stDeviation, std::size_t bufferSize, unsigned threadNum)
 	:_mean{ mean }, _stDeviation{ stDeviation }, _bufferSize{bufferSize},_threadNum{threadNum}
 {
-	///////////////// If reproducibility from launch to launch is required seed is const, eslse seed must be random
+	///////////////// If reproducibility from launch to launch is required, then seed is const, else seed must be random
 	MKL_UINT seed = 777;
 	/////////////////
 	for (unsigned i = 0; i < threadNum; i++) {
@@ -20,8 +19,6 @@ MklGaussianParallelGenerator::MklGaussianParallelGenerator(double mean, double s
 	}
 	_buffer.resize(_bufferSize);
 }
-
-
 
 void MklGaussianParallelGenerator::generateNumbers()
 {
@@ -38,9 +35,7 @@ void MklGaussianParallelGenerator::generateNumbers()
 		if (generationResult != VSL_STATUS_OK) {
 			throw std::runtime_error{ "can't generate numbers" };
 		}
-	}
-
-	
+	}	
 }
 
 const double * MklGaussianParallelGenerator::getNumbersBuffer() const
