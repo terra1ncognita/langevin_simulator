@@ -118,7 +118,6 @@ public:
 	const double var1, var2;
 	const double pos = 2.0;
 
-
 	PotentialForce(const ModelParameters& mp_, SystemState& state_) :
 		powsigma ( pow(mp_.sigma, 2) ),
 		var1 ( pow(2.0, log(1.0 + mp_.m) / lgs) ),
@@ -127,7 +126,6 @@ public:
 		mp = &mp_;
 		state = &state_;
 	}
-
 	
 	double calc(double unmodvar) const
 	{
@@ -156,35 +154,6 @@ public:
 
 			return (log(2.0) * mp->A * mp->G * exp(mp->A * (1.0 - 1.0 / (1.0 - pow((-1.0 + var1 / tmp1), 2)))) * tmp1 * (1.0 / tmp1 - 1.0 / var1) /
 				((mp->L + 2.0*x) * pow(-1.0 + var2 / tmp1, 2) * lgs));
-		}
-	}
-
-	double calc_potential_torque(double angle) const
-	{
-		if (angle >= M_PI_2) {
-			return 0.0;
-		}
-		return -(pow(mp->domainsDistance, 2) * exp(2 - 2 * mp->domainsDistance * sin(angle) / mp->rotWellWidth) *
-			2 * mp->rotWellDepth * (mp->rotWellWidth - mp->domainsDistance * sin(angle)) * sin(2 * angle)) / pow(mp->domainsDistance, 3);
-	}
-
-	double two_domains(double unmodvar, double angle) const
-	{
-		double var = period_map(unmodvar, mp->L);
-		double deltaG = 0.0;
-
-		if (state->binding == 0.0) {
-			return 0.0;
-		}
-
-		if (angle < M_PI_2) {
-			deltaG = 2 * mp->rotWellDepth * pow((mp->domainsDistance * sin(angle) / mp->rotWellWidth), 2) * exp(2 * (1 - mp->domainsDistance * sin(angle) / mp->rotWellWidth));
-		}
-
-		state->deltaG = deltaG;
-
-		if (state->binding == 1.0) {
-			return ((mp->G + deltaG) * var / powsigma) * pow(E, -pow(var, 2) / (2.0*powsigma));//l1d cache 4096 of doubles -> use 50% of it?
 		}
 	}
 
@@ -366,8 +335,6 @@ public:
 			double rnd_xMol = takeRandomNumber();
 			double rnd_phi = takeRandomNumber();
 
-			//double MT_Mol_force = potentialForce.calc(_state.xMol - _state.xMT);
-			//double MT_Mol_force = potentialForce.asymmetric(_state.xMol - _state.xMT);
 			double MT_Mol_force = potentialForce.well_barrier_force(_state.xMol - _state.xMT, _state.phi);
 			double pot_torque = potentialForce.well_barrier_torque(_state.phi);
 
