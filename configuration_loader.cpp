@@ -103,93 +103,7 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 		conf.modelParameters.gammaMol = stod(jsonobj["ModelParameters"]["gammaMol"].get<std::string>());
 		conf.modelParameters.DMol = conf.modelParameters.kT / stod(jsonobj["ModelParameters"]["gammaMol"].get<std::string>());
 	}
-	if (!(jsonobj["ModelParameters"]["gammaBeadL"].empty())) {
-		conf.modelParameters.gammaBeadL = stod(jsonobj["ModelParameters"]["gammaBeadL"].get<std::string>());
-		conf.modelParameters.DBeadL = conf.modelParameters.kT / stod(jsonobj["ModelParameters"]["gammaBeadL"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["gammaBeadR"].empty())) {
-		conf.modelParameters.gammaBeadR = stod(jsonobj["ModelParameters"]["gammaBeadR"].get<std::string>());
-		conf.modelParameters.DBeadR = conf.modelParameters.kT / stod(jsonobj["ModelParameters"]["gammaBeadR"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["gammaMT"].empty())) {
-		conf.modelParameters.gammaMT =stod(jsonobj["ModelParameters"]["gammaMT"].get<std::string>());
-		conf.modelParameters.DMT = conf.modelParameters.kT / stod(jsonobj["ModelParameters"]["gammaMT"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["DMol"].empty())) {
-		conf.modelParameters.DMol = conf.modelParameters.kT / stod(jsonobj["ModelParameters"]["gammaMol"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["DBeadL"].empty())) {
-		conf.modelParameters.DBeadL = conf.modelParameters.kT / stod(jsonobj["ModelParameters"]["gammaBeadL"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["DBeadR"].empty())) {
-		conf.modelParameters.DBeadR = conf.modelParameters.kT / stod(jsonobj["ModelParameters"]["gammaBeadR"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["DMT"].empty())) {
-		conf.modelParameters.DMT = conf.modelParameters.kT / stod(jsonobj["ModelParameters"]["gammaMT"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["trapstiffL"].empty())) {
-		conf.modelParameters.trapstiffL = stod(jsonobj["ModelParameters"]["trapstiffL"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["trapstiffR"].empty())) {
-		conf.modelParameters.trapstiffR = stod(jsonobj["ModelParameters"]["trapstiffR"].get<std::string>());
-	}
-
-	// Friction coeffitient for quasiviscous molecule - MT interaction
-	if (!(jsonobj["ModelParameters"]["gammaQuasiviscous"].empty())) {
-		conf.modelParameters.gammaQuasiviscous = stod(jsonobj["ModelParameters"]["gammaQuasiviscous"].get<std::string>());
-	}
-
-	// MT stiffness Left
-	if (!(jsonobj["ModelParameters"]["MTstiffWeakSlopeL"].empty())) {
-		conf.modelParameters.MTstiffWeakSlopeL = stod(jsonobj["ModelParameters"]["MTstiffWeakSlopeL"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["MTstiffWeakBoundaryL"].empty())) {
-		conf.modelParameters.MTstiffWeakBoundaryL = stod(jsonobj["ModelParameters"]["MTstiffWeakBoundaryL"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["MTstiffParabolicAL"].empty())) {
-		conf.modelParameters.MTstiffParabolicAL = stod(jsonobj["ModelParameters"]["MTstiffParabolicAL"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["MTstiffParabolicBL"].empty())) {
-		conf.modelParameters.MTstiffParabolicBL = stod(jsonobj["ModelParameters"]["MTstiffParabolicBL"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["MTstiffParabolicCL"].empty())) {
-		conf.modelParameters.MTstiffParabolicCL = stod(jsonobj["ModelParameters"]["MTstiffParabolicCL"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["MTstiffStrongBoundaryL"].empty())) {
-		conf.modelParameters.MTstiffStrongBoundaryL = stod(jsonobj["ModelParameters"]["MTstiffStrongBoundaryL"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["MTstiffStrongSlopeL"].empty())) {
-		conf.modelParameters.MTstiffStrongSlopeL = stod(jsonobj["ModelParameters"]["MTstiffStrongSlopeL"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["MTstiffStrongIntersectL"].empty())) {
-		conf.modelParameters.MTstiffStrongIntersectL = stod(jsonobj["ModelParameters"]["MTstiffStrongIntersectL"].get<std::string>());
-	}
-
-	// MT stiffness Right
-	if (!(jsonobj["ModelParameters"]["MTstiffWeakSlopeR"].empty())) {
-		conf.modelParameters.MTstiffWeakSlopeR = stod(jsonobj["ModelParameters"]["MTstiffWeakSlopeR"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["MTstiffWeakBoundaryR"].empty())) {
-		conf.modelParameters.MTstiffWeakBoundaryR = stod(jsonobj["ModelParameters"]["MTstiffWeakBoundaryR"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["MTstiffParabolicAR"].empty())) {
-		conf.modelParameters.MTstiffParabolicAR = stod(jsonobj["ModelParameters"]["MTstiffParabolicAR"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["MTstiffParabolicBR"].empty())) {
-		conf.modelParameters.MTstiffParabolicBR = stod(jsonobj["ModelParameters"]["MTstiffParabolicBR"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["MTstiffParabolicCR"].empty())) {
-		conf.modelParameters.MTstiffParabolicCR = stod(jsonobj["ModelParameters"]["MTstiffParabolicCR"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["MTstiffStrongBoundaryR"].empty())) {
-		conf.modelParameters.MTstiffStrongBoundaryR = stod(jsonobj["ModelParameters"]["MTstiffStrongBoundaryR"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["MTstiffStrongSlopeR"].empty())) {
-		conf.modelParameters.MTstiffStrongSlopeR = stod(jsonobj["ModelParameters"]["MTstiffStrongSlopeR"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["MTstiffStrongIntersectR"].empty())) {
-		conf.modelParameters.MTstiffStrongIntersectR = stod(jsonobj["ModelParameters"]["MTstiffStrongIntersectR"].get<std::string>());
-	}
+	
 
 	// Molecular stiffness
 	if (!(jsonobj["ModelParameters"]["molStiffWeakSlope"].empty())) {
@@ -203,26 +117,6 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	}
 	
 	
-	if (!(jsonobj["ModelParameters"]["MTlength"].empty())) {
-		conf.modelParameters.MTlength = stod(jsonobj["ModelParameters"]["MTlength"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["molstiff"].empty())) {
-		conf.modelParameters.molstiff = stod(jsonobj["ModelParameters"]["molstiff"].get<std::string>());
-	}
-
-	if (!(jsonobj["ModelParameters"]["feedbackFreq"].empty())) {
-		conf.modelParameters.feedbackFreq = stod(jsonobj["ModelParameters"]["feedbackFreq"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["DmblMoveAmplitude"].empty())) {
-		conf.modelParameters.DmblMoveAmplitude = stod(jsonobj["ModelParameters"]["DmblMoveAmplitude"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["prestretchTotalForce"].empty())) {
-		conf.modelParameters.prestretchTotalForce = stod(jsonobj["ModelParameters"]["prestretchTotalForce"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["movementTotalForce"].empty())) {
-		conf.modelParameters.movementTotalForce = stod(jsonobj["ModelParameters"]["movementTotalForce"].get<std::string>());
-	}
-
 	if (!(jsonobj["ModelParameters"]["kOn1"].empty())) {
 		conf.modelParameters.kOn1 = stod(jsonobj["ModelParameters"]["kOn1"].get<std::string>());
 	}
@@ -257,7 +151,6 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	if (!(jsonobj["ModelParameters"]["iniPhi"].empty())) {
 		conf.modelParameters.iniPhi = stod(jsonobj["ModelParameters"]["iniPhi"].get<std::string>());
 	}
-
 	if (!(jsonobj["ModelParameters"]["bindingDynamics"].empty())) {
 		conf.modelParameters.bindingDynamics = bool(stoi(jsonobj["ModelParameters"]["bindingDynamics"].get<std::string>()));
 	}
@@ -268,52 +161,21 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 
 
 	//// Assign Initial Conditions from json
+	//// Assign Dynamic Coordinates from json initial conditions
 	if (!(jsonobj["InitialConditions"]["xMol"].empty())) {
 		conf.initialConditions.initialState.xMol = stod(jsonobj["InitialConditions"]["xMol"].get<std::string>());
-	}
-	if (!(jsonobj["InitialConditions"]["xMT"].empty())) {
-		conf.initialConditions.initialState.xMT = stod(jsonobj["InitialConditions"]["xMT"].get<std::string>());
-	}
-	if (!(jsonobj["InitialConditions"]["xBeadl"].empty())) {
-		conf.initialConditions.initialState.xBeadl = stod(jsonobj["InitialConditions"]["xBeadl"].get<std::string>());
-	}
-	if (!(jsonobj["InitialConditions"]["xBeadr"].empty())) {
-		conf.initialConditions.initialState.xBeadr = stod(jsonobj["InitialConditions"]["xBeadr"].get<std::string>());
-	}
-	if (!(jsonobj["InitialConditions"]["xTrapl"].empty())) {
-		conf.initialConditions.initialState.xTrapl = stod(jsonobj["InitialConditions"]["xTrapl"].get<std::string>());
-	}
-	if (!(jsonobj["InitialConditions"]["xTrapr"].empty())) {
-		conf.initialConditions.initialState.xTrapr = stod(jsonobj["InitialConditions"]["xTrapr"].get<std::string>());
+		conf.currentState.xMol = stod(jsonobj["InitialConditions"]["xMol"].get<std::string>());
 	}
 	if (!(jsonobj["InitialConditions"]["direction"].empty())) {
 		conf.currentState.direction = stod(jsonobj["InitialConditions"]["direction"].get<std::string>());
 		conf.initialConditions.initialState.direction = stod(jsonobj["InitialConditions"]["direction"].get<std::string>());
 	}
-	//// Assign Dynamic Coordinates from json initial conditions
-	if (!(jsonobj["InitialConditions"]["xTrapl"].empty())) {
-		conf.currentState.xTrapl = stod(jsonobj["InitialConditions"]["xTrapl"].get<std::string>());
-	}
-	if (!(jsonobj["InitialConditions"]["xTrapr"].empty())) {
-		conf.currentState.xTrapr = stod(jsonobj["InitialConditions"]["xTrapr"].get<std::string>());
-	}
-
-	if (!(jsonobj["InitialConditions"]["xMol"].empty())) {
-		conf.currentState.xMol = stod(jsonobj["InitialConditions"]["xMol"].get<std::string>());
-	}
-	if (!(jsonobj["InitialConditions"]["xMT"].empty())) {
-		conf.currentState.xMT = stod(jsonobj["InitialConditions"]["xMT"].get<std::string>());
-	}
-	if (!(jsonobj["InitialConditions"]["xBeadl"].empty())) {
-		conf.currentState.xBeadl = stod(jsonobj["InitialConditions"]["xBeadl"].get<std::string>());
-	}
-	if (!(jsonobj["InitialConditions"]["xBeadr"].empty())) {
-		conf.currentState.xBeadr = stod(jsonobj["InitialConditions"]["xBeadr"].get<std::string>());
-	}
 	if (!(jsonobj["InitialConditions"]["phi"].empty())) {
 		conf.currentState.phi = stod(jsonobj["InitialConditions"]["phi"].get<std::string>());
+		conf.initialConditions.initialState.phi = stod(jsonobj["InitialConditions"]["phi"].get<std::string>());
 	}
 
+	
 	//TODO: generalize to arbitrary Markov chain
 	if (conf.modelParameters.numStates != 2) {
 		throw std::runtime_error{ "Current implementation is only for 2 states!" };
