@@ -5,7 +5,7 @@
 using json = nlohmann::json;
 const double kBoltz = 1.38064852e-5;// (*pN um *)
 
-/// Assign Simulation Parameters
+// Assign Simulation Parameters
 SimulationParameters assign_simulation_parameters_from_json(SimulationParameters simp, json jsonobjsimp) {
 	if (!(jsonobjsimp["expTime"].empty())) {
 		simp.expTime = stod(jsonobjsimp["expTime"].get<std::string>());
@@ -71,6 +71,10 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	
 	//// Assign Model Parameters from json
 	
+	if (!(jsonobj["Name"].empty())) {
+		conf.modelParameters.name = jsonobj["Name"].get<std::string>();
+	}
+
 	if (!(jsonobj["ModelParameters"]["T"].empty())) {
 		conf.modelParameters.T= stod(jsonobj["ModelParameters"]["T"].get<std::string>());
 		conf.modelParameters.kT = kBoltz*conf.modelParameters.T;
@@ -149,6 +153,10 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	}
 	if (!(jsonobj["ModelParameters"]["bindingDynamics"].empty())) {
 		conf.modelParameters.bindingDynamics = bool(stoi(jsonobj["ModelParameters"]["bindingDynamics"].get<std::string>()));
+	}
+
+	if (!(jsonobj["ModelParameters"]["B"].empty())) {
+		conf.modelParameters.B = stod(jsonobj["ModelParameters"]["B"].get<std::string>());
 	}
 
 

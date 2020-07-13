@@ -36,6 +36,7 @@ struct ModelParameters
 {
 	/////
 	//Global paramters
+	std::string name = "";
 	double T;					//temperature
 	double kT;
 
@@ -70,6 +71,7 @@ struct ModelParameters
 	double** transitionMatrix;
 
 	bool bindingDynamics = true;
+	double B = 0.0;
 };
 
 struct SystemState
