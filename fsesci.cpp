@@ -5,9 +5,9 @@
 #include <malloc.h>
 #include <string>
 #include <iostream>
-# include <cstdlib>
-# include <iomanip>
-# include <omp.h>
+#include <cstdlib>
+#include <iomanip>
+#include <omp.h>
 #include <cmath>
 #include <vector>
 #include <algorithm>
@@ -22,15 +22,18 @@
 
 #include <mkl_vsl.h>
 
-#include "json.hpp"
+//#include "json.hpp"
 
 #include "library.h"
 #include "configuration.h"
 #include "configuration_loader.h"
 #include "mkl_gaussian_parallel_generator.h"
+#include "binding_state.h"
 
 #include <fstream>
 #include <chrono>
+
+//#include "binding_state.h"
 
 using std::cout;
 using std::cerr;
@@ -38,10 +41,12 @@ using std::endl;
 
 // TODO try to use ofstream rawwrite
 
+template<typename T>
 class BinaryFileLogger 
 {
 public:
-	BinaryFileLogger(LoggerParameters loggerParams, double (SystemState::* loggedField), std::string coordinateName):
+	BinaryFileLogger() {};
+	BinaryFileLogger(LoggerParameters loggerParams, T (SystemState::* loggedField), std::string coordinateName):
 		_loggedField{ loggedField }
 	{
 		auto filename = loggerParams.filepath + loggerParams.name + "_results_" + coordinateName + ".binary";
@@ -88,17 +93,17 @@ private:
 		if (_buffer.empty()) {
 			return;
 		}
-		_file.write(reinterpret_cast<const char*>(_buffer.data()), _buffer.size() * sizeof(double));
+		_file.write(reinterpret_cast<const char*>(_buffer.data()), _buffer.size() * sizeof(T));
 		if (!_file.good()) {
 			throw std::runtime_error{ "not all data was written to file" };
 		};
 		_buffer.clear();
 	}
 
-	static constexpr std::size_t _buffsize = 4096 * 64 / sizeof(double);//4096 default, was 1024
+	static constexpr std::size_t _buffsize = 4096 * 64 / sizeof(T);//4096 default, was 1024
 	std::ofstream _file;
-	double(SystemState::* _loggedField);
-	std::vector <double> _buffer;
+	T(SystemState::* _loggedField);
+	std::vector <T> _buffer;
 };
 
 // New mapping R->[-L/2, L/2], 0->0 for asymmetric well
@@ -130,10 +135,10 @@ public:
 	double calc(double unmodvar) const
 	{
 		double var = period_map(unmodvar, mp->L);
-		if (state->binding == 0.0) {
+		if (state->molecular_state == BindingState::Free) {
 			return 0.0;
 		}
-		else if (state->binding == 1.0) {
+		else if (state->molecular_state == BindingState::FirstSiteBound) {
 			return (mp->G * var / powsigma) * pow(E, -pow(var, 2) / (2.0*powsigma));//l1d cache 4096 of doubles -> use 50% of it?
 		}
 		/*
@@ -145,10 +150,10 @@ public:
 	
 	double asymmetric(double unmodvar) const
 	{
-		if (state->binding == 0.0) {
+		if (state->molecular_state == BindingState::Free) {
 			return 0.0;
 		}
-		else if (state->binding == 1.0) {
+		else if (state->molecular_state & BindingState::FirstSiteBound) {
 			double x = period_map(unmodvar, mp->L);
 			double tmp1 = pow(1.0 + 2.0 * x / mp->L, log(2.0) / lgs);
 
@@ -185,7 +190,7 @@ public:
 		double var = period_map(unmodvar, mp->L);
 		double deltaG = 0.0;
 
-		if (state->binding == 0.0) {
+		if (state->molecular_state == BindingState::Free) {
 			return 0.0;
 		}
 
@@ -196,7 +201,7 @@ public:
 
 		state->deltaG = deltaG;
 
-		if (state->binding == 1.0) {
+		if (state->molecular_state & BindingState::FirstSiteBound) {
 			return ((mp->G + deltaG) * var / powsigma) * pow(E, -pow(var, 2) / (2.0*powsigma));//l1d cache 4096 of doubles -> use 50% of it?
 		}
 	}
@@ -230,13 +235,16 @@ public:
 		_state(configuration.initialConditions.initialState),
 		expGen(1.0),
 		expRands(_mP.numStates),
-		livingTimes(_mP.numStates, 0.0)
+		livingTimes(_mP.numStates, 0.0),
+		_bindingEventLogger(configuration.loggerParameters, &SystemState::lastBinding, "bindingEvent"),
+		_releaseEventLogger(configuration.loggerParameters, &SystemState::lastRelease, "releaseEvent"),
+		_eventTimeLogger(configuration.loggerParameters, &SystemState::Time, "eventTime")
 	{
 		loggingBuffertoZero();
 
 		const auto& loggerParameters = configuration.loggerParameters;
 		SystemState::iterateFields([this, &loggerParameters](double(SystemState::* field), std::string fieldName) {
-			auto logger = std::make_unique<BinaryFileLogger>(loggerParameters, field, fieldName);// creates object of class BinaryFileLogger but returns to logger variable the unique pointer to it. // for creation of object implicitly with arguments like this also remind yourself the vector.emplace(args) .
+			auto logger = std::make_unique<BinaryFileLogger<double>>(loggerParameters, field, fieldName);// creates object of class BinaryFileLogger but returns to logger variable the unique pointer to it. // for creation of object implicitly with arguments like this also remind yourself the vector.emplace(args) .
 			this->_loggers.push_back(std::move(logger));// unique pointer can't be copied, only moved like this
 		});
 
@@ -244,6 +252,7 @@ public:
 
 		if (!(_mP.bindingDynamics)) {
 			_state.binding = 1.0;
+			_state.molecular_state |= BindingState::FirstSiteBound;
 		}
 	}
 
@@ -273,6 +282,29 @@ public:
 		out.close();
 	}
 
+	BindingEvent check_binding_event(double pot_torque) {
+		bitmask::bitmask<BindingState> change = _state.molecular_state;
+
+		if ((_mP.domainsDistance * sin(_state.phi) > 2 * _mP.rotWellWidth) && (pot_torque < 0)) {
+			change &= ~BindingState::SecondSiteBound;
+		}
+		else {
+			change |= BindingState::SecondSiteBound;
+		}
+
+		if (abs(period_map(_state.xMol - _state.xMT, _mP.L)) > 3 * _mP.sigma) {
+			change &= ~BindingState::FirstSiteBound;
+		}
+		else {
+			change |= BindingState::FirstSiteBound;
+		}
+
+		auto event = detect_changes(_state.molecular_state, change);
+		_state.molecular_state = change;
+
+		return event;
+	}
+
 	void advanceState(int nSteps, const double* rndNumbers) {
 		PotentialForce potentialForce(_mP, _state);
 		bool bound_flg = true;
@@ -293,6 +325,15 @@ public:
 
 			double MT_Mol_force = potentialForce.well_barrier_force(_state.xMol - _state.xMT, _state.phi);
 			double pot_torque = potentialForce.well_barrier_torque(_state.phi);
+
+			BindingEvent ev = check_binding_event(pot_torque);
+			if (ev.any_change()) {
+				_state.lastBinding = ev.binding;
+				_state.lastRelease = ev.release;
+				_bindingEventLogger.save(&_state);
+				_releaseEventLogger.save(&_state);
+				_eventTimeLogger.save(&_state);
+			}
 
 			double next_xMol = _state.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force) + sqrt(2.0*_mP.DMol*_sim.expTime) * rnd_xMol;
 			double next_phi = _state.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*(_state.phi - _mP.iniPhi) + bound_flg * (pot_torque)) + sqrt(2.0*_mP.kT*_sim.expTime / _mP.rotFriction) * rnd_phi;
@@ -374,7 +415,9 @@ public:
 	}
 
 private:
-	std::vector<std::unique_ptr<BinaryFileLogger>> _loggers;
+	std::vector<std::unique_ptr<BinaryFileLogger<double>>> _loggers;
+	BinaryFileLogger<bitmask::bitmask<BindingState>> _bindingEventLogger, _releaseEventLogger;
+	BinaryFileLogger<double> _eventTimeLogger;
 public:
 	SystemState _state;
 	SystemState _loggingBuffer, _forcefeedbackBuffer;
@@ -440,7 +483,7 @@ int main(int argc, char *argv[])
 	cout << std::setprecision(2) << std::fixed << endl;
 
 	for (int batch_id = 0; batch_id < tasksperthread; batch_id++) {
-		// Loop of task batches. One batch fully laods all threads with exactly one task.
+		// Loop over task batches. One batch fully laods all threads with exactly one task.
 
 		cout << "Start batch #" << batch_id << endl;
 		auto start_batch = std::chrono::system_clock::now();

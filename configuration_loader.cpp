@@ -1,6 +1,6 @@
 #include "configuration_loader.h"
 #include "library.h"
-#include<fstream>
+#include <fstream>
 
 using json = nlohmann::json;
 const double kBoltz = 1.38064852e-5;// (*pN um *)
@@ -174,7 +174,6 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 		conf.currentState.phi = stod(jsonobj["InitialConditions"]["phi"].get<std::string>());
 		conf.initialConditions.initialState.phi = stod(jsonobj["InitialConditions"]["phi"].get<std::string>());
 	}
-
 	
 	//TODO: generalize to arbitrary Markov chain
 	if (conf.modelParameters.numStates != 2) {

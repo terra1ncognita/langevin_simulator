@@ -3,6 +3,7 @@
 #include <omp.h>
 #include <vector>
 #include <string>
+#include "binding_state.h"
 
 // Global parameters of simulations -> define iterations and steps
 struct SimulationParameters
@@ -74,6 +75,7 @@ struct ModelParameters
 	double B = 0.0;
 };
 
+
 struct SystemState
 {
 	double xMol = 0.0;
@@ -82,6 +84,8 @@ struct SystemState
 	double direction = 1.0;
 	double logpotentialForce = 0.0;
 
+	bitmask::bitmask<BindingState> molecular_state = BindingState::Free;
+	bitmask::bitmask<BindingState> lastBinding = BindingState::Free, lastRelease = BindingState::Free;
 	double binding = 0.0;
 	double currentWell = 0.0;
 
