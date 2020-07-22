@@ -123,6 +123,8 @@ public:
 	const double var1, var2;
 	const double pos = 2.0;
 
+	double x_rot_min = -1, x_rot_max = -1;
+
 	PotentialForce(const ModelParameters& mp_, SystemState& state_) :
 		powsigma ( pow(mp_.sigma, 2) ),
 		var1 ( pow(2.0, log(1.0 + mp_.m) / lgs) ),
@@ -167,9 +169,23 @@ public:
 		return depth * pow((x / r0), 2) * exp(2 * (1 - x / r0));
 	}
 
-	double morze_angle_derivative(double angle, double r0, double d, double depth) const
+	double morze_derivative(double x, double r0, double depth) const
+	{
 		/*
-		Assume relationship x =  mp->domainsDistance * sin(angle)
+		Returns morze'(x)
+		*/
+		return 2.0 * exp(2.0 - 2.0 * x / r0) * depth * (r0 - x) * x / pow(r0, 3);
+	}
+
+	double well_barrier_derivative(double x) const
+	{
+		return morze_derivative(x, mp->rotWellWidth, mp->rotWellDepth) +
+			morze_derivative(x, pos * mp->rotWellWidth, -mp->B * mp->rotWellDepth);
+	}
+
+	double morze_angle_neg_derivative(double angle, double r0, double d, double depth) const
+		/*
+		Returns -morze'(angle) assuming relationship x = d * sin(angle).
 		*/
 	{
 		return -depth * (pow(d, 2) * exp(2 - 2 * d * sin(angle) / r0) *
@@ -181,8 +197,8 @@ public:
 		if (angle >= M_PI_2) {
 			return 0.0;
 		}
-		return morze_angle_derivative(angle, mp->rotWellWidth, mp->domainsDistance, mp->rotWellDepth) +
-			morze_angle_derivative(angle, pos * mp->rotWellWidth, mp->domainsDistance, -mp->B * mp->rotWellDepth);
+		return morze_angle_neg_derivative(angle, mp->rotWellWidth, mp->domainsDistance, mp->rotWellDepth) +
+			morze_angle_neg_derivative(angle, pos * mp->rotWellWidth, mp->domainsDistance, -mp->B * mp->rotWellDepth);
 	}
 
 	double well_barrier_force(double unmodvar, double angle) const
@@ -202,8 +218,62 @@ public:
 		state->deltaG = deltaG;
 
 		if (state->molecular_state & BindingState::FirstSiteBound) {
-			return ((mp->G + deltaG) * var / powsigma) * pow(E, -pow(var, 2) / (2.0*powsigma));//l1d cache 4096 of doubles -> use 50% of it?
+			return ((mp->G + deltaG) * var / powsigma) * pow(E, -pow(var, 2) / (2.0*powsigma)); //l1d cache 4096 of doubles -> use 50% of it?
 		}
+	}
+
+	double solve_rot_well_newton(double g, double x0, double tol) const 
+	{
+		int max_iter = 1000;
+		double x=x0, x_next = x0;
+
+		for (int i=0; i < max_iter; ++i)
+		{
+			x = x_next;
+			double f_val = morze(x, mp->rotWellWidth, mp->rotWellDepth) + morze(x, pos * mp->rotWellWidth, -mp->B * mp->rotWellDepth) - g;
+			if (-tol < f_val && f_val < tol)
+			{
+				break;
+			}
+
+			x_next = x - (f_val) 
+				/ (morze_derivative(x, mp->rotWellWidth, mp->rotWellDepth) + morze_derivative(x, pos * mp->rotWellWidth, -mp->B * mp->rotWellDepth));
+		}
+		return x_next;
+	}
+
+	double secant_solver_well_derivative(double x0, double x1, double tol) const
+	{
+		int max_iter = 1000;
+		double x, x_next, f_prev, f_val, tmp;
+
+		x = x0;
+		x_next = x1;
+
+		for (int i = 0; i < max_iter; ++i)
+		{
+			f_prev = well_barrier_derivative(x);
+			f_val = well_barrier_derivative(x_next);
+
+			if (-tol < f_val && f_val < tol)
+			{
+				break;
+			}
+
+			tmp = x_next;
+			x_next = x_next - f_val * (x_next - x) / (f_val - f_prev);
+			x = tmp;
+		}
+		return x_next;
+	}
+
+	double get_rot_well_min_max(double rmax0, double rmin0, double eps, double tol)
+	{
+		/* Perturb initial values for r with eps to satisfy secant method 
+		Approach max from the left, min from the right = start from right well wall
+		*/
+		x_rot_max = secant_solver_well_derivative(rmax0, rmax0 + eps, tol);
+		x_rot_min = secant_solver_well_derivative(rmin0 + eps, rmin0, tol);
 	}
 };
 
@@ -285,18 +355,36 @@ public:
 	BindingEvent check_binding_event(double pot_torque) {
 		bitmask::bitmask<BindingState> change = _state.molecular_state;
 
-		if ((_mP.domainsDistance * sin(_state.phi) > 2 * _mP.rotWellWidth) && (pot_torque < 0)) {
+		// if ((_mP.domainsDistance * sin(_state.phi) > 2 * _mP.rotWellWidth) && (pot_torque < 0)) {  // TODO check this fucking condition, I hate it
+		// 	change &= ~BindingState::SecondSiteBound;
+		// }
+		// else {
+		// 	change |= BindingState::SecondSiteBound;
+		// }
+
+		if (_mP.domainsDistance * sin(_state.phi) > rotWellReleaseBoundary) {
 			change &= ~BindingState::SecondSiteBound;
 		}
-		else {
+		if (_mP.domainsDistance * sin(_state.phi) < rotWellBindingBoundary) {
 			change |= BindingState::SecondSiteBound;
 		}
 
-		if (abs(period_map(_state.xMol - _state.xMT, _mP.L)) > 3 * _mP.sigma) {
-			change &= ~BindingState::FirstSiteBound;
-		}
-		else {
+
+		// if (abs(period_map(_state.xMol - _state.xMT, _mP.L)) > 3 * _mP.sigma) {
+		// 	change &= ~BindingState::FirstSiteBound;
+		// }
+		// else {
+		// 	change |= BindingState::FirstSiteBound;
+		// }
+
+		if (abs(period_map(_state.xMol - _state.xMT, _mP.L)) < _mP.sigma / 2.0) {
 			change |= BindingState::FirstSiteBound;
+			if (abs(_state.xMol - _state.xMT - _state.currentWell) > _mP.L / 2.0) {
+				change |= BindingState::NewWell;
+			}
+		}
+		if (_state.xMol - _state.xMT > 3.0 * _mP.sigma) {
+			change &= ~BindingState::FirstSiteBound;
 		}
 
 		auto event = detect_changes(_state.molecular_state, change);
@@ -305,10 +393,32 @@ public:
 		return event;
 	}
 
+	void init_well_boundaries() {
+		PotentialForce potentialForce(_mP, _state);
+
+		potentialForce.get_rot_well_min_max(1.99 * _mP.rotWellWidth, 1.01 * _mP.rotWellWidth, 0.01 * _mP.rotWellWidth, 1e-4);
+
+		const double g_rel = 0.8825;
+		double max_height = potentialForce.morze(potentialForce.x_rot_max, _mP.rotWellWidth, _mP.rotWellDepth) + potentialForce.morze(potentialForce.x_rot_max, 2 * _mP.rotWellWidth, -_mP.B * _mP.rotWellDepth);
+		double min_height = potentialForce.morze(potentialForce.x_rot_min, _mP.rotWellWidth, _mP.rotWellDepth) + potentialForce.morze(potentialForce.x_rot_min, 2 * _mP.rotWellWidth, -_mP.B * _mP.rotWellDepth);
+
+		double starting_point;
+		if (_mP.B == 0.0) {
+			max_height = 0;
+			starting_point = potentialForce.x_rot_min + _mP.rotWellWidth / 2.0;
+		}
+		else {
+			starting_point = (potentialForce.x_rot_max + potentialForce.x_rot_min) / 2.0;
+		}
+
+		rotWellBindingBoundary = potentialForce.solve_rot_well_newton((1 - g_rel) * max_height + g_rel * min_height, starting_point, 1e-4);
+		rotWellReleaseBoundary = potentialForce.x_rot_max;
+	}
+
 	void advanceState(int nSteps, const double* rndNumbers) {
 		PotentialForce potentialForce(_mP, _state);
 		bool bound_flg = true;
-		
+
 		auto takeRandomNumber = [rndNumbers]() mutable -> double {
 			return *(rndNumbers++);
 		};
@@ -333,6 +443,10 @@ public:
 				_bindingEventLogger.save(&_state);
 				_releaseEventLogger.save(&_state);
 				_eventTimeLogger.save(&_state);
+
+				if (ev.binding & BindingState::NewWell) {
+					_state.currentWell = _mP.L * floor(((_state.xMol - _state.xMT) + _mP.L / 2.0) / _mP.L);
+				}
 			}
 
 			double next_xMol = _state.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force) + sqrt(2.0*_mP.DMol*_sim.expTime) * rnd_xMol;
@@ -418,6 +532,8 @@ private:
 	std::vector<std::unique_ptr<BinaryFileLogger<double>>> _loggers;
 	BinaryFileLogger<bitmask::bitmask<BindingState>> _bindingEventLogger, _releaseEventLogger;
 	BinaryFileLogger<double> _eventTimeLogger;
+
+	double rotWellReleaseBoundary, rotWellBindingBoundary;
 public:
 	SystemState _state;
 	SystemState _loggingBuffer, _forcefeedbackBuffer;
@@ -507,6 +623,7 @@ int main(int argc, char *argv[])
 		for (const auto& configuration : batch) {
 			std::unique_ptr<Task> task = std::make_unique<Task>(configuration);
 			task->loggingBuffertoZero();
+			task->init_well_boundaries();
 			tasks.push_back(std::move(task));
 		}
 

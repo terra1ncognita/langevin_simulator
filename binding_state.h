@@ -2,11 +2,12 @@
 #include "bitmask.hpp"
 
 enum class BindingState {
-	Free            = 0,
-	FirstSiteBound  = 1 << 0,
+	Free = 0,
+	FirstSiteBound = 1 << 0,
 	SecondSiteBound = 1 << 1,
+	NewWell = 1 << 2,
 
-	_bitmask_max_element = SecondSiteBound
+	_bitmask_max_element = NewWell,
 };
 
 BITMASK_DEFINE(BindingState);
