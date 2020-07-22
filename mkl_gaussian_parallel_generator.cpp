@@ -2,20 +2,17 @@
 #include <stdlib.h>
 #include <stdexcept>
 #include <omp.h>
-#include <ctime>
-#include <iostream>
 
 
 MklGaussianParallelGenerator::MklGaussianParallelGenerator(double mean, double stDeviation, std::size_t bufferSize, unsigned threadNum)
 	:_mean{ mean }, _stDeviation{ stDeviation }, _bufferSize{bufferSize},_threadNum{threadNum}
 {
 	///////////////// If reproducibility from launch to launch is required, then seed is const, else seed must be random
-	srand(time(NULL));
+	MKL_UINT seed = 777;
+	/////////////////
 	for (unsigned i = 0; i < threadNum; i++) {
-		MKL_UINT seed = static_cast<MKL_UINT>(rand());
 		_streamWrappers.emplace_back(VSL_BRNG_MT2203 + i, seed);
 	}
-
 	_nPerThread = _bufferSize / _threadNum;
 	if (_bufferSize != _nPerThread * _threadNum) {
 		throw std::logic_error{ "buffsize must be multiple of number of threads" };

@@ -48,12 +48,48 @@ struct ModelParameters
 	double m;           // center of well, um
 									//Parameters of diffusion
 	double DMol;					//(* um^2/s | free diffusion coefficient of the protein in water *)
+	double DBeadL;					// (* um^2/s | free diffusion coefficient of 0.5 um bead in water *)
+	double DBeadR;
+	double DMT;
 
 	double gammaMol;		//(* pN s/um | friction drag coefficient for protein *)
+	double gammaBeadL;		//(* pN s/um | friction drag coefficient for 0.5 um bead *)
+	double gammaBeadR;
+	double gammaMT;				//(* pN s/um | friction drag coefficient for 0.5 um for MT *)
+
+	double gammaQuasiviscous;
+											// Parameters of stiffness
+	double trapstiffL;			//(* pN/um | stiffness of the trap *) 
+	double trapstiffR;
+
+	double MTstiffWeakSlopeL;
+	double MTstiffWeakBoundaryL;
+	double MTstiffParabolicAL;
+	double MTstiffParabolicBL;
+	double MTstiffParabolicCL;
+	double MTstiffStrongBoundaryL;
+	double MTstiffStrongSlopeL;
+	double MTstiffStrongIntersectL;
+
+	double MTstiffWeakSlopeR;
+	double MTstiffWeakBoundaryR;
+	double MTstiffParabolicAR;
+	double MTstiffParabolicBR;
+	double MTstiffParabolicCR;
+	double MTstiffStrongBoundaryR;
+	double MTstiffStrongSlopeR;
+	double MTstiffStrongIntersectR;
 
 	double molStiffWeakSlope;
 	double molStiffBoundary;
 	double molStiffStrongSlope;
+
+	double MTlength;
+	double molstiff;				//(*pN / um| stiffness of the NDC80 *)
+	double feedbackFreq;
+	double DmblMoveAmplitude;
+	double prestretchTotalForce;
+	double movementTotalForce;
 
 	double rotFriction;
 	double rotStiffness;
@@ -76,11 +112,15 @@ struct ModelParameters
 
 struct SystemState
 {
-	double xMol = 0.0;
-	double xMT = 0.0;
+	double xMol;
+	double xMT;
+	double xBeadl;
+	double xBeadr;
+	double xTrapl; 
+	double xTrapr; 
 	double Time = 0.0;
 	double direction = 1.0;
-	double logpotentialForce = 0.0;
+	double logpotentialForce;
 
 	double binding = 0.0;
 	double currentWell = 0.0;
@@ -93,7 +133,12 @@ struct SystemState
 	template <typename F>
 	static void iterateFields(F&& f) {
 		f(&SystemState::xMol, "xMol");
-		
+		f(&SystemState::xMT, "xMT");
+		f(&SystemState::xBeadl, "xBeadl");
+		f(&SystemState::xBeadr, "xBeadr");
+
+		f(&SystemState::xTrapl, "xTrapl");
+		f(&SystemState::xTrapr, "xTrapr");
 		f(&SystemState::Time, "Time");
 		f(&SystemState::direction, "direction");
 		f(&SystemState::logpotentialForce, "logpotentialForce");
