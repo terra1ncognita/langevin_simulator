@@ -446,6 +446,7 @@ public:
 
 				if (ev.binding & BindingState::NewWell) {
 					_state.currentWell = _mP.L * floor(((_state.xMol - _state.xMT) + _mP.L / 2.0) / _mP.L);
+					_state.molecular_state &= ~BindingState::NewWell;
 				}
 			}
 
