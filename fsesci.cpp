@@ -383,7 +383,7 @@ public:
 				change |= BindingState::NewWell;
 			}
 		}
-		if (_state.xMol - _state.xMT > 3.0 * _mP.sigma) {
+		if (abs(period_map(_state.xMol - _state.xMT, _mP.L)) > 3.0 * _mP.sigma) {
 			change &= ~BindingState::FirstSiteBound;
 		}
 
