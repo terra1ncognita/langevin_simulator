@@ -228,6 +228,7 @@ public:
 		_mP(configuration.modelParameters),
 		_initC(configuration.initialConditions),
 		_state(configuration.initialConditions.initialState),
+		_loggingBuffer(configuration.initialConditions.initialState),
 		expGen(1.0),
 		expRands(_mP.numStates),
 		livingTimes(_mP.numStates, 0.0)
