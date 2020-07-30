@@ -229,6 +229,7 @@ public:
 		_initC(configuration.initialConditions),
 		_state(configuration.initialConditions.initialState),
 		_loggingBuffer(configuration.initialConditions.initialState),
+		_forcefeedbackBuffer(configuration.initialConditions.initialState),
 		expGen(1.0),
 		expRands(_mP.numStates),
 		livingTimes(_mP.numStates, 0.0)
@@ -586,8 +587,8 @@ int main(int argc, char *argv[])
 		for (const auto& configuration : batch) {
 			std::unique_ptr<Task> task = std::make_unique<Task>(configuration);
 
-			task->loggingBuffertoZero();
-			task->forcefeedbackBuffertoZero();
+			// task->loggingBuffertoZero();
+			// task->forcefeedbackBuffertoZero();    As long as we have buffer zeroing in Task constructor
 
 			tasks.push_back(std::move(task));
 		}
