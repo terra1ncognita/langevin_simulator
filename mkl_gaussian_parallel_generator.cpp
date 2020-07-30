@@ -2,13 +2,18 @@
 #include <stdlib.h>
 #include <stdexcept>
 #include <omp.h>
+#include <ctime>
 
 
 MklGaussianParallelGenerator::MklGaussianParallelGenerator(double mean, double stDeviation, std::size_t bufferSize, unsigned threadNum)
 	:_mean{ mean }, _stDeviation{ stDeviation }, _bufferSize{bufferSize},_threadNum{threadNum}
 {
 	///////////////// If reproducibility from launch to launch is required, then seed is const, else seed must be random
-	MKL_UINT seed = 777;
+
+	// MKL_UINT seed = 777;
+	srand(time(NULL));
+	MKL_UINT seed = static_cast<MKL_UINT>(rand());
+
 	/////////////////
 	for (unsigned i = 0; i < threadNum; i++) {
 		_streamWrappers.emplace_back(VSL_BRNG_MT2203 + i, seed);
