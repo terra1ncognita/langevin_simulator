@@ -331,22 +331,19 @@ public:
 				updateState();
 			}
 
-			double rnd_xMT = takeRandomNumber();
-			double rnd_xBeadl = takeRandomNumber();
-			double rnd_xBeadr = takeRandomNumber();
+			double rnd_inc = takeRandomNumber();
 			double rnd_xMol = takeRandomNumber();
 			double rnd_phi = takeRandomNumber();
 
 			double MT_Mol_force = potentialForce.well_barrier_force(_state.xMol - _state.xMT, _state.phi);
 			double pot_torque = potentialForce.well_barrier_torque(_state.phi);
-
-			double FmtR = calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength / 2.0, 'R');
-			double FmtL = calculateMTspringForce(_state.xMT - _state.xBeadl - _mP.MTlength / 2.0, 'L');
 			double molSpringForce = calculateMolspringForce(_state.xMol);
 
-			double next_xMT = _state.xMT + (_sim.expTime / _mP.gammaMT)*(-FmtL + FmtR - MT_Mol_force) + sqrt(2.0*_mP.DMT*_sim.expTime) * rnd_xMT;
-			double next_xBeadl = _state.xBeadl + (_sim.expTime / _mP.gammaBeadL)*((-_mP.trapstiffL)*(_state.xBeadl - _state.xTrapl) + FmtL) + sqrt(2.0*_mP.DBeadL*_sim.expTime) * rnd_xBeadl;
-			double next_xBeadr = _state.xBeadr + (_sim.expTime / _mP.gammaBeadR)*(-FmtR + (-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr)) + sqrt(2.0*_mP.DBeadR*_sim.expTime) * rnd_xBeadr;
+			double increment = (_sim.expTime / (_mP.gammaMT + _mP.gammaBeadL + _mP.gammaBeadR))*(-_mP.trapstiffR * (_state.xBeadr - _state.xTrapr) - _mP.trapstiffL * (_state.xBeadl - _state.xTrapl) - MT_Mol_force) + sqrt(2.0 * (_mP.kT / (_mP.gammaMT + _mP.gammaBeadL + _mP.gammaBeadR)) * _sim.expTime) * rnd_inc;
+
+			double next_xMT = _state.xMT + increment;
+			double next_xBeadl = _state.xBeadl + increment;
+			double next_xBeadr = _state.xBeadr + increment;
 			double next_xMol = _state.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force - molSpringForce) + sqrt(2.0*_mP.DMol*_sim.expTime) * rnd_xMol;
 			double next_phi = _state.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*(_state.phi - _mP.iniPhi) + (_state.binding > 0.0) * (-molSpringForce * _mP.molLength*sin(_state.phi) + pot_torque)) + sqrt(2.0*_mP.kT*_sim.expTime / _mP.rotFriction) * rnd_phi;
 
