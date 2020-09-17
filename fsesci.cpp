@@ -397,7 +397,9 @@ int main(int argc, char *argv[])
 		task->loggingBuffertoZero();
 		task->forcefeedbackBuffertoZero();
 	}
+	
     auto start = std::chrono::high_resolution_clock::now();
+    
 	for (int savedSampleIter = 0; savedSampleIter < sim.totalsavings; savedSampleIter++) {
 
 		for (int macrostep = 0; macrostep < sim.macrostepMax; macrostep++) {
