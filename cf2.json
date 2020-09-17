@@ -1,0 +1,39 @@
+{
+  "SimulationParameters": {
+	"expTime": "1.0e-12",
+	"simulationTime": "1.5e-3",
+	"iterationsbetweenSavings": "15000000",
+	"iterationsbetweenTrapsUpdate": "15000000",
+	
+	"buffsize": "150000000",
+	"randomsPeriter": "5"
+  },
+  "Task": 
+	{
+	"ParentConfigPath":"D:\\Ivan\\simulator_upd\\config\\Config_2019-10-31_two_sites_binding_dynamics.json",
+	"Iterations":"1",
+	
+	"CrossScan":
+		[
+		{
+		    "ModelParameters->iniPhi": ["0.0714894"],
+			"ModelParameters->bindingDynamics": ["0"],
+			"ModelParameters->rotFriction": ["2.0e-7"],
+			"ModelParameters->rotStiffness": ["1.0"],
+			
+			"ModelParameters->Gdepth": ["-6.0", "-7.0"],
+			"ModelParameters->movementTotalForce": ["4.0", "8.0"],
+			"ModelParameters->rotWellDepth": ["0.0"]
+		},
+		{
+		}
+		],
+	"Rules":
+		[
+		{
+		},
+		{
+		}
+		]
+	}
+}

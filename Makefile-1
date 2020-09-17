@@ -1,0 +1,31 @@
+#-fopenmp
+Op=-fopenmp
+# Optimization
+O=-O2 -no-prec-div -msse4.1 -ipo -prof-use -prof-dir=/home/Alexey/langevin_simulator-binding/
+#-prof-use -prof-dir=/home/Alexey/langevin_simulator-binding/
+
+all: langevin_simulator-binding
+
+langevin_simulator-binding: fsesci.o configuration_loader.o library.o logger.o mkl_gaussian_parallel_generator.o vsl_stream_wrapper.o
+	icpc -Wall $(Op) $(O) -mkl fsesci.o configuration_loader.o library.o logger.o mkl_gaussian_parallel_generator.o vsl_stream_wrapper.o -o langevin_simulator-binding
+
+fsesci.o: fsesci.cpp
+	icpc -c $(Op) $(O) fsesci.cpp
+
+configuration_loader.o: configuration_loader.cpp
+	icpc -c $(O) configuration_loader.cpp 
+
+library.o: library.cpp
+	icpc -c $(O) library.cpp
+
+logger.o: logger.cpp
+	icpc -c $(O) logger.cpp
+
+mkl_gaussian_parallel_generator.o: mkl_gaussian_parallel_generator.cpp
+	icpc -c $(Op) $(O) mkl_gaussian_parallel_generator.cpp
+
+vsl_stream_wrapper.o: vsl_stream_wrapper.cpp
+	icpc -c $(O) vsl_stream_wrapper.cpp
+
+clean:
+	rm -rf *.o langevin_simulator-binding

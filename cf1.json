@@ -1,0 +1,88 @@
+{
+    "Configuration": {
+		"Name": "Default",
+		"ID":"1",
+		"ComputerID":"none",
+		"ParentConfigName":"none",
+		"ParentConfigID":"0",
+		"TaskFile":"none",
+		"LoggerParameters": {
+		  "FilenameTemplate": "PrefixName",
+		  "FilePath": "/home/Alexey/langevin_results/"
+		},
+		"ModelParameters": {
+			"expTime": "1.0e-12",
+			"T": "300.0",
+			"Gdepth": "-6.0",
+			"Gdepth2": "-14.0",
+			"L": "0.004",
+			"sigma": "0.24e-3",
+			
+			"asymmetryCoefficient": "0.5",
+			"A": "6.091212",
+			"m": "-0.9105",
+			
+			"gammaMol": "0.000138",
+			"gammaBeadL": "0.0052",
+			"gammaBeadR": "0.0052",
+			"gammaMT": "0.02096",
+			"trapstiffL": "44.0",
+			"trapstiffR": "42.0",
+			"MTstiffWeakSlopeL": "11.523647583728927",
+			"MTstiffWeakBoundaryL": "0.08301813028722799",
+			"MTstiffParabolicAL": "197.9917179948737",
+			"MTstiffParabolicBL": "-21.350156896852127",
+			"MTstiffParabolicCL": "1.3645608917028682",
+			"MTstiffStrongBoundaryL": "0.15757336810080158",
+			"MTstiffStrongSlopeL": "41.04628682418055",
+			"MTstiffStrongIntersectL": "-3.551448005614747",
+			"MTstiffWeakSlopeR": "11.523647583728927",
+			"MTstiffWeakBoundaryR": "0.08301813028722799",
+			"MTstiffParabolicAR": "197.9917179948737",
+			"MTstiffParabolicBR": "-21.350156896852127",
+			"MTstiffParabolicCR": "1.3645608917028682",
+			"MTstiffStrongBoundaryR": "0.15757336810080158",
+			"MTstiffStrongSlopeR": "41.04628682418055",
+			"MTstiffStrongIntersectR": "-3.5514480056147",
+			
+			
+			"molStiffWeakSlope": "200.0",
+			"molStiffBoundary": "0.03",
+			"molStiffStrongSlope": "2000.0",
+			
+			"MTlength": "9.0",
+			"molstiff": "20000.0",
+			"feedbackFreq": "33000",
+			"DmblMoveAmplitude": "0.2",
+			"prestretchTotalForce": "8.0",
+			"movementTotalForce": "6.0",
+			"kOn1": "10000000.0",
+			"kOff1": "0.0",
+			"kOn2": "10000000.0",
+			"kOff2": "0.0",
+			
+			"rotFriction": "2.0e-7",
+			"rotStiffness": "0.05",
+			"molLength": "0.017",
+			"domainsDistance": "0.0035",
+			"rotWellWidth": "0.00025",
+			"rotWellDepth": "-4.0",
+			
+			"iniPhi": "1.047197551",
+			"bindingDynamics": "1",
+			
+			"B" : "0.0"
+		},
+		"InitialConditions": {
+		  "direction":"1",
+		  "xPed": "0.0",
+		  "xMol": "0.0",
+		  "xMT": "0.0",
+		  "xBeadl": "-4.591987059162554",
+		  "xBeadr": "4.591986935960157",
+		  "xTrapl": "-4.682896193067965",
+		  "xTrapr": "4.6872251012006485",
+		  "phi": "1.047197551"
+		}
+    }
+}

@@ -1,0 +1,5 @@
+#Расположение конфигурационных файлов
+Path=/home/Alexey/langevin_simulator-binding/
+
+all:
+	./langevin_simulator-binding -paramsfile $(Path)cf1.json -taskfile $(Path)cf2.json -nthreads 1
