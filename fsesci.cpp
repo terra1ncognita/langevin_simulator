@@ -434,7 +434,7 @@ int main(int argc, char *argv[])
 		sim = SimulationParameters();
 	}
 	cout << "Loaded simultaion parameters" << endl;
-	cout << "Buffsize " sim.buffsize << endl;
+	cout << "Buffsize " << sim.buffsize << endl;
 
 	MklGaussianParallelGenerator generator1(0.0, 1.0, static_cast<std::size_t>(sim.buffsize * nThreads), 4);
 	cout << "Created random numbers generator" << endl;
