@@ -20,7 +20,7 @@ MklGaussianParallelGenerator::MklGaussianParallelGenerator(double mean, double s
 	}
 	_nPerThread = _bufferSize / _threadNum;
 	if (_bufferSize != _nPerThread * _threadNum) {
-		throw std::logic_error{ "buffsize must be multiple of number of threads" };
+		throw std::logic_error{ "buffsize must be multiple of number of generator threads" };
 	}
 	_buffer.resize(_bufferSize);
 }
@@ -30,7 +30,7 @@ void MklGaussianParallelGenerator::generateNumbers()
 	//// Strange that it works without shared! check this out.
 #pragma omp parallel num_threads(_threadNum) default(none)
 	{
-		const std::size_t threadId=omp_get_thread_num();
+		const std::size_t threadId = omp_get_thread_num();
 		const std::size_t begin = _nPerThread * threadId;
 		const auto generationResult = vdRngGaussian(
 			VSL_RNG_METHOD_GAUSSIAN_ICDF, _streamWrappers.at(threadId).get(),
