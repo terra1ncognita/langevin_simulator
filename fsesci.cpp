@@ -473,7 +473,7 @@ int main(int argc, char *argv[])
 		cout << "Buffsize " << sim.buffsize << endl;
 
 		cout << "Start computations..." << endl;
-		for (int macrostep = 0; macrostep < sim.macrostepMax; macrostep++) {
+		for (unsigned int macrostep = 0; macrostep < sim.macrostepMax; macrostep++) {
 			cout << "Macro " << macrostep << endl << "Generate rnd numbers...  ";
 			generator1.generateNumbers();
 			cout << "Done" << endl;
@@ -482,15 +482,17 @@ int main(int argc, char *argv[])
 			cout << "Buffer contains " << generator1.getNumbersBufferSize() << " values" << endl;
 
 			//#pragma omp parallel num_threads(nThreads) shared(generator1, tasks)
-			for (int curr_thread = 0; curr_thread < nThreads; curr_thread++)
+			for (unsigned int curr_thread = 0; curr_thread < nThreads; curr_thread++)
 			{
 				cout << curr_thread << endl;
 				const double* const buffData = generator1.getNumbersBuffer();
 				//const auto curr_thread = omp_get_thread_num();
 
 				for (int savedSampleIter = 0; savedSampleIter < sim.savingsPerMacrostep; savedSampleIter++) {
-					unsigned long offset = static_cast<unsigned long>(sim.buffsize) * curr_thread + savedSampleIter * sim.iterationsbetweenSavings;
-					cout << offset << endl;
+					unsigned long offset = sim.buffsize * curr_thread + savedSampleIter * sim.iterationsbetweenSavings;
+
+					cout << "Buffer " << generator1.getNumbersBufferSize() << ", curr th offset " << sim.buffsize * curr_thread << ", micro offset " << savedSampleIter * sim.iterationsbetweenSavings << ", total offset " << offset << endl;
+
 					const double* const rnd_pointer = buffData + offset;
 					//cout << curr_thread;
 
