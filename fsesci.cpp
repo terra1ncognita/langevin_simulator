@@ -435,7 +435,7 @@ int main(int argc, char *argv[])
 	}
 	cout << "Loaded simultaion parameters" << endl;
 
-	MklGaussianParallelGenerator generator1(0.0, 1.0, sim.buffsize * nThreads, 4);
+	MklGaussianParallelGenerator generator1(0.0, 1.0, static_cast<std::size_t>(sim.buffsize) * nThreads, 4);
 	cout << "Created random numbers generator" << endl;
 
 	int tasksperthread = configurations.size() / nThreads;
@@ -489,7 +489,7 @@ int main(int argc, char *argv[])
 				//const auto curr_thread = omp_get_thread_num();
 
 				for (int savedSampleIter = 0; savedSampleIter < sim.savingsPerMacrostep; savedSampleIter++) {
-					unsigned long offset = sim.buffsize * curr_thread + savedSampleIter * sim.iterationsbetweenSavings;
+					std::size_t offset = sim.buffsize * curr_thread + savedSampleIter * sim.iterationsbetweenSavings;
 
 					cout << "Buffer " << generator1.getNumbersBufferSize() << ", curr th offset " << sim.buffsize * curr_thread << ", micro offset " << savedSampleIter * sim.iterationsbetweenSavings << ", total offset " << offset << endl;
 
