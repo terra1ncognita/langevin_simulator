@@ -489,7 +489,7 @@ int main(int argc, char *argv[])
 				//const auto curr_thread = omp_get_thread_num();
 
 				for (int savedSampleIter = 0; savedSampleIter < sim.savingsPerMacrostep; savedSampleIter++) {
-					unsigned long offset = sim.buffsize * curr_thread + savedSampleIter * sim.iterationsbetweenSavings;
+					unsigned long offset = static_cast<unsigned long>(sim.buffsize) * curr_thread + savedSampleIter * sim.iterationsbetweenSavings;
 					cout << offset << endl;
 					const double* const rnd_pointer = buffData + offset;
 					//cout << curr_thread;
