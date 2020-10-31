@@ -472,9 +472,12 @@ int main(int argc, char *argv[])
 		for (int macrostep = 0; macrostep < sim.macrostepMax; macrostep++) {
 			cout << "Macro " << macrostep << endl << "Generate rnd numbers...  ";
 			generator1.generateNumbers();
-			cout << "Done" << endl << "Start OMP section...  ";
+			cout << "Done" << endl;
 
 			// const auto buffData = generator1.getNumbersBuffer();
+			cout << "Start OMP section...  " << endl;
+			cout << "Buffer contains " << generator1.getNumbersBufferSize() << " values" << endl;
+
 			#pragma omp parallel num_threads(nThreads) shared(generator1, tasks)
 			{
 				auto buffData = generator1.getNumbersBuffer();
