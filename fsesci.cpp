@@ -466,18 +466,27 @@ int main(int argc, char *argv[])
 			task->loggingBuffertoZero();
 			tasks.push_back(std::move(task));
 		}
+		cout << "Created list of tasks" << endl;
 
+		cout << "Start computations..." << endl;
 		for (int macrostep = 0; macrostep < sim.macrostepMax; macrostep++) {
+			cout << "Macro " << macrostep << endl << "Generate rnd numbers..." << endl;
 			generator1.generateNumbers();
 			const auto buffData = generator1.getNumbersBuffer();
 
+			cout << "Start OMP section...  ";
 			#pragma omp parallel num_threads(nThreads) shared(buffData, tasks)
 			{
+				const auto curr_thread = omp_get_thread_num();
 				for (int savedSampleIter = 0; savedSampleIter < sim.savingsPerMacrostep; savedSampleIter++) {
-					tasks[omp_get_thread_num()]->advanceState(sim.iterationsbetweenSavings, buffData + sim.buffsize * omp_get_thread_num());
-					write_results(tasks[omp_get_thread_num()], sim);
+					const auto rnd_pointer = buffData + sim.buffsize * curr_thread + savedSampleIter * sim.iterationsbetweenSavings;
+
+					tasks[curr_thread]->advanceState(sim.iterationsbetweenSavings, rnd_pointer);
+					write_results(tasks[curr_thread], sim);
 				}
 			} // end of openmp section
+
+			cout << "Done" << endl;
 
 			int counter = macrostep + 1;
 			if (counter % 20 == 0) {
