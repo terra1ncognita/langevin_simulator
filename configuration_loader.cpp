@@ -28,7 +28,7 @@ SimulationParameters assign_simulation_parameters_from_json(SimulationParameters
 	}
 
 	if (!(jsonobjsimp["buffsize"].empty())) {
-		simp.buffsize = stoi(jsonobjsimp["buffsize"].get<std::string>());
+		simp.buffsize = static_cast<std::size_t>(stoi(jsonobjsimp["buffsize"].get<std::string>()));
 	}
 	if (!(jsonobjsimp["randomsPeriter"].empty())) {
 		simp.randomsPeriter = stoi(jsonobjsimp["randomsPeriter"].get<std::string>());
