@@ -14,7 +14,7 @@ struct SimulationParameters
 	int totalsavings = int((simulationTime / expTime) / iterationsbetweenSavings);
 
 	int randomsPeriter = 4;
-	int buffsize = 15'000'000 * randomsPeriter;
+	unsigned long buffsize = 15'000'000 * randomsPeriter;
 	int stepsperbuffer = static_cast<int>(std::floor(buffsize / randomsPeriter));
 
 	int savingsPerMacrostep = stepsperbuffer / iterationsbetweenSavings;
