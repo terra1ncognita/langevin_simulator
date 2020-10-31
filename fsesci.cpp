@@ -468,6 +468,7 @@ int main(int argc, char *argv[])
 			tasks.push_back(std::move(task));
 		}
 		cout << "Created list of tasks" << endl;
+		cout << "Buffsize " << sim.buffsize << endl;
 
 		cout << "Start computations..." << endl;
 		for (int macrostep = 0; macrostep < sim.macrostepMax; macrostep++) {
@@ -475,7 +476,6 @@ int main(int argc, char *argv[])
 			generator1.generateNumbers();
 			cout << "Done" << endl;
 
-			// const auto buffData = generator1.getNumbersBuffer();
 			cout << "Start OMP section...  " << endl;
 			cout << "Buffer contains " << generator1.getNumbersBufferSize() << " values" << endl;
 
@@ -485,7 +485,8 @@ int main(int argc, char *argv[])
 				const auto curr_thread = omp_get_thread_num();
 
 				for (int savedSampleIter = 0; savedSampleIter < sim.savingsPerMacrostep; savedSampleIter++) {
-					const double* const rnd_pointer = buffData + sim.buffsize * curr_thread + savedSampleIter * sim.iterationsbetweenSavings;
+					int offset = sim.buffsize * curr_thread + savedSampleIter * sim.iterationsbetweenSavings;
+					const double* const rnd_pointer = buffData + offset;
 					//cout << curr_thread;
 
 					tasks[curr_thread]->advanceState(1, rnd_pointer);
