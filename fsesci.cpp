@@ -273,10 +273,11 @@ public:
 		out.close();
 	}
 
-	void advanceState(int nSteps, const double* rndNumbers) {
+	void advanceState(int nSteps, const double* const rndNumbersPointer) {
 		PotentialForce potentialForce(_mP, _state);
 		bool bound_flg = true;
 		
+		const double* rndNumbers = rndNumbersPointer;
 		auto takeRandomNumber = [rndNumbers]() mutable -> double {
 			return *(rndNumbers++);
 		};
@@ -486,7 +487,7 @@ int main(int argc, char *argv[])
 				const auto curr_thread = omp_get_thread_num();
 
 				for (int savedSampleIter = 0; savedSampleIter < sim.savingsPerMacrostep; savedSampleIter++) {
-					const auto rnd_pointer = buffData + sim.buffsize * curr_thread + savedSampleIter * sim.iterationsbetweenSavings;
+					const double* const rnd_pointer = buffData + sim.buffsize * curr_thread + savedSampleIter * sim.iterationsbetweenSavings;
 					cout << curr_thread;
 
 					tasks[curr_thread]->advanceState(sim.iterationsbetweenSavings, rnd_pointer);
