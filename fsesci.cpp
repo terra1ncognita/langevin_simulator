@@ -389,6 +389,8 @@ public:
 
 
 void write_results(const std::unique_ptr<Task>& task, const SimulationParameters& sim) {
+	cout << "WR" << endl;
+
 	task->_loggingBuffer.xMol = task->_loggingBuffer.xMol / static_cast<double>(sim.iterationsbetweenSavings);
 	task->_loggingBuffer.logpotentialForce = task->_loggingBuffer.logpotentialForce / static_cast<double>(sim.iterationsbetweenSavings);
 
@@ -486,11 +488,11 @@ int main(int argc, char *argv[])
 
 				for (int savedSampleIter = 0; savedSampleIter < sim.savingsPerMacrostep; savedSampleIter++) {
 					int offset = sim.buffsize * curr_thread + savedSampleIter * sim.iterationsbetweenSavings;
+					cout << offset << endl;
 					const double* const rnd_pointer = buffData + offset;
 					//cout << curr_thread;
 
 					tasks[curr_thread]->advanceState(1, rnd_pointer);
-					cout << 1 << endl;
 					write_results(tasks[curr_thread], sim);
 				}
 			} // end of openmp section
