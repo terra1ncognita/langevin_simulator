@@ -436,7 +436,8 @@ int main(int argc, char *argv[])
 	cout << "Loaded simultaion parameters" << endl;
 	cout << "Buffsize " << sim.buffsize << endl;
 
-	MklGaussianParallelGenerator generator1(0.0, 1.0, sim.buffsize * nThreads, 4);
+	std::size_t joinedBufferSize = sim.buffsize * nThreads;
+	MklGaussianParallelGenerator generator1(0.0, 1.0, joinedBufferSize, 4);
 	cout << "Created random numbers generator" << endl;
 
 	int tasksperthread = configurations.size() / nThreads;
