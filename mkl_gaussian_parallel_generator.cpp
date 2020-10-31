@@ -27,11 +27,9 @@ MklGaussianParallelGenerator::MklGaussianParallelGenerator(double mean, double s
 void MklGaussianParallelGenerator::generateNumbers()
 {
 	//// Strange that it works without shared! check this out.
-	#pragma omp parallel num_threads(_threadNum) default(none) shared(std::cout)
+	#pragma omp parallel num_threads(_threadNum) default(none)
 	{
 		const std::size_t threadId = omp_get_thread_num();
-		std::cout << "Thread "<< threadId << " of " << omp_get_num_threads() << " threads" << std::endl;
-
 		const auto begin = _buffer.data() + _nPerThread * threadId;
 		const auto generationResult = vdRngGaussian(
 			VSL_RNG_METHOD_GAUSSIAN_ICDF, _streamWrappers.at(threadId).get(),
