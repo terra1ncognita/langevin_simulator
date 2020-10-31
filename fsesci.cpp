@@ -486,7 +486,7 @@ int main(int argc, char *argv[])
 
 				for (int savedSampleIter = 0; savedSampleIter < sim.savingsPerMacrostep; savedSampleIter++) {
 					const double* const rnd_pointer = buffData + sim.buffsize * curr_thread + savedSampleIter * sim.iterationsbetweenSavings;
-					cout << curr_thread;
+					//cout << curr_thread;
 
 					tasks[curr_thread]->advanceState(1, rnd_pointer);
 					cout << 1 << endl;
