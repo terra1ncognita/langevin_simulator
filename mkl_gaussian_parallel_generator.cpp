@@ -50,3 +50,8 @@ std::size_t MklGaussianParallelGenerator::getNumbersBufferSize() const
 {
 	return _bufferSize;
 }
+
+const std::vector<double>::const_iterator MklGaussianParallelGenerator::getBegin() const
+{
+	return _buffer.begin();
+}

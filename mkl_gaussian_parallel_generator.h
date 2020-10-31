@@ -10,6 +10,7 @@ public:
 	virtual void generateNumbers() override;
 	virtual const double* getNumbersBuffer() const override;
 	virtual std::size_t getNumbersBufferSize() const override;
+	const std::vector<double>::const_iterator getBegin() const;
 private:
 	double _mean;
 	double _stDeviation;
