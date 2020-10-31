@@ -482,6 +482,9 @@ int main(int argc, char *argv[])
 			{
 				auto buffData = generator1.getNumbersBuffer();
 				const auto curr_thread = omp_get_thread_num();
+
+				cout << curr_thread << endl;
+
 				for (int savedSampleIter = 0; savedSampleIter < sim.savingsPerMacrostep; savedSampleIter++) {
 					const auto rnd_pointer = buffData + sim.buffsize * curr_thread + savedSampleIter * sim.iterationsbetweenSavings;
 
