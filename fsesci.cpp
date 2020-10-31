@@ -481,10 +481,12 @@ int main(int argc, char *argv[])
 			cout << "Start OMP section...  " << endl;
 			cout << "Buffer contains " << generator1.getNumbersBufferSize() << " values" << endl;
 
-			#pragma omp parallel num_threads(nThreads) shared(generator1, tasks)
+			//#pragma omp parallel num_threads(nThreads) shared(generator1, tasks)
+			for (int curr_thread = 0; curr_thread < nThreads; curr_thread++)
 			{
+				cout << curr_thread << endl;
 				const double* const buffData = generator1.getNumbersBuffer();
-				const auto curr_thread = omp_get_thread_num();
+				//const auto curr_thread = omp_get_thread_num();
 
 				for (int savedSampleIter = 0; savedSampleIter < sim.savingsPerMacrostep; savedSampleIter++) {
 					unsigned long offset = sim.buffsize * curr_thread + savedSampleIter * sim.iterationsbetweenSavings;
