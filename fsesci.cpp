@@ -434,7 +434,6 @@ int main(int argc, char *argv[])
 		sim = SimulationParameters();
 	}
 	cout << "Loaded simultaion parameters" << endl;
-	cout << "Buffsize " << sim.buffsize << endl;
 
 	std::size_t joinedBufferSize = sim.buffsize * nThreads;
 	MklGaussianParallelGenerator generator1(0.0, 1.0, joinedBufferSize, 4);
@@ -472,28 +471,28 @@ int main(int argc, char *argv[])
 			tasks.push_back(std::move(task));
 		}
 		cout << "Created list of tasks" << endl;
-		cout << "Buffsize " << sim.buffsize << endl;
+		//cout << "Buffsize " << sim.buffsize << endl;
 
 		cout << "Start computations..." << endl;
 		for (unsigned int macrostep = 0; macrostep < sim.macrostepMax; macrostep++) {
-			cout << "Macro " << macrostep << endl << "Generate rnd numbers...  ";
+			//cout << "Macro " << macrostep << endl << "Generate rnd numbers...  ";
 			generator1.generateNumbers();
-			cout << "Done" << endl;
+			//cout << "Done" << endl;
 
-			cout << "Start OMP section...  " << endl;
-			cout << "Buffer contains " << generator1.getNumbersBufferSize() << " values" << endl;
+			//cout << "Start OMP section...  " << endl;
+			//cout << "Buffer contains " << generator1.getNumbersBufferSize() << " values" << endl;
 
-			//#pragma omp parallel num_threads(nThreads) shared(generator1, tasks)
-			for (unsigned int curr_thread = 0; curr_thread < nThreads; curr_thread++)
+			#pragma omp parallel num_threads(nThreads) shared(generator1, tasks)
+			//for (unsigned int curr_thread = 0; curr_thread < nThreads; curr_thread++)
 			{
-				cout << curr_thread << endl;
+				//cout << curr_thread << endl;
 				const double* const buffData = generator1.getNumbersBuffer();
-				//const auto curr_thread = omp_get_thread_num();
+				const auto curr_thread = omp_get_thread_num();
 
 				for (int savedSampleIter = 0; savedSampleIter < sim.savingsPerMacrostep; savedSampleIter++) {
 					std::size_t offset = sim.buffsize * curr_thread + savedSampleIter * sim.iterationsbetweenSavings;
 
-					cout << "Buffer " << generator1.getNumbersBufferSize() << ", curr th offset " << sim.buffsize * curr_thread << ", micro offset " << savedSampleIter * sim.iterationsbetweenSavings << ", total offset " << offset << endl;
+					//cout << "Buffer " << generator1.getNumbersBufferSize() << ", curr th offset " << sim.buffsize * curr_thread << ", micro offset " << savedSampleIter * sim.iterationsbetweenSavings << ", total offset " << offset << endl;
 
 					const double* const rnd_pointer = buffData + offset;
 					//cout << curr_thread;
@@ -503,7 +502,7 @@ int main(int argc, char *argv[])
 				}
 			} // end of openmp section
 
-			cout << "Done" << endl;
+			//cout << "Done" << endl;
 
 			int counter = macrostep + 1;
 			if (counter % 20 == 0) {
