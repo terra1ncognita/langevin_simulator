@@ -247,21 +247,6 @@ public:
 		}
 	}
 
-	/*double calculateMolspringForce(double extensionInput) {
-		double extension = fabs(extensionInput);
-		int sign = (extensionInput > 0) - (extensionInput < 0);
-
-		if (extension <= _mP.molStiffBoundary) {
-			return sign * _mP.molStiffWeakSlope*extension;
-		}
-		else
-		{
-			return sign * (_mP.molStiffStrongSlope*extension + _mP.molStiffBoundary*(_mP.molStiffWeakSlope - _mP.molStiffStrongSlope));
-		}
-
-	}
-*/
-
 	void log_well_torque(std::string path_prefix) {
 		PotentialForce pf(_mP, _state);
 		std::ofstream out;
@@ -389,8 +374,6 @@ public:
 
 
 void write_results(const std::unique_ptr<Task>& task, const SimulationParameters& sim) {
-	cout << "WR" << endl;
-
 	task->_loggingBuffer.xMol = task->_loggingBuffer.xMol / static_cast<double>(sim.iterationsbetweenSavings);
 	task->_loggingBuffer.logpotentialForce = task->_loggingBuffer.logpotentialForce / static_cast<double>(sim.iterationsbetweenSavings);
 
@@ -471,38 +454,24 @@ int main(int argc, char *argv[])
 			tasks.push_back(std::move(task));
 		}
 		cout << "Created list of tasks" << endl;
-		//cout << "Buffsize " << sim.buffsize << endl;
 
 		cout << "Start computations..." << endl;
 		for (unsigned int macrostep = 0; macrostep < sim.macrostepMax; macrostep++) {
-			//cout << "Macro " << macrostep << endl << "Generate rnd numbers...  ";
 			generator1.generateNumbers();
-			//cout << "Done" << endl;
-
-			//cout << "Start OMP section...  " << endl;
-			//cout << "Buffer contains " << generator1.getNumbersBufferSize() << " values" << endl;
 
 			#pragma omp parallel num_threads(nThreads) shared(generator1, tasks)
-			//for (unsigned int curr_thread = 0; curr_thread < nThreads; curr_thread++)
 			{
-				//cout << curr_thread << endl;
 				const double* const buffData = generator1.getNumbersBuffer();
 				const auto curr_thread = omp_get_thread_num();
 
 				for (int savedSampleIter = 0; savedSampleIter < sim.savingsPerMacrostep; savedSampleIter++) {
 					std::size_t offset = sim.buffsize * curr_thread + savedSampleIter * sim.iterationsbetweenSavings;
-
-					//cout << "Buffer " << generator1.getNumbersBufferSize() << ", curr th offset " << sim.buffsize * curr_thread << ", micro offset " << savedSampleIter * sim.iterationsbetweenSavings << ", total offset " << offset << endl;
-
 					const double* const rnd_pointer = buffData + offset;
-					//cout << curr_thread;
 
-					tasks[curr_thread]->advanceState(1, rnd_pointer);
+					tasks[curr_thread]->advanceState(sim.iterationsbetweenSavings, rnd_pointer);
 					write_results(tasks[curr_thread], sim);
 				}
 			} // end of openmp section
-
-			//cout << "Done" << endl;
 
 			int counter = macrostep + 1;
 			if (counter % 20 == 0) {
