@@ -470,11 +470,11 @@ int main(int argc, char *argv[])
 
 		cout << "Start computations..." << endl;
 		for (int macrostep = 0; macrostep < sim.macrostepMax; macrostep++) {
-			cout << "Macro " << macrostep << endl << "Generate rnd numbers..." << endl;
+			cout << "Macro " << macrostep << endl << "Generate rnd numbers...";
 			generator1.generateNumbers();
-			const auto buffData = generator1.getNumbersBuffer();
+			cout << "Done" << endl << "Start OMP section...  ";
 
-			cout << "Start OMP section...  ";
+			const auto buffData = generator1.getNumbersBuffer();
 			#pragma omp parallel num_threads(nThreads) shared(buffData, tasks)
 			{
 				const auto curr_thread = omp_get_thread_num();
