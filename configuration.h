@@ -9,17 +9,17 @@ struct SimulationParameters
 {
 	double expTime = 1e-12;
 	double simulationTime = 3e-3;
-	int iterationsbetweenSavings = 15'000'000;
-	int iterationsbetweenTrapsUpdate = 15'000'000;
-	int totalsavings = int((simulationTime / expTime) / iterationsbetweenSavings);
+	unsigned int iterationsbetweenSavings = 15'000'000;
+	unsigned int iterationsbetweenTrapsUpdate = 15'000'000;
+	unsigned int totalsavings = int((simulationTime / expTime) / iterationsbetweenSavings);
 
-	int randomsPeriter = 4;
-	unsigned long buffsize = 15'000'000 * randomsPeriter;
-	int stepsperbuffer = static_cast<int>(std::floor(buffsize / randomsPeriter));
+	unsigned int randomsPeriter = 4;
+	unsigned int buffsize = 15'000'000 * randomsPeriter;
+	unsigned int stepsperbuffer = static_cast<unsigned int>(std::floor(buffsize / randomsPeriter));
 
-	int savingsPerMacrostep = stepsperbuffer / iterationsbetweenSavings;
-	int macrostepMax = totalsavings / savingsPerMacrostep;
-	unsigned trapsUpdateTest = iterationsbetweenTrapsUpdate / iterationsbetweenSavings;
+	unsigned int savingsPerMacrostep = stepsperbuffer / iterationsbetweenSavings;
+	unsigned int macrostepMax = totalsavings / savingsPerMacrostep;
+	unsigned int trapsUpdateTest = iterationsbetweenTrapsUpdate / iterationsbetweenSavings;
 };
 
 
