@@ -14,6 +14,7 @@ MklGaussianParallelGenerator::MklGaussianParallelGenerator(double mean, double s
 		throw std::logic_error{ "buffsize must be multiple of number of threads" };
 	}
 	_buffer.resize(_bufferSize);
+	std::cout << "Allocated random numbers buffer of " << _bufferSize << " bytes" << std::endl;
 
 	///////////////// If reproducibility from launch to launch is required, then seed is const, else seed must be random
 	srand(time(NULL));
