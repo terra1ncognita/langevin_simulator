@@ -288,10 +288,10 @@ public:
 				bound_flg = _state.binding > 0;
 			}
 
-			cout << 'ta';
+			cout << "A";
 			double rnd_xMol = takeRandomNumber();
 			double rnd_phi = takeRandomNumber();
-			cout << 's' << endl;
+			cout << "S" << endl;
 
 			double MT_Mol_force = potentialForce.well_barrier_force(_state.xMol - _state.xMT, _state.phi);
 			double pot_torque = potentialForce.well_barrier_torque(_state.phi);
@@ -487,7 +487,7 @@ int main(int argc, char *argv[])
 
 				for (int savedSampleIter = 0; savedSampleIter < sim.savingsPerMacrostep; savedSampleIter++) {
 					const auto rnd_pointer = buffData + sim.buffsize * curr_thread + savedSampleIter * sim.iterationsbetweenSavings;
-					cout << curr_thread << endl;
+					cout << curr_thread;
 
 					tasks[curr_thread]->advanceState(sim.iterationsbetweenSavings, rnd_pointer);
 					write_results(tasks[curr_thread], sim);
