@@ -489,6 +489,7 @@ int main(int argc, char *argv[])
 					cout << curr_thread;
 
 					tasks[curr_thread]->advanceState(1, rnd_pointer);
+					cout << 1 << endl;
 					write_results(tasks[curr_thread], sim);
 				}
 			} // end of openmp section
