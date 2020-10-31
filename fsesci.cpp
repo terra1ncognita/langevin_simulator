@@ -289,10 +289,8 @@ public:
 				bound_flg = _state.binding > 0;
 			}
 
-			cout << "A";
 			double rnd_xMol = takeRandomNumber();
 			double rnd_phi = takeRandomNumber();
-			cout << "S" << endl;
 
 			double MT_Mol_force = potentialForce.well_barrier_force(_state.xMol - _state.xMT, _state.phi);
 			double pot_torque = potentialForce.well_barrier_torque(_state.phi);
@@ -483,14 +481,14 @@ int main(int argc, char *argv[])
 
 			#pragma omp parallel num_threads(nThreads) shared(generator1, tasks)
 			{
-				auto buffData = generator1.getNumbersBuffer();
+				const double* const buffData = generator1.getNumbersBuffer();
 				const auto curr_thread = omp_get_thread_num();
 
 				for (int savedSampleIter = 0; savedSampleIter < sim.savingsPerMacrostep; savedSampleIter++) {
 					const double* const rnd_pointer = buffData + sim.buffsize * curr_thread + savedSampleIter * sim.iterationsbetweenSavings;
 					cout << curr_thread;
 
-					tasks[curr_thread]->advanceState(sim.iterationsbetweenSavings, rnd_pointer);
+					tasks[curr_thread]->advanceState(1, rnd_pointer);
 					write_results(tasks[curr_thread], sim);
 				}
 			} // end of openmp section
