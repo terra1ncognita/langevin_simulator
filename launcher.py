@@ -145,7 +145,7 @@ def main():
         machine_id=machine_id,
     )
 
-    create_params_file(os.path.join(results_folder, "sims.dat"), config_files)
+    create_params_file(os.path.join(configs_folder, "sims.dat"), config_files)
     print("\n".join(config_files))
 
 
