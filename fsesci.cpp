@@ -318,9 +318,10 @@ public:
 		out.close();
 	}
 
-	void advanceState(int nSteps, const double* rndNumbers) {
+	void advanceState(int nSteps, const double* const rndNumbersPointer) {
 		PotentialForce potentialForce(_mP, _state);
 		
+		const double* rndNumbers = rndNumbersPointer;
 		auto takeRandomNumber = [rndNumbers]() mutable -> double {
 			return *(rndNumbers++);
 		};
@@ -592,16 +593,23 @@ int main(int argc, char *argv[])
 
 			tasks.push_back(std::move(task));
 		}
+		cout << "Created list of tasks" << endl;
 
-		for (int macrostep = 0; macrostep < sim.macrostepMax; macrostep++) {
+		cout << "Start computations..." << endl;
+		for (unsigned int macrostep = 0; macrostep < sim.macrostepMax; macrostep++) {
 			generator1.generateNumbers();
-			const auto buffData = generator1.getNumbersBuffer();
 
-			#pragma omp parallel num_threads(nThreads) shared(buffData, tasks)
+			#pragma omp parallel num_threads(nThreads) shared(generator1, tasks)
 			{
-				for (int savedSampleIter = 0; savedSampleIter < sim.savingsPerMacrostep; savedSampleIter++) {
-					tasks[omp_get_thread_num()]->advanceState(sim.iterationsbetweenSavings, buffData);
-					write_results(tasks[omp_get_thread_num()], sim);
+				const double* const buffData = generator1.getNumbersBuffer();
+				const auto curr_thread = omp_get_thread_num();
+
+				for (unsigned int savedSampleIter = 0; savedSampleIter < sim.savingsPerMacrostep; savedSampleIter++) {
+					std::size_t offset = sim.buffsize * curr_thread + savedSampleIter * sim.iterationsbetweenSavings;
+					const double* const rnd_pointer = buffData + offset;
+
+					tasks[curr_thread]->advanceState(sim.iterationsbetweenSavings, rnd_pointer);
+					write_results(tasks[curr_thread], sim);
 
 					if ((savedSampleIter % sim.trapsUpdateTest) == 0) {
 						force_clamp_update(tasks[omp_get_thread_num()], sim);
@@ -609,7 +617,7 @@ int main(int argc, char *argv[])
 				}
 			} // end of openmp section
 
-			int counter = macrostep + 1;
+			unsigned int counter = macrostep + 1;
 			if (counter % 20 == 0) {
 				double procent = 100.0 * static_cast<double>(counter) / sim.macrostepMax;
 				double total_percentage = (100.0 * batch_id + procent) / tasksperthread;
@@ -617,7 +625,7 @@ int main(int argc, char *argv[])
 				auto curr = std::chrono::system_clock::now();
 				std::chrono::duration<double> dt = (curr - start_batch);
 				double elapsed_seconds = dt.count();
-				int minutes = static_cast<int>(floor(elapsed_seconds / 60.0));
+				unsigned short minutes = static_cast<unsigned short>(floor(elapsed_seconds / 60.0));
 				double seconds = elapsed_seconds - 60.0 * minutes;
 
 				cout << "Batch " << procent << "%, total " << total_percentage << "%, elapsed " << minutes << " min " << seconds << " s" << endl;
@@ -627,14 +635,14 @@ int main(int argc, char *argv[])
 		auto curr = std::chrono::system_clock::now();
 		std::chrono::duration<double> dt = (curr - start_batch);
 		double elapsed_seconds = dt.count();
-		int minutes = static_cast<int>(floor(elapsed_seconds / 60));
+		unsigned short minutes = static_cast<unsigned short>(floor(elapsed_seconds / 60));
 		double seconds = elapsed_seconds - 60 * minutes;
 
 		cout << endl << "Finished batch #" << batch_id << " in " << minutes << " min " << seconds << " s" << endl;
 
 		dt = (curr - start_main);
 		elapsed_seconds = dt.count();
-		minutes = static_cast<int>(floor(elapsed_seconds / 60));
+		minutes = static_cast<unsigned short>(floor(elapsed_seconds / 60));
 		seconds = elapsed_seconds - 60 * minutes;
 		cout << "Elapsed " << minutes << " min " << seconds << " s from program start" << endl << endl;
 	}
@@ -642,7 +650,7 @@ int main(int argc, char *argv[])
 	auto curr = std::chrono::system_clock::now();
 	std::chrono::duration<double> dt = (curr - start_main);
 	double elapsed_seconds = dt.count();
-	int minutes = static_cast<int>(floor(elapsed_seconds / 60));
+	unsigned short minutes = static_cast<unsigned short>(floor(elapsed_seconds / 60));
 	double seconds = elapsed_seconds - 60 * minutes;
 	cout << endl << "All simulations finished in " << minutes << " min " << seconds << " s from program start" << endl;
 
