@@ -605,14 +605,14 @@ int main(int argc, char *argv[])
 				const auto curr_thread = omp_get_thread_num();
 
 				for (unsigned int savedSampleIter = 0; savedSampleIter < sim.savingsPerMacrostep; savedSampleIter++) {
-					std::size_t offset = sim.buffsize * curr_thread + savedSampleIter * sim.iterationsbetweenSavings;
+					std::size_t offset = savedSampleIter * sim.iterationsbetweenSavings;
 					const double* const rnd_pointer = buffData + offset;
 
 					tasks[curr_thread]->advanceState(sim.iterationsbetweenSavings, rnd_pointer);
 					write_results(tasks[curr_thread], sim);
 
 					if ((savedSampleIter % sim.trapsUpdateTest) == 0) {
-						force_clamp_update(tasks[omp_get_thread_num()], sim);
+						force_clamp_update(tasks[curr_thread], sim);
 					}
 				}
 			} // end of openmp section
