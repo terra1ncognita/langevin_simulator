@@ -4,7 +4,60 @@ import json
 import os
 from optparse import OptionParser, Values
 from socket import gethostname
-from typing import Dict, List
+from typing import Any, Dict, List
+
+import numpy as np
+from scipy.optimize import fsolve
+
+
+class MTSpring:
+    def __init__(self, kw, wb, a, b, c, sb, ks, os):
+        self.kw = kw
+        self.wb = wb
+        self.a = a
+        self.b = b
+        self.c = c
+        self.sb = sb
+        self.ks = ks
+        self.os = os
+
+    def __call__(self, x: float) -> float:
+        if x < 0:
+            return 0
+        elif 0 <= x < self.wb:
+            return self.kw * x
+        elif self.wb <= x < self.sb:
+            return self.a * x ** 2 + self.b * x + self.c
+        else:
+            return self.ks * x + self.os
+
+    @classmethod
+    def from_config(cls, config: Dict[str, Any], side: str) -> "MTString":
+        mp = config["ModelParameters"]
+        if side == "R":
+            return cls(
+                kw=mp["MTstiffWeakSlopeL"],
+                wb=mp["MTstiffWeakBoundaryL"],
+                a=mp["MTstiffParabolicAL"],
+                b=mp["MTstiffParabolicBL"],
+                c=mp["MTstiffParabolicCL"],
+                sb=mp["MTstiffStrongBoundaryL"],
+                ks=mp["MTstiffStrongSlopeL"],
+                os=mp["MTstiffStrongIntersectL"],
+            )
+        elif side == "L":
+            return cls(
+                kw=mp["MTstiffWeakSlopeR"],
+                wb=mp["MTstiffWeakBoundaryR"],
+                a=mp["MTstiffParabolicAR"],
+                b=mp["MTstiffParabolicBR"],
+                c=mp["MTstiffParabolicCR"],
+                sb=mp["MTstiffStrongBoundaryR"],
+                ks=mp["MTstiffStrongSlopeR"],
+                os=mp["MTstiffStrongIntersectR"],
+            )
+        else:
+            raise ValueError(f"side must be either R or L, got {side}")
 
 
 def get_option(options: Values, key: str):
@@ -40,6 +93,44 @@ def apply_patch(conf: Dict, patch: Dict[str, str]):
     for key, val in patch.items():
         tuple_key = tuple(key.split("->"))
         assign_level(conf, tuple_key, val)
+
+
+def assign_initial_conditions(config: Dict[str, Any]) -> None:
+    """Compute initial values for all coordinated and assign to config inplace."""
+    f, f_pre, k_r, k_l, mt_lenght = [
+        config["ModelParameters"][x]
+        for x in ["movementTotalForce", "prestretchTotalForce", "trapstiffR", "trapstiffL", "MTlength"]
+    ]
+
+    mt_spring_r = MTSpring.from_config(config, side="R")
+    mt_spring_l = MTSpring.from_config(config, side="L")
+
+    def prestretch_calc(y):
+        d1, d2 = y
+        return [mt_spring_l(2 * d1) - f_pre, mt_spring_r(2 * d2) - f_pre]
+
+    # d1 > 0, d2 > 0
+    d1, d2 = fsolve(prestretch_calc, x0=[0, 0])
+
+    x_bead_l = -d1 - mt_lenght / 2.0
+    x_bead_r = d2 + mt_lenght / 2.0
+    x_trap_l = -f_pre / k_l + x_bead_l
+    x_trap_r = f_pre / k_r + x_bead_r
+
+    apply_patch(
+        config,
+        {
+            "InitialConditions->direction": "1.0",
+            "InitialConditions->xPed": "0.0",
+            "InitialConditions->xMol": "0.0",
+            "InitialConditions->xMT": "0.0",
+            "InitialConditions->xBeadl": str(x_bead_l),
+            "InitialConditions->xBeadr": str(x_bead_r),
+            "InitialConditions->xTrapl": str(x_trap_l),
+            "InitialConditions->xTrapr": str(x_trap_r),
+            "InitialConditions->phi": str(np.pi / 3),
+        },
+    )
 
 
 def create_configs(
@@ -86,6 +177,8 @@ def create_configs(
                     "Configuration->ComputerID": machine_id,
                 },
             )
+            assign_initial_conditions(config)
+
             with open(os.path.join(configs_folder, config_filename), "w") as f:
                 json.dump(config, f, sort_keys=True, indent=2)
             list_configs.append(config_filename)
