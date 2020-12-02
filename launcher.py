@@ -101,6 +101,7 @@ def assign_initial_conditions(config: Dict[str, Any]) -> None:
         float(config['Configuration']["ModelParameters"][x])
         for x in ["movementTotalForce", "prestretchTotalForce", "trapstiffR", "trapstiffL", "MTlength"]
     ]
+    f_pre /= 2.0
 
     mt_spring_r = MTSpring.from_config(config, side="R")
     mt_spring_l = MTSpring.from_config(config, side="L")
@@ -120,7 +121,8 @@ def assign_initial_conditions(config: Dict[str, Any]) -> None:
     apply_patch(
         config,
         {
-            "Configuration->InitialConditions->direction": "1.0",
+            "Configuration->ModelParameters->movementTotalForce": str(abs(f)),
+            "Configuration->InitialConditions->direction": str(np.sign(f)),
             "Configuration->InitialConditions->xPed": "0.0",
             "Configuration->InitialConditions->xMol": "0.0",
             "Configuration->InitialConditions->xMT": "0.0",
