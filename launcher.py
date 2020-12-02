@@ -35,18 +35,17 @@ class MTSpring:
     def from_config(cls, config: Dict[str, Any], side: str) -> "MTString":
         mp = config['Configuration']["ModelParameters"]
         if side == "R":
-            return cls(
-                kw=mp["MTstiffWeakSlopeL"],
+            params = dict(kw=mp["MTstiffWeakSlopeL"],
                 wb=mp["MTstiffWeakBoundaryL"],
                 a=mp["MTstiffParabolicAL"],
                 b=mp["MTstiffParabolicBL"],
                 c=mp["MTstiffParabolicCL"],
                 sb=mp["MTstiffStrongBoundaryL"],
                 ks=mp["MTstiffStrongSlopeL"],
-                os=mp["MTstiffStrongIntersectL"],
-            )
+                os=mp["MTstiffStrongIntersectL"])
+            
         elif side == "L":
-            return cls(
+            params = dict(
                 kw=mp["MTstiffWeakSlopeR"],
                 wb=mp["MTstiffWeakBoundaryR"],
                 a=mp["MTstiffParabolicAR"],
@@ -54,10 +53,11 @@ class MTSpring:
                 c=mp["MTstiffParabolicCR"],
                 sb=mp["MTstiffStrongBoundaryR"],
                 ks=mp["MTstiffStrongSlopeR"],
-                os=mp["MTstiffStrongIntersectR"],
+                os=mp["MTstiffStrongIntersectR"]
             )
         else:
             raise ValueError(f"side must be either R or L, got {side}")
+        return cls(**{k: float(v) for k, v in params.items()})
 
 
 def get_option(options: Values, key: str):
@@ -98,7 +98,7 @@ def apply_patch(conf: Dict, patch: Dict[str, str]):
 def assign_initial_conditions(config: Dict[str, Any]) -> None:
     """Compute initial values for all coordinated and assign to config inplace."""
     f, f_pre, k_r, k_l, mt_lenght = [
-        config['Configuration']["ModelParameters"][x]
+        float(config['Configuration']["ModelParameters"][x])
         for x in ["movementTotalForce", "prestretchTotalForce", "trapstiffR", "trapstiffL", "MTlength"]
     ]
 
