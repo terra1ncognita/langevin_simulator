@@ -33,7 +33,7 @@ class MTSpring:
 
     @classmethod
     def from_config(cls, config: Dict[str, Any], side: str) -> "MTString":
-        mp = config["ModelParameters"]
+        mp = config['Configuration']["ModelParameters"]
         if side == "R":
             return cls(
                 kw=mp["MTstiffWeakSlopeL"],
@@ -98,7 +98,7 @@ def apply_patch(conf: Dict, patch: Dict[str, str]):
 def assign_initial_conditions(config: Dict[str, Any]) -> None:
     """Compute initial values for all coordinated and assign to config inplace."""
     f, f_pre, k_r, k_l, mt_lenght = [
-        config["ModelParameters"][x]
+        config['Configuration']["ModelParameters"][x]
         for x in ["movementTotalForce", "prestretchTotalForce", "trapstiffR", "trapstiffL", "MTlength"]
     ]
 
@@ -120,15 +120,15 @@ def assign_initial_conditions(config: Dict[str, Any]) -> None:
     apply_patch(
         config,
         {
-            "InitialConditions->direction": "1.0",
-            "InitialConditions->xPed": "0.0",
-            "InitialConditions->xMol": "0.0",
-            "InitialConditions->xMT": "0.0",
-            "InitialConditions->xBeadl": str(x_bead_l),
-            "InitialConditions->xBeadr": str(x_bead_r),
-            "InitialConditions->xTrapl": str(x_trap_l),
-            "InitialConditions->xTrapr": str(x_trap_r),
-            "InitialConditions->phi": str(np.pi / 3),
+            "Configuration->InitialConditions->direction": "1.0",
+            "Configuration->InitialConditions->xPed": "0.0",
+            "Configuration->InitialConditions->xMol": "0.0",
+            "Configuration->InitialConditions->xMT": "0.0",
+            "Configuration->InitialConditions->xBeadl": str(x_bead_l),
+            "Configuration->InitialConditions->xBeadr": str(x_bead_r),
+            "Configuration->InitialConditions->xTrapl": str(x_trap_l),
+            "Configuration->InitialConditions->xTrapr": str(x_trap_r),
+            "Configuration->InitialConditions->phi": str(np.pi / 3),
         },
     )
 
