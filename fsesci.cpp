@@ -299,9 +299,7 @@ public:
 		_state(configuration.initialConditions.initialState),
 		_loggingBuffer(configuration.initialConditions.initialState),
 		_forcefeedbackBuffer(configuration.initialConditions.initialState),
-		expGen(1.0),
-		expRands(_mP.numStates),
-		livingTimes(_mP.numStates, 0.0)
+		expGen(1.0)
 	{
 		loggingBuffertoZero();
 		forcefeedbackBuffertoZero();
@@ -321,7 +319,14 @@ public:
 			this->_loggers.push_back(std::move(logger));// unique pointer can't be copied, only moved like this
 		});
 
-		fillVector(expRands);
+		_state.firstMol.expRands.assign(_mP.numStates, 0.0);
+		_state.secondMol.expRands.assign(_mP.numStates, 0.0);
+
+		_state.firstMol.livingTimes.assign(_mP.numStates, 0.0);
+		_state.secondMol.livingTimes.assign(_mP.numStates, 0.0);
+
+		fillVector(_state.firstMol.expRands);
+		fillVector(_state.secondMol.expRands);
 
 		_state.firstMol.binding = 1.0;
 		if (!(_mP.bindingDynamics)) {
@@ -482,19 +487,19 @@ public:
 			_loggingBuffer.xTrapl += _state.xTrapl;
 			_loggingBuffer.xTrapr += _state.xTrapr;
 
-			_loggingBuffer.firstMol.xMol              +=  _state.firstMol.xMol;  
-			_loggingBuffer.firstMol.logpotentialForce += MT_Mol_force_1;
-			_loggingBuffer.firstMol.binding           += _state.firstMol.binding;
-			_loggingBuffer.firstMol.phi               += _state.firstMol.phi;
-			_loggingBuffer.firstMol.potTorque         += pot_torque_1;
-			_loggingBuffer.firstMol.deltaG            += _state.firstMol.deltaG;
+			_loggingBuffer.firstMol.xMol               +=  _state.firstMol.xMol;  
+			_loggingBuffer.firstMol.logpotentialForce  += MT_Mol_force_1;
+			_loggingBuffer.firstMol.binding            += _state.firstMol.binding;
+			_loggingBuffer.firstMol.phi                += _state.firstMol.phi;
+			_loggingBuffer.firstMol.potTorque          += pot_torque_1;
+			_loggingBuffer.firstMol.deltaG             += _state.firstMol.deltaG;
 
-			_loggingBuffer.secondMol.xMol += _state.secondMol.xMol;
+			_loggingBuffer.secondMol.xMol              += _state.secondMol.xMol;
 			_loggingBuffer.secondMol.logpotentialForce += MT_Mol_force_2;
-			_loggingBuffer.secondMol.binding += _state.secondMol.binding;
-			_loggingBuffer.secondMol.phi += _state.secondMol.phi;
-			_loggingBuffer.secondMol.potTorque += pot_torque_2;
-			_loggingBuffer.secondMol.deltaG += _state.secondMol.deltaG;
+			_loggingBuffer.secondMol.binding           += _state.secondMol.binding;
+			_loggingBuffer.secondMol.phi               += _state.secondMol.phi;
+			_loggingBuffer.secondMol.potTorque         += pot_torque_2;
+			_loggingBuffer.secondMol.deltaG            += _state.secondMol.deltaG;
 		}
 		_loggingBuffer.Time = _state.Time;
 	}
@@ -512,6 +517,7 @@ public:
 		_loggingBuffer.xTrapl = 0.0;
 		_loggingBuffer.xTrapr = 0.0;
 		_loggingBuffer.Time = 0.0;
+
 		_loggingBuffer.firstMol.xMol = 0.0;
 		_loggingBuffer.firstMol.logpotentialForce = 0.0;
 		_loggingBuffer.firstMol.binding = 0.0;
@@ -540,34 +546,41 @@ public:
 	
 	void updateState(MoleculeState ms) {
 
-		if (ms.binding == 1.0 && (abs((ms.xMol - _state.xMT - ms.MToffset) - ms.currentWell) >= _mP.L / 2.0)) {
-			fillVector(expRands);
-			livingTimes.assign(_mP.numStates, 0.0);
-			ms.binding = 0.0;
-		}
-
+		//if (ms.binding == 1.0 && (abs((ms.xMol - _state.xMT - ms.MToffset) - ms.currentWell) >= _mP.L / 2.0)) {
+		//	fillVector(expRands);
+		//	livingTimes.assign(_mP.numStates, 0.0);
+		//	ms.binding = 0.0;
+		//}
+		double **transitionMatrix;
 		int prev_binding = int(ms.binding);
 		int	j = 0;
 
-		for (j = 0; j < _mP.numStates; ++j) {
-			livingTimes[j] += _mP.transitionMatrix[prev_binding][j] * _sim.expTime;
+		if (ms.label == 1) {
+			transitionMatrix = _mP.transitionMatrix1;
+		}
+		if (ms.label == 2) {
+			transitionMatrix = _mP.transitionMatrix2;
 		}
 
 		for (j = 0; j < _mP.numStates; ++j) {
-			if (livingTimes[j] > expRands[j] && j != prev_binding) {
+			ms.livingTimes[j] += transitionMatrix[prev_binding][j] * _sim.expTime;
+		}
+
+		for (j = 0; j < _mP.numStates; ++j) {
+			if (ms.livingTimes[j] > ms.expRands[j] && j != prev_binding) {
 				break;
 			}
 		}
 
 		if (j != _mP.numStates) {
-			fillVector(expRands);
-			livingTimes.assign(_mP.numStates, 0.0);
+			fillVector(ms.expRands);
+			ms.livingTimes.assign(_mP.numStates, 0.0);
 			ms.binding = j;
 		}
 
-		if ((prev_binding == 0.0) && (ms.binding == 1.0)) {
-			ms.currentWell = _mP.L * floor(((ms.xMol - _state.xMT - ms.MToffset) + _mP.L / 2.0) / _mP.L);
-		}
+		//if ((prev_binding == 0.0) && (ms.binding == 1.0)) {
+		//	ms.currentWell = _mP.L * floor(((ms.xMol - _state.xMT - ms.MToffset) + _mP.L / 2.0) / _mP.L);
+		//}
 
 		return;
 	}
@@ -581,8 +594,6 @@ public:
 	const ModelParameters _mP;
 	const InitialConditions _initC;
 	ExponentialGenerator expGen;
-	std::vector<double> expRands;
-	std::vector<double> livingTimes;
 };
 
 

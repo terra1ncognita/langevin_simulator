@@ -102,12 +102,29 @@ struct ModelParameters
 	int numStates = 2;
 
 	double kOn1, kOff1;
-	// double kOn2, kOff2;
+	double kOn2, kOff2;
 
-	double** transitionMatrix;
+	double** transitionMatrix1{ assign_rates(numStates, kOn1, kOff1) };
+	double** transitionMatrix2{ assign_rates(numStates, kOn2, kOff2) };
 
 	bool bindingDynamics = true;
 	double B = 0.0;
+
+	static double** assign_rates(int numStates, double kOn, double kOff) {
+
+		double** transitionMatrix = new double*[numStates];
+		for (int i = 0; i < numStates; ++i) {
+			transitionMatrix[i] = new double[numStates];
+		}
+
+		transitionMatrix[0][0] = -kOn;
+		transitionMatrix[0][1] = kOn;
+
+		transitionMatrix[1][1] = kOff;
+		transitionMatrix[1][2] = -kOff;
+
+		return transitionMatrix;
+	}
 };
 
 class MoleculeState
@@ -117,13 +134,16 @@ public:
 	double xMol = 0.0;
 	double logpotentialForce = 0.0;
 	double binding = 0.0; // binding of the second MOLECULE, first mol is always bound
-	double currentWell = 0.0;
+	//double currentWell = 0.0;
 	double phi = 0.0;
 	double potTorque = 0.0;
 	double deltaG = 0.0;
 	double MToffset = 0.0;
 
-	MoleculeState(unsigned short lbl, double mt_offset) : label(lbl), MToffset(mt_offset) {};
+	std::vector<double> expRands;
+	std::vector<double> livingTimes;
+
+	MoleculeState(unsigned short lbl, double mt_offset) : label(lbl), MToffset(mt_offset) {	};
 
 	template <typename F>
 	void iterateFields(F&& f) {
@@ -132,7 +152,7 @@ public:
 		f(&MoleculeState::xMol, "xMol" + strLabel);
 		f(&MoleculeState::logpotentialForce, "logpotentialForce" + strLabel);
 		f(&MoleculeState::binding, "binding" + strLabel);
-		f(&MoleculeState::currentWell, "currentWell" + strLabel);
+		//f(&MoleculeState::currentWell, "currentWell" + strLabel);
 		f(&MoleculeState::phi, "phi" + strLabel);
 		f(&MoleculeState::potTorque, "potTorque" + strLabel);
 		f(&MoleculeState::deltaG, "deltaG" + strLabel);
