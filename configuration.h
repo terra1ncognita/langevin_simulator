@@ -110,9 +110,37 @@ struct ModelParameters
 	double B = 0.0;
 };
 
+class MoleculeState
+{
+public:
+	unsigned short label = 0;
+	double xMol = 0.0;
+	double logpotentialForce = 0.0;
+	double binding = 0.0; // binding of the second MOLECULE, first mol is always bound
+	double currentWell = 0.0;
+	double phi = 0.0;
+	double potTorque = 0.0;
+	double deltaG = 0.0;
+	double MToffset = 0.0;
+
+	MoleculeState(unsigned short lbl, double mt_offset) : label(lbl), MToffset(mt_offset) {};
+
+	template <typename F>
+	void iterateFields(F&& f) {
+		std::string strLabel = std::to_string(label);
+
+		f(&MoleculeState::xMol, "xMol" + strLabel);
+		f(&MoleculeState::logpotentialForce, "logpotentialForce" + strLabel);
+		f(&MoleculeState::binding, "binding" + strLabel);
+		f(&MoleculeState::currentWell, "currentWell" + strLabel);
+		f(&MoleculeState::phi, "phi" + strLabel);
+		f(&MoleculeState::potTorque, "potTorque" + strLabel);
+		f(&MoleculeState::deltaG, "deltaG" + strLabel);
+	}
+};
+
 struct SystemState
 {
-	double xMol;
 	double xMT;
 	double xBeadl;
 	double xBeadr;
@@ -120,19 +148,13 @@ struct SystemState
 	double xTrapr; 
 	double Time = 0.0;
 	double direction = 1.0;
-	double logpotentialForce;
 
-	double binding = 0.0;
-	double currentWell = 0.0;
-
-	double phi = 0.0;
-	double potTorque = 0.0;
-	double deltaG = 0.0;
+	MoleculeState firstMol{ 1, 0 };
+	MoleculeState secondMol{ 2, 0.0006 };
 
 	//#pragma omp declare simd
 	template <typename F>
 	static void iterateFields(F&& f) {
-		f(&SystemState::xMol, "xMol");
 		f(&SystemState::xMT, "xMT");
 		f(&SystemState::xBeadl, "xBeadl");
 		f(&SystemState::xBeadr, "xBeadr");
@@ -141,12 +163,6 @@ struct SystemState
 		f(&SystemState::xTrapr, "xTrapr");
 		f(&SystemState::Time, "Time");
 		f(&SystemState::direction, "direction");
-		f(&SystemState::logpotentialForce, "logpotentialForce");
-
-		f(&SystemState::binding, "binding");
-		f(&SystemState::phi, "phi");
-		f(&SystemState::potTorque, "potTorque");
-		f(&SystemState::deltaG, "deltaG");
 	}
 };
 

@@ -268,51 +268,45 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 
 
 	//// Assign Initial Conditions from json
-	if (!(jsonobj["InitialConditions"]["xMol"].empty())) {
-		conf.initialConditions.initialState.xMol = stod(jsonobj["InitialConditions"]["xMol"].get<std::string>());
+	if (!(jsonobj["InitialConditions"]["xMol1"].empty())) {
+		conf.initialConditions.initialState.firstMol.xMol = stod(jsonobj["InitialConditions"]["xMol1"].get<std::string>());
+		conf.currentState.firstMol.xMol = stod(jsonobj["InitialConditions"]["xMol1"].get<std::string>());
+	}
+	if (!(jsonobj["InitialConditions"]["xMol2"].empty())) {
+		conf.initialConditions.initialState.secondMol.xMol = stod(jsonobj["InitialConditions"]["xMol2"].get<std::string>());
+		conf.currentState.secondMol.xMol = stod(jsonobj["InitialConditions"]["xMol2"].get<std::string>());
 	}
 	if (!(jsonobj["InitialConditions"]["xMT"].empty())) {
 		conf.initialConditions.initialState.xMT = stod(jsonobj["InitialConditions"]["xMT"].get<std::string>());
+		conf.currentState.xMT = stod(jsonobj["InitialConditions"]["xMT"].get<std::string>());
 	}
 	if (!(jsonobj["InitialConditions"]["xBeadl"].empty())) {
 		conf.initialConditions.initialState.xBeadl = stod(jsonobj["InitialConditions"]["xBeadl"].get<std::string>());
+		conf.currentState.xBeadl = stod(jsonobj["InitialConditions"]["xBeadl"].get<std::string>());
 	}
 	if (!(jsonobj["InitialConditions"]["xBeadr"].empty())) {
 		conf.initialConditions.initialState.xBeadr = stod(jsonobj["InitialConditions"]["xBeadr"].get<std::string>());
+		conf.currentState.xBeadr = stod(jsonobj["InitialConditions"]["xBeadr"].get<std::string>());
 	}
 	if (!(jsonobj["InitialConditions"]["xTrapl"].empty())) {
 		conf.initialConditions.initialState.xTrapl = stod(jsonobj["InitialConditions"]["xTrapl"].get<std::string>());
+		conf.currentState.xTrapl = stod(jsonobj["InitialConditions"]["xTrapl"].get<std::string>());
 	}
 	if (!(jsonobj["InitialConditions"]["xTrapr"].empty())) {
 		conf.initialConditions.initialState.xTrapr = stod(jsonobj["InitialConditions"]["xTrapr"].get<std::string>());
+		conf.currentState.xTrapr = stod(jsonobj["InitialConditions"]["xTrapr"].get<std::string>());
 	}
 	if (!(jsonobj["InitialConditions"]["direction"].empty())) {
 		conf.currentState.direction = stod(jsonobj["InitialConditions"]["direction"].get<std::string>());
 		conf.initialConditions.initialState.direction = stod(jsonobj["InitialConditions"]["direction"].get<std::string>());
 	}
-	//// Assign Dynamic Coordinates from json initial conditions
-	if (!(jsonobj["InitialConditions"]["xTrapl"].empty())) {
-		conf.currentState.xTrapl = stod(jsonobj["InitialConditions"]["xTrapl"].get<std::string>());
+	if (!(jsonobj["InitialConditions"]["phi1"].empty())) {
+		conf.currentState.firstMol.phi = stod(jsonobj["InitialConditions"]["phi1"].get<std::string>());
+		conf.initialConditions.initialState.secondMol.phi = stod(jsonobj["InitialConditions"]["phi1"].get<std::string>());
 	}
-	if (!(jsonobj["InitialConditions"]["xTrapr"].empty())) {
-		conf.currentState.xTrapr = stod(jsonobj["InitialConditions"]["xTrapr"].get<std::string>());
-	}
-
-	if (!(jsonobj["InitialConditions"]["xMol"].empty())) {
-		conf.currentState.xMol = stod(jsonobj["InitialConditions"]["xMol"].get<std::string>());
-	}
-	if (!(jsonobj["InitialConditions"]["xMT"].empty())) {
-		conf.currentState.xMT = stod(jsonobj["InitialConditions"]["xMT"].get<std::string>());
-	}
-	if (!(jsonobj["InitialConditions"]["xBeadl"].empty())) {
-		conf.currentState.xBeadl = stod(jsonobj["InitialConditions"]["xBeadl"].get<std::string>());
-	}
-	if (!(jsonobj["InitialConditions"]["xBeadr"].empty())) {
-		conf.currentState.xBeadr = stod(jsonobj["InitialConditions"]["xBeadr"].get<std::string>());
-	}
-	if (!(jsonobj["InitialConditions"]["phi"].empty())) {
-		conf.currentState.phi = stod(jsonobj["InitialConditions"]["phi"].get<std::string>());
-		conf.initialConditions.initialState.phi = stod(jsonobj["InitialConditions"]["phi"].get<std::string>());
+	if (!(jsonobj["InitialConditions"]["phi2"].empty())) {
+		conf.currentState.secondMol.phi = stod(jsonobj["InitialConditions"]["phi2"].get<std::string>());
+		conf.initialConditions.initialState.secondMol.phi = stod(jsonobj["InitialConditions"]["phi2"].get<std::string>());
 	}
 
 	//TODO: generalize to arbitrary Markov chain

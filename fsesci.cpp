@@ -42,9 +42,42 @@ class BinaryFileLogger
 {
 public:
 	BinaryFileLogger(LoggerParameters loggerParams, double (SystemState::* loggedField), std::string coordinateName):
-		_loggedField{ loggedField }
+		_loggedField{ loggedField }, kind{0}
 	{
 		auto filename = loggerParams.filepath + loggerParams.name + "_results_" + coordinateName + ".binary";
+		// print_info(filename);
+
+		if (_file.is_open()) {
+			_file.close();
+		}
+
+		try {
+			_file.open(filename, std::ios::binary);
+		}
+		catch (const std::exception & ex) {
+			cerr << ex.what() << endl;
+			throw;
+		}
+		if (_file.bad()) {
+			std::string err_msg = "the file " + filename + " was not created";
+			cerr << err_msg << endl;
+			throw std::runtime_error{ err_msg };
+		}
+		if (!_file.is_open()) {
+			std::string err_msg = "the file " + filename + "  was not opened";
+			cerr << err_msg << endl;
+			throw std::runtime_error{ err_msg };
+		}
+
+		_buffer.reserve(_buffsize);
+	}
+
+	BinaryFileLogger(LoggerParameters loggerParams, double(MoleculeState::* loggedField), std::string coordinateName) :
+		_loggedMoleculeField{ loggedField }, kind{ 1 }
+	{
+		auto filename = loggerParams.filepath + loggerParams.name + "_results_" + coordinateName + ".binary";
+		// print_info(filename);
+		mol_num = (coordinateName.back() - '0');
 
 		if (_file.is_open()) {
 			_file.close();
@@ -77,7 +110,35 @@ public:
 	}
 
 	void save(const SystemState* systemState) {
-		_buffer.push_back(systemState->*_loggedField);
+		if (kind == 0) {
+			_buffer.push_back(systemState->*_loggedField);
+			
+		}
+		else if (kind == 1) {
+			if (mol_num == 1) {
+				_buffer.push_back((systemState->firstMol).*_loggedMoleculeField);
+			}
+			else if (mol_num == 2) {
+				_buffer.push_back((systemState->secondMol).*_loggedMoleculeField);
+			}
+			else {
+				throw std::runtime_error{ "Unknown mol_num " + std::to_string(mol_num) };
+			}
+		}
+		else {
+			throw std::runtime_error{ "Save SystemState with logger of type " + std::to_string(kind) };
+		}
+
+		if (_buffer.size() >= _buffsize) {
+			flush();
+		}
+	}
+
+	void save(const MoleculeState* systemState) {
+		if (kind != 1) {
+			throw std::runtime_error{ "Save SystemState with logger of type " + std::to_string(kind) };
+		}
+		_buffer.push_back(systemState->*_loggedMoleculeField);
 		if (_buffer.size() >= _buffsize) {
 			flush();
 		}
@@ -95,10 +156,18 @@ private:
 		_buffer.clear();
 	}
 
+	void print_info(std::string filename) {
+		cout << "BinaryLogger(filename=" << filename << ", kind=" << kind << ")" << endl;
+	}
+
 	static constexpr std::size_t _buffsize = 4096 * 64 / sizeof(double);//4096 default, was 1024
 	std::ofstream _file;
+
 	double(SystemState::* _loggedField);
+	double(MoleculeState::* _loggedMoleculeField);
 	std::vector <double> _buffer;
+
+	int kind = -1, mol_num;
 };
 
 // New mapping R->[-L/2, L/2], 0->0 for asymmetric well
@@ -112,13 +181,13 @@ class PotentialForce
 {
 public:
 	const ModelParameters* mp;
-	SystemState* state;
+	MoleculeState* state;
 	const double powsigma;
 	const double lgs = log(0.5), E = exp(1);
 	const double var1, var2;
 	const double pos = 2.0;
 
-	PotentialForce(const ModelParameters& mp_, SystemState& state_) :
+	PotentialForce(const ModelParameters& mp_, MoleculeState& state_) :
 		powsigma ( pow(mp_.sigma, 2) ),
 		var1 ( pow(2.0, log(1.0 + mp_.m) / lgs) ),
 		var2 ( pow(2.0, log(2.0) / lgs) )
@@ -243,10 +312,20 @@ public:
 			this->_loggers.push_back(std::move(logger));// unique pointer can't be copied, only moved like this
 		});
 
+		_state.firstMol.iterateFields([this, &loggerParameters](double(MoleculeState::* field), std::string fieldName) {
+			auto logger = std::make_unique<BinaryFileLogger>(loggerParameters, field, fieldName);// creates object of class BinaryFileLogger but returns to logger variable the unique pointer to it. // for creation of object implicitly with arguments like this also remind yourself the vector.emplace(args) .
+			this->_loggers.push_back(std::move(logger));// unique pointer can't be copied, only moved like this
+		});
+		_state.secondMol.iterateFields([this, &loggerParameters](double(MoleculeState::* field), std::string fieldName) {
+			auto logger = std::make_unique<BinaryFileLogger>(loggerParameters, field, fieldName);// creates object of class BinaryFileLogger but returns to logger variable the unique pointer to it. // for creation of object implicitly with arguments like this also remind yourself the vector.emplace(args) .
+			this->_loggers.push_back(std::move(logger));// unique pointer can't be copied, only moved like this
+		});
+
 		fillVector(expRands);
 
+		_state.firstMol.binding = 1.0;
 		if (!(_mP.bindingDynamics)) {
-			_state.binding = 1.0;
+			_state.secondMol.binding = 1.0;
 		}
 	}
 
@@ -308,18 +387,25 @@ public:
 	}
 
 	void log_well_torque(std::string path_prefix) {
-		PotentialForce pf(_mP, _state);
+		PotentialForce pf1(_mP, _state.firstMol), pf2(_mP, _state.secondMol);
 		std::ofstream out;
-		out.open(path_prefix + "potential_" + _mP.name + ".txt");
+		out.open(path_prefix + "potential_" + _mP.name + "_1.txt");
 
 		for (double x = 0; x < M_PI_2; x += 0.0001) {
-			out << x << " " << pf.well_barrier_torque(x) << endl;
+			out << x << " " << pf1.well_barrier_torque(x) << endl;
+		}
+		out.close();
+
+		out.open(path_prefix + "potential_" + _mP.name + "_2.txt");
+
+		for (double x = 0; x < M_PI_2; x += 0.0001) {
+			out << x << " " << pf2.well_barrier_torque(x) << endl;
 		}
 		out.close();
 	}
 
 	void advanceState(int nSteps, const double* const rndNumbersPointer) {
-		PotentialForce potentialForce(_mP, _state);
+		PotentialForce potentialForce1(_mP, _state.firstMol), potentialForce2(_mP, _state.secondMol);
 		
 		const double* rndNumbers = rndNumbersPointer;
 		auto takeRandomNumber = [rndNumbers]() mutable -> double {
@@ -329,53 +415,86 @@ public:
 		for (unsigned i = 0; i < nSteps; i++) {
 
 			if (_mP.bindingDynamics) {
-				updateState();
+				updateState(_state.firstMol);
+				updateState(_state.secondMol);
 			}
 
 			double rnd_xMT = takeRandomNumber();
 			double rnd_xBeadl = takeRandomNumber();
 			double rnd_xBeadr = takeRandomNumber();
-			double rnd_xMol = takeRandomNumber();
-			double rnd_phi = takeRandomNumber();
+			double rnd_xMol1 = takeRandomNumber();
+			double rnd_phi1 = takeRandomNumber();
+			double rnd_xMol2 = takeRandomNumber();
+			double rnd_phi2 = takeRandomNumber();
 
-			double MT_Mol_force = potentialForce.well_barrier_force(_state.xMol - _state.xMT, _state.phi);
-			double pot_torque = potentialForce.well_barrier_torque(_state.phi);
+			double MT_Mol_force_1 = potentialForce1.well_barrier_force(_state.firstMol.xMol - _state.xMT - _state.firstMol.MToffset, _state.firstMol.phi);
+			double pot_torque_1 = potentialForce1.well_barrier_torque(_state.firstMol.phi);
+
+			double MT_Mol_force_2 = potentialForce2.well_barrier_force(_state.secondMol.xMol - _state.xMT - _state.secondMol.MToffset, _state.secondMol.phi);
+			double pot_torque_2 = potentialForce2.well_barrier_torque(_state.secondMol.phi);
+
+			double molSpringForce1 = calculateMolspringForce(_state.firstMol.xMol);
+			double molSpringForce2 = calculateMolspringForce(_state.secondMol.xMol);
+
+			double MT_Mol_force = MT_Mol_force_1 + MT_Mol_force_2;
 
 			double FmtR = calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength / 2.0, 'R');
 			double FmtL = calculateMTspringForce(_state.xMT - _state.xBeadl - _mP.MTlength / 2.0, 'L');
-			double molSpringForce = calculateMolspringForce(_state.xMol);
+			
 
 			double next_xMT = _state.xMT + (_sim.expTime / _mP.gammaMT)*(-FmtL + FmtR - MT_Mol_force) + sqrt(2.0*_mP.DMT*_sim.expTime) * rnd_xMT;
 			double next_xBeadl = _state.xBeadl + (_sim.expTime / _mP.gammaBeadL)*((-_mP.trapstiffL)*(_state.xBeadl - _state.xTrapl) + FmtL) + sqrt(2.0*_mP.DBeadL*_sim.expTime) * rnd_xBeadl;
 			double next_xBeadr = _state.xBeadr + (_sim.expTime / _mP.gammaBeadR)*(-FmtR + (-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr)) + sqrt(2.0*_mP.DBeadR*_sim.expTime) * rnd_xBeadr;
-			double next_xMol = _state.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force - molSpringForce) + sqrt(2.0*_mP.DMol*_sim.expTime) * rnd_xMol;
-			double next_phi = _state.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*(_state.phi - _mP.iniPhi) + (_state.binding > 0.0) * (-molSpringForce * _mP.molLength*sin(_state.phi) + pot_torque)) + sqrt(2.0*_mP.kT*_sim.expTime / _mP.rotFriction) * rnd_phi;
+			
+			double next_xMol1 = _state.firstMol.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force_1 - molSpringForce1) + sqrt(2.0*_mP.DMol*_sim.expTime) * rnd_xMol1;
+			double next_phi1 = _state.firstMol.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*(_state.firstMol.phi - _mP.iniPhi) + (_state.firstMol.binding > 0.0) * (-molSpringForce1 * _mP.molLength*sin(_state.firstMol.phi) + pot_torque_1)) + sqrt(2.0*_mP.kT*_sim.expTime / _mP.rotFriction) * rnd_phi1;
 
-			if (next_phi < 0){
-				next_phi = -next_phi;
+			double next_xMol2 = _state.secondMol.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force_2 - molSpringForce2) + sqrt(2.0*_mP.DMol*_sim.expTime) * rnd_xMol2;
+			double next_phi2 = _state.secondMol.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*(_state.secondMol.phi - _mP.iniPhi) + (_state.secondMol.binding > 0.0) * (-molSpringForce2 * _mP.molLength*sin(_state.secondMol.phi) + pot_torque_2)) + sqrt(2.0*_mP.kT*_sim.expTime / _mP.rotFriction) * rnd_phi2;
+
+
+			if (next_phi1 < 0){
+				next_phi1 = -next_phi1;
 			}
-			else if (next_phi > M_PI) {
-				next_phi = 2 * M_PI - next_phi;
+			else if (next_phi1 > M_PI) {
+				next_phi1 = 2 * M_PI - next_phi1;
 			}
 
-			_state.xMT    = next_xMT;
-			_state.xBeadl = next_xBeadl;
-			_state.xBeadr = next_xBeadr;
-			_state.xMol   = next_xMol;
-			_state.phi    = next_phi;
-			_state.Time += _sim.expTime;
+			if (next_phi2 < 0) {
+				next_phi2 = -next_phi2;
+			}
+			else if (next_phi2 > M_PI) {
+				next_phi2 = 2 * M_PI - next_phi2;
+			}
+
+			_state.xMT             = next_xMT;
+			_state.xBeadl          = next_xBeadl;
+			_state.xBeadr          = next_xBeadr;
+			_state.firstMol.xMol   = next_xMol1;
+			_state.secondMol.xMol  = next_xMol2;
+			_state.firstMol.phi    = next_phi1;
+			_state.secondMol.phi   = next_phi2;
+			_state.Time           += _sim.expTime;
 
 			_loggingBuffer.xMT    +=  _state.xMT;   
 			_loggingBuffer.xBeadl +=  _state.xBeadl;
 			_loggingBuffer.xBeadr +=  _state.xBeadr;
 			_loggingBuffer.xTrapl += _state.xTrapl;
 			_loggingBuffer.xTrapr += _state.xTrapr;
-			_loggingBuffer.xMol   +=  _state.xMol;  
-			_loggingBuffer.logpotentialForce += MT_Mol_force;
-			_loggingBuffer.binding += _state.binding;
-			_loggingBuffer.phi += _state.phi;
-			_loggingBuffer.potTorque += pot_torque;
-			_loggingBuffer.deltaG += _state.deltaG;
+
+			_loggingBuffer.firstMol.xMol              +=  _state.firstMol.xMol;  
+			_loggingBuffer.firstMol.logpotentialForce += MT_Mol_force_1;
+			_loggingBuffer.firstMol.binding           += _state.firstMol.binding;
+			_loggingBuffer.firstMol.phi               += _state.firstMol.phi;
+			_loggingBuffer.firstMol.potTorque         += pot_torque_1;
+			_loggingBuffer.firstMol.deltaG            += _state.firstMol.deltaG;
+
+			_loggingBuffer.secondMol.xMol += _state.secondMol.xMol;
+			_loggingBuffer.secondMol.logpotentialForce += MT_Mol_force_2;
+			_loggingBuffer.secondMol.binding += _state.secondMol.binding;
+			_loggingBuffer.secondMol.phi += _state.secondMol.phi;
+			_loggingBuffer.secondMol.potTorque += pot_torque_2;
+			_loggingBuffer.secondMol.deltaG += _state.secondMol.deltaG;
 		}
 		_loggingBuffer.Time = _state.Time;
 	}
@@ -392,13 +511,20 @@ public:
 		_loggingBuffer.xBeadr = 0.0;
 		_loggingBuffer.xTrapl = 0.0;
 		_loggingBuffer.xTrapr = 0.0;
-		_loggingBuffer.xMol = 0.0;
-		_loggingBuffer.logpotentialForce = 0.0;
 		_loggingBuffer.Time = 0.0;
-		_loggingBuffer.binding = 0.0;
-		_loggingBuffer.phi = 0.0;
-		_loggingBuffer.potTorque = 0.0;
-		_loggingBuffer.deltaG = 0.0;
+		_loggingBuffer.firstMol.xMol = 0.0;
+		_loggingBuffer.firstMol.logpotentialForce = 0.0;
+		_loggingBuffer.firstMol.binding = 0.0;
+		_loggingBuffer.firstMol.phi = 0.0;
+		_loggingBuffer.firstMol.potTorque = 0.0;
+		_loggingBuffer.firstMol.deltaG = 0.0;
+
+		_loggingBuffer.secondMol.xMol = 0.0;
+		_loggingBuffer.secondMol.logpotentialForce = 0.0;
+		_loggingBuffer.secondMol.binding = 0.0;
+		_loggingBuffer.secondMol.phi = 0.0;
+		_loggingBuffer.secondMol.potTorque = 0.0;
+		_loggingBuffer.secondMol.deltaG = 0.0;
 	}
 
 	void forcefeedbackBuffertoZero() {
@@ -412,15 +538,15 @@ public:
 		std::generate(begin(rnds), end(rnds), expGen);
 	}
 	
-	void updateState() {
+	void updateState(MoleculeState ms) {
 
-		if (_state.binding == 1.0 && (abs((_state.xMol - _state.xMT) - _state.currentWell) >= _mP.L / 2.0)) {
+		if (ms.binding == 1.0 && (abs((ms.xMol - _state.xMT - ms.MToffset) - ms.currentWell) >= _mP.L / 2.0)) {
 			fillVector(expRands);
 			livingTimes.assign(_mP.numStates, 0.0);
-			_state.binding = 0.0;
+			ms.binding = 0.0;
 		}
 
-		int prev_binding = int(_state.binding);
+		int prev_binding = int(ms.binding);
 		int	j = 0;
 
 		for (j = 0; j < _mP.numStates; ++j) {
@@ -436,11 +562,11 @@ public:
 		if (j != _mP.numStates) {
 			fillVector(expRands);
 			livingTimes.assign(_mP.numStates, 0.0);
-			_state.binding = j;
+			ms.binding = j;
 		}
 
-		if ((prev_binding == 0.0) && (_state.binding == 1.0)) {
-			_state.currentWell = _mP.L * floor(((_state.xMol - _state.xMT) + _mP.L / 2.0) / _mP.L);
+		if ((prev_binding == 0.0) && (ms.binding == 1.0)) {
+			ms.currentWell = _mP.L * floor(((ms.xMol - _state.xMT - ms.MToffset) + _mP.L / 2.0) / _mP.L);
 		}
 
 		return;
@@ -461,35 +587,46 @@ public:
 
 
 void write_results(const std::unique_ptr<Task>& task, const SimulationParameters& sim) {
+	double ibs = static_cast<double>(sim.iterationsbetweenSavings);
+
+	task->_loggingBuffer.Time = task->_loggingBuffer.Time - sim.expTime * ibs / 2.0;
+
 	task->_forcefeedbackBuffer.xBeadl += task->_loggingBuffer.xBeadl;
 	task->_forcefeedbackBuffer.xBeadr += task->_loggingBuffer.xBeadr;
 	task->_forcefeedbackBuffer.xTrapl += task->_loggingBuffer.xTrapl;
 	task->_forcefeedbackBuffer.xTrapr += task->_loggingBuffer.xTrapr;
 
-	task->_loggingBuffer.xMT = task->_loggingBuffer.xMT / static_cast<double>(sim.iterationsbetweenSavings);
-	task->_loggingBuffer.xBeadl = task->_loggingBuffer.xBeadl / static_cast<double>(sim.iterationsbetweenSavings);
-	task->_loggingBuffer.xBeadr = task->_loggingBuffer.xBeadr / static_cast<double>(sim.iterationsbetweenSavings);
-	task->_loggingBuffer.xTrapl = task->_loggingBuffer.xTrapl / static_cast<double>(sim.iterationsbetweenSavings);
-	task->_loggingBuffer.xTrapr = task->_loggingBuffer.xTrapr / static_cast<double>(sim.iterationsbetweenSavings);
-	task->_loggingBuffer.xMol = task->_loggingBuffer.xMol / static_cast<double>(sim.iterationsbetweenSavings);
-	task->_loggingBuffer.logpotentialForce = task->_loggingBuffer.logpotentialForce / static_cast<double>(sim.iterationsbetweenSavings);
+	task->_loggingBuffer.xMT    = task->_loggingBuffer.xMT / ibs;
+	task->_loggingBuffer.xBeadl = task->_loggingBuffer.xBeadl / ibs;
+	task->_loggingBuffer.xBeadr = task->_loggingBuffer.xBeadr / ibs;
+	task->_loggingBuffer.xTrapl = task->_loggingBuffer.xTrapl / ibs;
+	task->_loggingBuffer.xTrapr = task->_loggingBuffer.xTrapr / ibs;
 
-	task->_loggingBuffer.Time = task->_loggingBuffer.Time - sim.expTime * static_cast<double>(sim.iterationsbetweenSavings) / 2;
+	task->_loggingBuffer.firstMol.xMol              = task->_loggingBuffer.firstMol.xMol / ibs;
+	task->_loggingBuffer.firstMol.logpotentialForce = task->_loggingBuffer.firstMol.logpotentialForce / ibs;
+	task->_loggingBuffer.firstMol.binding           = task->_loggingBuffer.firstMol.binding / ibs;
+	task->_loggingBuffer.firstMol.phi               = task->_loggingBuffer.firstMol.phi / ibs;
+	task->_loggingBuffer.firstMol.potTorque         = task->_loggingBuffer.firstMol.potTorque / ibs;
+	task->_loggingBuffer.firstMol.deltaG            = task->_loggingBuffer.firstMol.deltaG / ibs;
 
-	task->_loggingBuffer.binding = task->_loggingBuffer.binding / static_cast<double>(sim.iterationsbetweenSavings);
-	task->_loggingBuffer.phi = task->_loggingBuffer.phi / static_cast<double>(sim.iterationsbetweenSavings);
-	task->_loggingBuffer.potTorque = task->_loggingBuffer.potTorque / static_cast<double>(sim.iterationsbetweenSavings);
-	task->_loggingBuffer.deltaG = task->_loggingBuffer.deltaG / static_cast<double>(sim.iterationsbetweenSavings);
+	task->_loggingBuffer.secondMol.xMol = task->_loggingBuffer.secondMol.xMol / ibs;
+	task->_loggingBuffer.secondMol.logpotentialForce = task->_loggingBuffer.secondMol.logpotentialForce / ibs;
+	task->_loggingBuffer.secondMol.binding = task->_loggingBuffer.secondMol.binding / ibs;
+	task->_loggingBuffer.secondMol.phi = task->_loggingBuffer.secondMol.phi / ibs;
+	task->_loggingBuffer.secondMol.potTorque = task->_loggingBuffer.secondMol.potTorque / ibs;
+	task->_loggingBuffer.secondMol.deltaG = task->_loggingBuffer.secondMol.deltaG / ibs;
 
 	task->writeStateTolog();
 	task->loggingBuffertoZero();
 }
 
 void force_clamp_update(const std::unique_ptr<Task>& task, const SimulationParameters& sim) {
-	task->_forcefeedbackBuffer.xBeadl = task->_forcefeedbackBuffer.xBeadl / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
-	task->_forcefeedbackBuffer.xBeadr = task->_forcefeedbackBuffer.xBeadr / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
-	task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapl / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
-	task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapr / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
+	double ibs = static_cast<double>(sim.iterationsbetweenSavings);
+
+	task->_forcefeedbackBuffer.xBeadl = task->_forcefeedbackBuffer.xBeadl / ibs;
+	task->_forcefeedbackBuffer.xBeadr = task->_forcefeedbackBuffer.xBeadr / ibs;
+	task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapl / ibs;
+	task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapr / ibs;
 
 	int tmpDirection = task->_forcefeedbackBuffer.direction;
 
