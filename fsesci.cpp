@@ -562,15 +562,24 @@ public:
 			transitionMatrix = _mP.transitionMatrix2;
 		}
 
-		for (j = 0; j < _mP.numStates; ++j) {
-			ms.livingTimes[j] += transitionMatrix[prev_binding][j] * _sim.expTime;
-		}
+		//cout << ms.label << transitionMatrix[0][0] << transitionMatrix[0][1] << transitionMatrix[1][0] << transitionMatrix[1][1] << endl;
+		cout << ms.label << endl;
+		cout << &ms << endl;
+		cout << &ms.expRands << endl;
 
 		for (j = 0; j < _mP.numStates; ++j) {
+			ms.livingTimes[j] += transitionMatrix[prev_binding][j] * _sim.expTime;
+			cout << ms.livingTimes[j] << " ";
+		}
+		cout << endl;
+
+		for (j = 0; j < _mP.numStates; ++j) {
+			cout << ms.expRands[j] << ' ';
 			if (ms.livingTimes[j] > ms.expRands[j] && j != prev_binding) {
 				break;
 			}
 		}
+		cout << endl;
 
 		if (j != _mP.numStates) {
 			fillVector(ms.expRands);

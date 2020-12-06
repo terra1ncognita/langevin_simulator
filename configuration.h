@@ -104,8 +104,8 @@ struct ModelParameters
 	double kOn1, kOff1;
 	double kOn2, kOff2;
 
-	double** transitionMatrix1{ assign_rates(numStates, kOn1, kOff1) };
-	double** transitionMatrix2{ assign_rates(numStates, kOn2, kOff2) };
+	double** transitionMatrix1;
+	double** transitionMatrix2;
 
 	bool bindingDynamics = true;
 	double B = 0.0;
@@ -120,8 +120,8 @@ struct ModelParameters
 		transitionMatrix[0][0] = -kOn;
 		transitionMatrix[0][1] = kOn;
 
-		transitionMatrix[1][1] = kOff;
-		transitionMatrix[1][2] = -kOff;
+		transitionMatrix[1][0] = kOff;
+		transitionMatrix[1][1] = -kOff;
 
 		return transitionMatrix;
 	}
