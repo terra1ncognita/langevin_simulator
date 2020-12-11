@@ -272,21 +272,29 @@ public:
 };
 
 class ExponentialGenerator {
+	std::mt19937 re;
+	std::exponential_distribution<double> expDist;
 public:
+	ExponentialGenerator() {}
+
 	ExponentialGenerator(double lambda) :
-		expDist(lambda),
-		re(std::random_device{}())
+		expDist{ lambda },
+		re{ std::random_device{}() }
 	{
 	}
 
 	double operator()() {
 		return expDist(re);
 	}
-
-private:
-	std::default_random_engine re;
-	std::exponential_distribution<double> expDist;
 };
+
+template <typename T>
+void printVector(const std::vector<T> & vec) {
+	for (auto el : vec) {
+		cout << el << " ";
+	}
+	cout << endl;
+}
 
 
 class Task
@@ -299,7 +307,7 @@ public:
 		_state(configuration.initialConditions.initialState),
 		_loggingBuffer(configuration.initialConditions.initialState),
 		_forcefeedbackBuffer(configuration.initialConditions.initialState),
-		expGen(1.0)
+		expDist{1.0}
 	{
 		loggingBuffertoZero();
 		forcefeedbackBuffertoZero();
@@ -318,7 +326,7 @@ public:
 			auto logger = std::make_unique<BinaryFileLogger>(loggerParameters, field, fieldName);// creates object of class BinaryFileLogger but returns to logger variable the unique pointer to it. // for creation of object implicitly with arguments like this also remind yourself the vector.emplace(args) .
 			this->_loggers.push_back(std::move(logger));// unique pointer can't be copied, only moved like this
 		});
-
+		
 		_state.firstMol.expRands.assign(_mP.numStates, 0.0);
 		_state.secondMol.expRands.assign(_mP.numStates, 0.0);
 
@@ -541,10 +549,11 @@ public:
 	}
 	
 	void fillVector(std::vector<double>& rnds) {
-		std::generate(begin(rnds), end(rnds), expGen);
+		auto _gen = [this]() mutable {return expDist(re); };
+		std::generate(begin(rnds), end(rnds), _gen);
 	}
 	
-	void updateState(MoleculeState ms) {
+	void updateState(MoleculeState& ms) {
 
 		//if (ms.binding == 1.0 && (abs((ms.xMol - _state.xMT - ms.MToffset) - ms.currentWell) >= _mP.L / 2.0)) {
 		//	fillVector(expRands);
@@ -552,7 +561,7 @@ public:
 		//	ms.binding = 0.0;
 		//}
 		double **transitionMatrix;
-		int prev_binding = int(ms.binding);
+		int prev_binding = static_cast<int>(ms.binding);
 		int	j = 0;
 
 		if (ms.label == 1) {
@@ -561,25 +570,16 @@ public:
 		if (ms.label == 2) {
 			transitionMatrix = _mP.transitionMatrix2;
 		}
-
-		//cout << ms.label << transitionMatrix[0][0] << transitionMatrix[0][1] << transitionMatrix[1][0] << transitionMatrix[1][1] << endl;
-		cout << ms.label << endl;
-		cout << &ms << endl;
-		cout << &ms.expRands << endl;
-
+		
 		for (j = 0; j < _mP.numStates; ++j) {
 			ms.livingTimes[j] += transitionMatrix[prev_binding][j] * _sim.expTime;
-			cout << ms.livingTimes[j] << " ";
 		}
-		cout << endl;
 
 		for (j = 0; j < _mP.numStates; ++j) {
-			cout << ms.expRands[j] << ' ';
 			if (ms.livingTimes[j] > ms.expRands[j] && j != prev_binding) {
 				break;
 			}
 		}
-		cout << endl;
 
 		if (j != _mP.numStates) {
 			fillVector(ms.expRands);
@@ -596,13 +596,15 @@ public:
 
 private:
 	std::vector<std::unique_ptr<BinaryFileLogger>> _loggers;
+	std::mt19937 re{ std::random_device{}() };
+	std::exponential_distribution<double> expDist;
+
 public:
 	SystemState _state;
 	SystemState _loggingBuffer, _forcefeedbackBuffer;
 	const SimulationParameters _sim;
 	const ModelParameters _mP;
 	const InitialConditions _initC;
-	ExponentialGenerator expGen;
 };
 
 

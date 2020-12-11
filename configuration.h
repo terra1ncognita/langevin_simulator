@@ -127,9 +127,8 @@ struct ModelParameters
 	}
 };
 
-class MoleculeState
+struct MoleculeState
 {
-public:
 	unsigned short label = 0;
 	double xMol = 0.0;
 	double logpotentialForce = 0.0;
