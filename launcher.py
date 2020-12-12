@@ -123,14 +123,18 @@ def assign_initial_conditions(config: Dict[str, Any]) -> None:
         {
             "Configuration->ModelParameters->movementTotalForce": str(abs(f)),
             "Configuration->InitialConditions->direction": str(np.sign(f)),
-            "Configuration->InitialConditions->xPed": "0.0",
-            "Configuration->InitialConditions->xMol": "0.0",
-            "Configuration->InitialConditions->xMT": "0.0",
+            
             "Configuration->InitialConditions->xBeadl": str(x_bead_l),
             "Configuration->InitialConditions->xBeadr": str(x_bead_r),
             "Configuration->InitialConditions->xTrapl": str(x_trap_l),
             "Configuration->InitialConditions->xTrapr": str(x_trap_r),
-            "Configuration->InitialConditions->phi": str(np.pi / 3),
+            "Configuration->InitialConditions->xMT": "0.0",
+            "Configuration->InitialConditions->xPed": "0.0",
+            
+            "Configuration->InitialConditions->xMol1": "0.0",
+            "Configuration->InitialConditions->xMol2": "0.0",
+            "Configuration->InitialConditions->phi1": str(np.pi / 3),
+            "Configuration->InitialConditions->phi2": str(np.pi / 3),
         },
     )
 
