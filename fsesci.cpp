@@ -242,6 +242,9 @@ public:
 
 	double well_barrier_torque(double angle) const
 	{
+		if (state->binding == 0.0) {
+			return 0.0;
+		}
 		if (angle >= M_PI_2) {
 			return 0.0;
 		}
@@ -251,12 +254,12 @@ public:
 
 	double well_barrier_force(double unmodvar, double angle) const
 	{
-		double var = period_map(unmodvar, mp->L);
-		double deltaG = 0.0;
-
 		if (state->binding == 0.0) {
 			return 0.0;
 		}
+
+		double var = period_map(unmodvar, mp->L);
+		double deltaG = 0.0;
 
 		if (angle < M_PI_2) {
 			deltaG = morze(mp->domainsDistance * sin(angle), mp->rotWellWidth, mp->rotWellDepth) +
@@ -266,7 +269,7 @@ public:
 		state->deltaG = deltaG;
 
 		if (state->binding == 1.0) {
-			return ((mp->G + deltaG) * var / powsigma) * pow(E, -pow(var, 2) / (2.0*powsigma));//l1d cache 4096 of doubles -> use 50% of it?
+			return ((mp->G + deltaG) * var / powsigma) * pow(E, -pow(var, 2) / (2.0*powsigma));
 		}
 	}
 };
@@ -441,10 +444,10 @@ public:
 			double rnd_phi2 = takeRandomNumber();
 
 			double MT_Mol_force_1 = potentialForce1.well_barrier_force(_state.firstMol.xMol - _state.xMT - _state.firstMol.MToffset, _state.firstMol.phi);
-			double pot_torque_1 = potentialForce1.well_barrier_torque(_state.firstMol.phi);
+			double pot_torque_1   = potentialForce1.well_barrier_torque(_state.firstMol.phi);
 
 			double MT_Mol_force_2 = potentialForce2.well_barrier_force(_state.secondMol.xMol - _state.xMT - _state.secondMol.MToffset, _state.secondMol.phi);
-			double pot_torque_2 = potentialForce2.well_barrier_torque(_state.secondMol.phi);
+			double pot_torque_2   = potentialForce2.well_barrier_torque(_state.secondMol.phi);
 
 			double molSpringForce1 = calculateMolspringForce(_state.firstMol.xMol);
 			double molSpringForce2 = calculateMolspringForce(_state.secondMol.xMol);
@@ -460,10 +463,10 @@ public:
 			double next_xBeadr = _state.xBeadr + (_sim.expTime / _mP.gammaBeadR)*(-FmtR + (-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr)) + sqrt(2.0*_mP.DBeadR*_sim.expTime) * rnd_xBeadr;
 			
 			double next_xMol1 = _state.firstMol.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force_1 - molSpringForce1) + sqrt(2.0*_mP.DMol*_sim.expTime) * rnd_xMol1;
-			double next_phi1 = _state.firstMol.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*(_state.firstMol.phi - _mP.iniPhi) + (_state.firstMol.binding > 0.0) * (-molSpringForce1 * _mP.molLength*sin(_state.firstMol.phi) + pot_torque_1)) + sqrt(2.0*_mP.kT*_sim.expTime / _mP.rotFriction) * rnd_phi1;
+			double next_phi1 = _state.firstMol.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*(_state.firstMol.phi - _mP.iniPhi) + (-molSpringForce1 * _mP.molLength*sin(_state.firstMol.phi) + pot_torque_1)) + sqrt(2.0*_mP.kT*_sim.expTime / _mP.rotFriction) * rnd_phi1;
 
 			double next_xMol2 = _state.secondMol.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force_2 - molSpringForce2) + sqrt(2.0*_mP.DMol*_sim.expTime) * rnd_xMol2;
-			double next_phi2 = _state.secondMol.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*(_state.secondMol.phi - _mP.iniPhi) + (_state.secondMol.binding > 0.0) * (-molSpringForce2 * _mP.molLength*sin(_state.secondMol.phi) + pot_torque_2)) + sqrt(2.0*_mP.kT*_sim.expTime / _mP.rotFriction) * rnd_phi2;
+			double next_phi2 = _state.secondMol.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*(_state.secondMol.phi - _mP.iniPhi) + (-molSpringForce2 * _mP.molLength*sin(_state.secondMol.phi) + pot_torque_2)) + sqrt(2.0*_mP.kT*_sim.expTime / _mP.rotFriction) * rnd_phi2;
 
 
 			if (next_phi1 < 0){
@@ -585,6 +588,12 @@ public:
 			fillVector(ms.expRands);
 			ms.livingTimes.assign(_mP.numStates, 0.0);
 			ms.binding = j;
+
+			if (ms.binding == 0) {
+				ms.deltaG = 0.0;
+				ms.potTorque = 0.0;
+				ms.logpotentialForce = 0.0;
+			}
 		}
 
 		//if ((prev_binding == 0.0) && (ms.binding == 1.0)) {

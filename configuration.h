@@ -132,8 +132,7 @@ struct MoleculeState
 	unsigned short label = 0;
 	double xMol = 0.0;
 	double logpotentialForce = 0.0;
-	double binding = 0.0; // binding of the second MOLECULE, first mol is always bound
-	//double currentWell = 0.0;
+	double binding = 0.0; // binding of the MOLECULE
 	double phi = 0.0;
 	double potTorque = 0.0;
 	double deltaG = 0.0;
@@ -151,7 +150,6 @@ struct MoleculeState
 		f(&MoleculeState::xMol, "xMol" + strLabel);
 		f(&MoleculeState::logpotentialForce, "logpotentialForce" + strLabel);
 		f(&MoleculeState::binding, "binding" + strLabel);
-		//f(&MoleculeState::currentWell, "currentWell" + strLabel);
 		f(&MoleculeState::phi, "phi" + strLabel);
 		f(&MoleculeState::potTorque, "potTorque" + strLabel);
 		f(&MoleculeState::deltaG, "deltaG" + strLabel);
