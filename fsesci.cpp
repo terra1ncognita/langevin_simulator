@@ -724,7 +724,7 @@ int main(int argc, char *argv[])
 	}
 	cout << "Loaded simultaion parameters" << endl;
 
-	MklGaussianParallelGenerator generator1(0.0, 1.0, sim.buffsize, 4);
+	MklGaussianParallelGenerator generator1(0.0, 1.0, sim.buffsize * nThreads, sim.rndThreads);
 	cout << "Created random numbers generator" << endl;
 
 	int tasksperthread = configurations.size() / nThreads;
@@ -773,7 +773,7 @@ int main(int argc, char *argv[])
 				const auto curr_thread = omp_get_thread_num();
 
 				for (unsigned int savedSampleIter = 0; savedSampleIter < sim.savingsPerMacrostep; savedSampleIter++) {
-					std::size_t offset = savedSampleIter * sim.iterationsbetweenSavings;
+					std::size_t offset = savedSampleIter * sim.iterationsbetweenSavings + sim.buffsize * curr_thread;
 					const double* const rnd_pointer = buffData + offset;
 
 					tasks[curr_thread]->advanceState(sim.iterationsbetweenSavings, rnd_pointer);
