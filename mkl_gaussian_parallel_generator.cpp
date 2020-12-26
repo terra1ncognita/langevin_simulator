@@ -39,15 +39,18 @@ MklGaussianParallelGenerator::MklGaussianParallelGenerator(double mean, double s
 
 void MklGaussianParallelGenerator::generateNumbers()
 {
-	#pragma omp parallel for num_threads(_threadNum) default(none) shared(_sw) schedule(dynamic)
-	for (int i = 0; i < _bufferSize; i += _nPerThread) {
-		const auto begin = _buffer.data() + i;
-		const auto generationResult = vdRngGaussian(
-			VSL_RNG_METHOD_GAUSSIAN_ICDF, _streamWrappers.at(omp_get_thread_num()).get(),
-			_nPerThread, begin, _mean, _stDeviation
-		);
-		if (generationResult != VSL_STATUS_OK) {
-			throw std::runtime_error{ "can't generate numbers" };
+	#pragma omp parallel num_threads(_threadNum) default(none) shared(_streamWrappers, _buffer) 
+	{
+		#pragma omp for nowait schedule(dynamic)
+		for (int i = 0; i < _bufferSize; i += _nPerThread) {
+			const auto begin = _buffer.data() + i;
+			const auto generationResult = vdRngGaussian(
+				VSL_RNG_METHOD_GAUSSIAN_ICDF, _streamWrappers.at(omp_get_thread_num()).get(),
+				_nPerThread, begin, _mean, _stDeviation
+			);
+			if (generationResult != VSL_STATUS_OK) {
+				throw std::runtime_error{ "can't generate numbers" };
+			}
 		}
 	}
 
