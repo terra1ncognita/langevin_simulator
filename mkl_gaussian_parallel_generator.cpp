@@ -39,9 +39,9 @@ MklGaussianParallelGenerator::MklGaussianParallelGenerator(double mean, double s
 
 void MklGaussianParallelGenerator::generateNumbers()
 {
-#pragma omp parallel num_threads(_threadNum) default(none) shared(_streamWrappers, _buffer) 
+	#pragma omp parallel num_threads(_threadNum) default(none) shared(_streamWrappers, _buffer) 
 	{
-#pragma omp for nowait schedule(guided)
+		#pragma omp for nowait schedule(dynamic)
 		for (int i = 0; i < _bufferSize; i += _nPerThread) {
 			const auto begin = _buffer.data() + i;
 			const auto generationResult = vdRngGaussian(
