@@ -16,9 +16,8 @@ private:
 	std::size_t _bufferSize;
 	unsigned _threadNum;
 	std::vector <VSLStreamWrapper> _streamWrappers;
+	VSLStreamWrapper _sw;
 	std::vector<double> _buffer;
 	std::size_t _nPerThread;
-	
-
 };
 
