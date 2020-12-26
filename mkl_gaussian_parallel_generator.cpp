@@ -41,8 +41,8 @@ void MklGaussianParallelGenerator::generateNumbers()
 {
 	#pragma omp parallel num_threads(_threadNum) default(none) shared(_streamWrappers, _buffer) 
 	{
-		#pragma omp for nowait schedule(dynamic)
-		for (int i = 0; i < _bufferSize; i += _nPerThread) {
+		#pragma omp for nowait schedule(guided)
+		for (std::size_t i = 0; i < _bufferSize; i += _nPerThread) {
 			const auto begin = _buffer.data() + i;
 			const auto generationResult = vdRngGaussian(
 				VSL_RNG_METHOD_GAUSSIAN_ICDF, _streamWrappers.at(omp_get_thread_num()).get(),
@@ -53,8 +53,9 @@ void MklGaussianParallelGenerator::generateNumbers()
 			}
 		}
 	}
-
-	//std::cout << _buffer[0] << " " << _buffer[1] << " " << _buffer[_nPerThread] << " " << _buffer[_nPerThread + 1] <<  std::endl;
+        // std::cout << "Successfully generated numbers" << std::endl;
+	
+        //std::cout << _buffer[0] << " " << _buffer[1] << " " << _buffer[_nPerThread] << " " << _buffer[_nPerThread + 1] <<  std::endl;
 	//// Strange that it works without shared! check this out.
 	//#pragma omp parallel num_threads(_threadNum) default(none)
 	//{
