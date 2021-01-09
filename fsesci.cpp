@@ -435,9 +435,8 @@ public:
 				updateState(_state.secondMol);
 			}
 
-			double rnd_xMT = takeRandomNumber();
-			double rnd_xBeadl = takeRandomNumber();
-			double rnd_xBeadr = takeRandomNumber();
+			double rnd_inc = takeRandomNumber();
+
 			double rnd_xMol1 = takeRandomNumber();
 			double rnd_phi1 = takeRandomNumber();
 			double rnd_xMol2 = takeRandomNumber();
@@ -454,14 +453,12 @@ public:
 
 			double MT_Mol_force = MT_Mol_force_1 + MT_Mol_force_2;
 
-			double FmtR = calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength / 2.0, 'R');
-			double FmtL = calculateMTspringForce(_state.xMT - _state.xBeadl - _mP.MTlength / 2.0, 'L');
-			
+			double increment = (_sim.expTime / (_mP.gammaMT + _mP.gammaBeadL + _mP.gammaBeadR))*(-_mP.trapstiffR * (_state.xBeadr - _state.xTrapr) - _mP.trapstiffL * (_state.xBeadl - _state.xTrapl) - MT_Mol_force) + sqrt(2.0 * (_mP.kT / (_mP.gammaMT + _mP.gammaBeadL + _mP.gammaBeadR)) * _sim.expTime) * rnd_inc;
 
-			double next_xMT = _state.xMT + (_sim.expTime / _mP.gammaMT)*(-FmtL + FmtR - MT_Mol_force) + sqrt(2.0*_mP.DMT*_sim.expTime) * rnd_xMT;
-			double next_xBeadl = _state.xBeadl + (_sim.expTime / _mP.gammaBeadL)*((-_mP.trapstiffL)*(_state.xBeadl - _state.xTrapl) + FmtL) + sqrt(2.0*_mP.DBeadL*_sim.expTime) * rnd_xBeadl;
-			double next_xBeadr = _state.xBeadr + (_sim.expTime / _mP.gammaBeadR)*(-FmtR + (-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr)) + sqrt(2.0*_mP.DBeadR*_sim.expTime) * rnd_xBeadr;
-			
+			double next_xMT = _state.xMT + increment;
+			double next_xBeadl = _state.xBeadl + increment;
+			double next_xBeadr = _state.xBeadr + increment;
+
 			double next_xMol1 = _state.firstMol.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force_1 - molSpringForce1) + sqrt(2.0*_mP.DMol*_sim.expTime) * rnd_xMol1;
 			double next_phi1 = _state.firstMol.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*(_state.firstMol.phi - _mP.iniPhi) + (-molSpringForce1 * _mP.molLength*sin(_state.firstMol.phi) + pot_torque_1)) + sqrt(2.0*_mP.kT*_sim.expTime / _mP.rotFriction) * rnd_phi1;
 
