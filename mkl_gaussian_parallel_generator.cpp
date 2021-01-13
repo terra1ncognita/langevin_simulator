@@ -7,10 +7,12 @@
 
 
 MklGaussianParallelGenerator::MklGaussianParallelGenerator(double mean, double stDeviation, std::size_t bufferSize, unsigned threadNum)
-	:_mean{ mean }, _stDeviation{ stDeviation }, _bufferSize{bufferSize}, _threadNum{threadNum}
+	:_mean{ mean }, _stDeviation{ stDeviation }, _bufferSize{ bufferSize }, _threadNum{ threadNum }
 {
-	_nPerThread = _bufferSize / _threadNum;
-	if (_bufferSize != _nPerThread * _threadNum) {
+	int factor = 10;
+
+	_nPerThread = _bufferSize / (factor * _threadNum);
+	if (_bufferSize != _nPerThread * _threadNum * factor) {
 		throw std::logic_error{ "buffsize must be multiple of number of threads" };
 	}
 	std::cout << "Random numbers buffer alocation of " << _bufferSize << " bytes started...  ";
@@ -23,6 +25,7 @@ MklGaussianParallelGenerator::MklGaussianParallelGenerator(double mean, double s
 	srand(time(NULL));
 
 	/////////////////
+
 	for (unsigned i = 0; i < threadNum; i++) {
 		MKL_UINT seed = static_cast<MKL_UINT>(rand());
 		_streamWrappers.emplace_back(VSL_BRNG_MT2203 + i, seed);
@@ -32,19 +35,20 @@ MklGaussianParallelGenerator::MklGaussianParallelGenerator(double mean, double s
 
 void MklGaussianParallelGenerator::generateNumbers()
 {
-	//// Strange that it works without shared! check this out.
-#pragma omp parallel num_threads(_threadNum) default(none)
+#pragma omp parallel num_threads(_threadNum) default(none) shared(_streamWrappers, _buffer) 
 	{
-		const std::size_t threadId = omp_get_thread_num();
-		const auto begin = _buffer.data() + _nPerThread * threadId;
-		const auto generationResult = vdRngGaussian(
-			VSL_RNG_METHOD_GAUSSIAN_ICDF, _streamWrappers.at(threadId).get(),
-			_nPerThread, begin, _mean, _stDeviation
-		);
-		if (generationResult != VSL_STATUS_OK) {
-			throw std::runtime_error{ "can't generate numbers" };
+#pragma omp for nowait schedule(guided)
+		for (std::size_t i = 0; i < _bufferSize; i += _nPerThread) {
+			const auto begin = _buffer.data() + i;
+			const auto generationResult = vdRngGaussian(
+				VSL_RNG_METHOD_GAUSSIAN_ICDF, _streamWrappers.at(omp_get_thread_num()).get(),
+				_nPerThread, begin, _mean, _stDeviation
+			);
+			if (generationResult != VSL_STATUS_OK) {
+				throw std::runtime_error{ "can't generate numbers" };
+			}
 		}
-	}	
+	}
 }
 
 const double * MklGaussianParallelGenerator::getNumbersBuffer() const

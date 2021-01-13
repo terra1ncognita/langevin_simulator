@@ -32,6 +32,8 @@
 #include <fstream>
 #include <chrono>
 
+#include<utility>
+
 using std::cout;
 using std::cerr;
 using std::endl;
@@ -527,6 +529,22 @@ void force_clamp_update(const std::unique_ptr<Task>& task, const SimulationParam
 	task->forcefeedbackBuffertoZero();
 }
 
+struct MinSec {
+	unsigned short minutes;
+	double seconds;
+
+	MinSec(double elapsed_seconds) {
+		minutes = static_cast<unsigned short>(floor(elapsed_seconds / 60.0));
+		seconds = elapsed_seconds - 60.0 * minutes;
+	}
+};
+
+std::ostream& operator<< (std::ostream& out, MinSec obj) {
+	out << obj.minutes << " min " << obj.seconds << " s";
+	return out;
+}
+
+
 
 int main(int argc, char *argv[])
 {
@@ -556,7 +574,7 @@ int main(int argc, char *argv[])
 	}
 	cout << "Loaded simultaion parameters" << endl;
 
-	MklGaussianParallelGenerator generator1(0.0, 1.0, sim.buffsize, 4);
+	MklGaussianParallelGenerator generator1(0.0, 1.0, sim.buffsize * nThreads, sim.rndThreads);
 	cout << "Created random numbers generator" << endl;
 
 	int tasksperthread = configurations.size() / nThreads;
@@ -587,10 +605,6 @@ int main(int argc, char *argv[])
 
 		for (const auto& configuration : batch) {
 			std::unique_ptr<Task> task = std::make_unique<Task>(configuration);
-
-			// task->loggingBuffertoZero();
-			// task->forcefeedbackBuffertoZero();    As long as we have buffer zeroing in Task constructor
-
 			tasks.push_back(std::move(task));
 		}
 		cout << "Created list of tasks" << endl;
@@ -605,7 +619,7 @@ int main(int argc, char *argv[])
 				const auto curr_thread = omp_get_thread_num();
 
 				for (unsigned int savedSampleIter = 0; savedSampleIter < sim.savingsPerMacrostep; savedSampleIter++) {
-					std::size_t offset = savedSampleIter * sim.iterationsbetweenSavings;
+					std::size_t offset = savedSampleIter * sim.iterationsbetweenSavings + sim.buffsize * curr_thread;
 					const double* const rnd_pointer = buffData + offset;
 
 					tasks[curr_thread]->advanceState(sim.iterationsbetweenSavings, rnd_pointer);
@@ -624,11 +638,12 @@ int main(int argc, char *argv[])
 
 				auto curr = std::chrono::system_clock::now();
 				std::chrono::duration<double> dt = (curr - start_batch);
-				double elapsed_seconds = dt.count();
-				unsigned short minutes = static_cast<unsigned short>(floor(elapsed_seconds / 60.0));
-				double seconds = elapsed_seconds - 60.0 * minutes;
 
-				cout << "Batch " << procent << "%, total " << total_percentage << "%, elapsed " << minutes << " min " << seconds << " s" << endl;
+				double elapsed_seconds = dt.count();
+				double eta_seconds = (100.0 / total_percentage - 1) * elapsed_seconds;
+				MinSec elapsed(elapsed_seconds), eta(eta_seconds);
+
+				cout << "Batch " << procent << "%, total " << total_percentage << "%, elapsed " << elapsed << ", total ETA " << eta << endl;
 			}
 		}
 

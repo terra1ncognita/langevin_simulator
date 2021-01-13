@@ -56,6 +56,10 @@ SimulationParameters assign_simulation_parameters_from_json(SimulationParameters
 	}
 	simp.trapsUpdateTest = simp.iterationsbetweenTrapsUpdate / simp.iterationsbetweenSavings;
 
+	if (!(jsonobjsimp["rndThreads"].empty())) {
+		simp.rndThreads = stoi(jsonobjsimp["rndThreads"].get<std::string>());
+	}
+
 	return simp;
 }
 

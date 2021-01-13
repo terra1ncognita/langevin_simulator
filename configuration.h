@@ -20,6 +20,8 @@ struct SimulationParameters
 	unsigned int savingsPerMacrostep = stepsperbuffer / iterationsbetweenSavings;
 	unsigned int macrostepMax = totalsavings / savingsPerMacrostep;
 	unsigned int trapsUpdateTest = iterationsbetweenTrapsUpdate / iterationsbetweenSavings;
+
+	unsigned short rndThreads = 4;
 };
 
 
