@@ -4,6 +4,24 @@
 #include <vector>
 #include <string>
 
+class LaurentPolynomial {
+public:
+	LaurentPolynomial() : n{ 0 }, m{ 0 }, coeffs{}  {}
+	LaurentPolynomial(int n, int m, std::vector<double> coeffs) : n(n), m(m), coeffs(coeffs) {}
+
+	double operator()(double x) const {
+		double res = 0.0;
+		for (int i = 0; m + i <= n; ++i) {
+			res += coeffs[i] * pow(x, i + m);
+		}
+		return res;
+	}
+private:
+	int n, m;
+	std::vector<double> coeffs;
+};
+
+
 // Global parameters of simulations -> define iterations and steps
 struct SimulationParameters
 {
@@ -81,6 +99,8 @@ struct ModelParameters
 	double MTstiffStrongBoundaryR;
 	double MTstiffStrongSlopeR;
 	double MTstiffStrongIntersectR;
+
+	LaurentPolynomial MTextension, MTcompression;
 
 	double molStiffWeakSlope;
 	double molStiffBoundary;

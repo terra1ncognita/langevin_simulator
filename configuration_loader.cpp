@@ -271,6 +271,29 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	}
 
 
+	if (!(jsonobj["ModelParameters"]["MTextensionN"].empty())) {
+		int n = stoi(jsonobj["ModelParameters"]["MTextensionN"].get<std::string>());
+		int m = stoi(jsonobj["ModelParameters"]["MTextensionM"].get<std::string>());
+
+		std::vector<double> coeffs;
+		for (auto &s : jsonobj["ModelParameters"]["MTextensionCoeffs"].get<std::vector<std::string>>()) {
+			coeffs.emplace_back(stod(s));
+		}
+		conf.modelParameters.MTextension = LaurentPolynomial(n, m, coeffs);
+	}
+
+	if (!(jsonobj["ModelParameters"]["MTcompressionN"].empty())) {
+		int n = stoi(jsonobj["ModelParameters"]["MTcompressionN"].get<std::string>());
+		int m = stoi(jsonobj["ModelParameters"]["MTcompressionM"].get<std::string>());
+
+		std::vector<double> coeffs;
+		for (auto &s : jsonobj["ModelParameters"]["MTcompressionCoeffs"].get<std::vector<std::string>>()) {
+			coeffs.emplace_back(stod(s));
+		}
+		conf.modelParameters.MTcompression = LaurentPolynomial(n, m, coeffs);
+	}
+
+
 	//// Assign Initial Conditions from json
 	if (!(jsonobj["InitialConditions"]["xMol"].empty())) {
 		conf.initialConditions.initialState.xMol = stod(jsonobj["InitialConditions"]["xMol"].get<std::string>());

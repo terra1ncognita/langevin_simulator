@@ -267,46 +267,14 @@ public:
 	}
 
 	double calculateMTspringForce(double extensionInput, char side) {
-		double extension = fabs(extensionInput)*2.0;
-		int sign = (extensionInput > 0) - (extensionInput < 0);
+		double extension = fabs(extensionInput);
 
-		if (side == 'L')
-		{
-			if (extension <= _mP.MTstiffWeakBoundaryL)
-			{
-				return _mP.MTstiffWeakSlopeL*extension*sign;
-			}
-			else
-			{
-				if (extension > _mP.MTstiffWeakBoundaryL && extension < _mP.MTstiffStrongBoundaryL)
-				{
-					return (_mP.MTstiffParabolicAL*pow(extension, 2) + _mP.MTstiffParabolicBL*extension + _mP.MTstiffParabolicCL)*sign;
-				}
-				else
-				{
-					return (_mP.MTstiffStrongSlopeL*extension + _mP.MTstiffStrongIntersectL)*sign;
-				}
-			}
+		if (extensionInput > 0.0) {
+			return _mP.MTextension(extension);
 		}
-		if (side == 'R')
-		{
-			if (extension <= _mP.MTstiffWeakBoundaryR)
-			{
-				return _mP.MTstiffWeakSlopeR*extension*sign;
-			}
-			else
-			{
-				if (extension > _mP.MTstiffWeakBoundaryR && extension < _mP.MTstiffStrongBoundaryR)
-				{
-					return (_mP.MTstiffParabolicAR*pow(extension, 2) + _mP.MTstiffParabolicBR*extension + _mP.MTstiffParabolicCR)*sign;
-				}
-				else
-				{
-					return (_mP.MTstiffStrongSlopeR*extension + _mP.MTstiffStrongIntersectR)*sign;
-				}
-			}
+		else {
+			return -_mP.MTcompression(extension);
 		}
-
 	}
 
 	void log_well_torque(std::string path_prefix) {
