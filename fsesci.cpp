@@ -577,6 +577,10 @@ int main(int argc, char *argv[])
 		}
 		cout << "Created list of tasks" << endl;
 
+
+		cout << tasks[0]->_mP.MTcompression(1.0) << endl;
+		return 0;
+
 		cout << "Start computations..." << endl;
 		for (unsigned int macrostep = 0; macrostep < sim.macrostepMax; macrostep++) {
 			generator1.generateNumbers();

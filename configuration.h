@@ -6,19 +6,50 @@
 
 class LaurentPolynomial {
 public:
-	LaurentPolynomial() : n{ 0 }, m{ 0 }, coeffs{}  {}
-	LaurentPolynomial(int n, int m, std::vector<double> coeffs) : n(n), m(m), coeffs(coeffs) {}
+	LaurentPolynomial() : n{ 0 }, m{ 0 }, pole{ 0 }, coeffs{}  {}
+	LaurentPolynomial(int n, int m, double pole, std::vector<double> coeffs) : n(n), m(m), pole(pole), coeffs(coeffs) {
+		if (n - m + 1 != coeffs.size()) {
+			throw std::runtime_error("n, m and coeff size are not in agreement!");
+		}
+	}
 
 	double operator()(double x) const {
-		double res = 0.0;
-		for (int i = 0; m + i <= n; ++i) {
+		double res = coeffs[-m];
+		for (int i = 0; i < - m; ++i) {
+			res += coeffs[i] * pow(x - pole, i + m);
+		}
+		for (int i = 1-m; i < n-m+1; ++i) {
 			res += coeffs[i] * pow(x, i + m);
 		}
 		return res;
 	}
 private:
 	int n, m;
+	double pole;
 	std::vector<double> coeffs;
+};
+
+class RationalFunction {
+public:
+	RationalFunction() : p{}, q{} {}
+	RationalFunction(std::vector<double> pp, std::vector<double> qq) : p{ pp }, q{ qq } {}
+
+	static double evaluate_polynomial(const std::vector<double> &coeffs, double x) {
+		double curr_pow = 1.0, res = 0.0;
+		for (int i = 0; i < coeffs.size(); ++i) {
+			res += curr_pow * coeffs[i];
+			curr_pow *= x;
+		}
+		return res;
+	}
+
+	double operator() (double x) const {
+		double num = evaluate_polynomial(p, x);
+		double denom = evaluate_polynomial(q, x);
+		return num / denom;
+	}
+private:
+	std::vector<double> p, q;
 };
 
 
@@ -100,7 +131,8 @@ struct ModelParameters
 	double MTstiffStrongSlopeR;
 	double MTstiffStrongIntersectR;
 
-	LaurentPolynomial MTextension, MTcompression;
+	LaurentPolynomial MTextension;
+	RationalFunction MTcompression;
 
 	double molStiffWeakSlope;
 	double molStiffBoundary;
