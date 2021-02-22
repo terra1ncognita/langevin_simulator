@@ -42,12 +42,12 @@ SimulationParameters assign_simulation_parameters_from_json(SimulationParameters
 	}
 
 	if (simp.stepsperbuffer % simp.iterationsbetweenSavings != 0) {
-		throw std::runtime_error{ "Please check that totalsavings/stepsperbuffer is integer" };
+		throw std::runtime_error{ "Please check that stepsperbuffer/iterationsbetweenSavings is integer" };
 	}
 	simp.savingsPerMacrostep = simp.stepsperbuffer / simp.iterationsbetweenSavings;
 
 	if (simp.totalsavings % simp.savingsPerMacrostep != 0) {
-		throw std::runtime_error{ "Please check that totalsavings/stepsperbuffer is integer" };
+		throw std::runtime_error{ "Please check that totalsavings/savingsPerMacrostep is integer" };
 	}
 	simp.macrostepMax = simp.totalsavings / simp.savingsPerMacrostep;
 
