@@ -60,6 +60,14 @@ SimulationParameters assign_simulation_parameters_from_json(SimulationParameters
 		simp.rndThreads = stoi(jsonobjsimp["rndThreads"].get<std::string>());
 	}
 
+	if (!(jsonobjsimp["freeMotionTime"].empty())) {
+		simp.freeMotionTime = stod(jsonobjsimp["freeMotionTime"].get<std::string>());
+	}
+	if (simp.freeMotionTime > simp.simulationTime) {
+		throw std::runtime_error{ "free motion time is larger than total simulation time" };
+	}
+	simp.macrostepsFree = static_cast<unsigned int>(ceil(simp.freeMotionTime / simp.iterationsbetweenSavings / simp.stepsperbuffer));
+
 	return simp;
 }
 
@@ -296,9 +304,6 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 
 
 	//// Assign Initial Conditions from json
-	if (!(jsonobj["InitialConditions"]["xMol"].empty())) {
-		conf.initialConditions.initialState.xMol = stod(jsonobj["InitialConditions"]["xMol"].get<std::string>());
-	}
 	if (!(jsonobj["InitialConditions"]["xMT"].empty())) {
 		conf.initialConditions.initialState.xMT = stod(jsonobj["InitialConditions"]["xMT"].get<std::string>());
 	}
@@ -326,9 +331,6 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 		conf.currentState.xTrapr = stod(jsonobj["InitialConditions"]["xTrapr"].get<std::string>());
 	}
 
-	if (!(jsonobj["InitialConditions"]["xMol"].empty())) {
-		conf.currentState.xMol = stod(jsonobj["InitialConditions"]["xMol"].get<std::string>());
-	}
 	if (!(jsonobj["InitialConditions"]["xMT"].empty())) {
 		conf.currentState.xMT = stod(jsonobj["InitialConditions"]["xMT"].get<std::string>());
 	}
@@ -337,10 +339,6 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	}
 	if (!(jsonobj["InitialConditions"]["xBeadr"].empty())) {
 		conf.currentState.xBeadr = stod(jsonobj["InitialConditions"]["xBeadr"].get<std::string>());
-	}
-	if (!(jsonobj["InitialConditions"]["phi"].empty())) {
-		conf.currentState.phi = stod(jsonobj["InitialConditions"]["phi"].get<std::string>());
-		conf.initialConditions.initialState.phi = stod(jsonobj["InitialConditions"]["phi"].get<std::string>());
 	}
 
 	//TODO: generalize to arbitrary Markov chain

@@ -70,6 +70,9 @@ struct SimulationParameters
 	unsigned int macrostepMax = totalsavings / savingsPerMacrostep;
 	unsigned int trapsUpdateTest = iterationsbetweenTrapsUpdate / iterationsbetweenSavings;
 
+	double freeMotionTime = 5e-3;
+	unsigned int macrostepsFree = static_cast<unsigned int>(ceil(freeMotionTime / iterationsbetweenSavings / stepsperbuffer));
+
 	unsigned short rndThreads = 4;
 };
 
@@ -166,7 +169,6 @@ struct ModelParameters
 
 struct SystemState
 {
-	double xMol;
 	double xMT;
 	double xBeadl;
 	double xBeadr;
@@ -174,19 +176,18 @@ struct SystemState
 	double xTrapr; 
 	double Time = 0.0;
 	double direction = 1.0;
-	double logpotentialForce;
+
+	bool instaBindingDynamics = false;
+	bool isFree = true;
+	double xMTbinding;
 
 	double binding = 0.0;
 	double currentWell = 0.0;
 
-	double phi = 0.0;
-	double potTorque = 0.0;
-	double deltaG = 0.0;
-
+	
 	//#pragma omp declare simd
 	template <typename F>
 	static void iterateFields(F&& f) {
-		f(&SystemState::xMol, "xMol");
 		f(&SystemState::xMT, "xMT");
 		f(&SystemState::xBeadl, "xBeadl");
 		f(&SystemState::xBeadr, "xBeadr");
@@ -195,12 +196,8 @@ struct SystemState
 		f(&SystemState::xTrapr, "xTrapr");
 		f(&SystemState::Time, "Time");
 		f(&SystemState::direction, "direction");
-		f(&SystemState::logpotentialForce, "logpotentialForce");
 
 		f(&SystemState::binding, "binding");
-		f(&SystemState::phi, "phi");
-		f(&SystemState::potTorque, "potTorque");
-		f(&SystemState::deltaG, "deltaG");
 	}
 };
 
