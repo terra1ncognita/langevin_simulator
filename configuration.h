@@ -3,6 +3,7 @@
 #include <omp.h>
 #include <vector>
 #include <string>
+#include <iostream>
 
 class LaurentPolynomial {
 public:
@@ -71,10 +72,13 @@ struct SimulationParameters
 	unsigned int trapsUpdateTest = iterationsbetweenTrapsUpdate / iterationsbetweenSavings;
 
 	double freeMotionTime = 5e-3;
-	unsigned int macrostepsFree = static_cast<unsigned int>(ceil(freeMotionTime / expTime / iterationsbetweenSavings / stepsperbuffer));
+	unsigned int macrostepsFree = static_cast<unsigned int>(ceil(freeMotionTime / expTime / iterationsbetweenSavings / savingsPerMacrostep));
 
 	unsigned short rndThreads = 4;
 };
+
+
+std::ostream& operator<< (std::ostream &out, const SimulationParameters& sp);
 
 
 // Classes for objects that store simulation configs: LoggerParameters, ModelParameters, InitialConditions

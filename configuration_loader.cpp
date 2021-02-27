@@ -30,9 +30,10 @@ SimulationParameters assign_simulation_parameters_from_json(SimulationParameters
 	if (!(jsonobjsimp["buffsize"].empty())) {
 		simp.buffsize = static_cast<std::size_t>(stoi(jsonobjsimp["buffsize"].get<std::string>()));
 	}
-	if (!(jsonobjsimp["randomsPeriter"].empty())) {
-		simp.randomsPeriter = stoi(jsonobjsimp["randomsPeriter"].get<std::string>());
-	}
+	//if (!(jsonobjsimp["randomsPeriter"].empty())) {
+	//	simp.randomsPeriter = stoi(jsonobjsimp["randomsPeriter"].get<std::string>());
+	//}
+	simp.randomsPeriter = 3;
 
 	if (!(jsonobjsimp["stepsperbuffer"].empty())) {
 		simp.stepsperbuffer = stoi(jsonobjsimp["stepsperbuffer"].get<std::string>());
@@ -66,7 +67,7 @@ SimulationParameters assign_simulation_parameters_from_json(SimulationParameters
 	if (simp.freeMotionTime > simp.simulationTime) {
 		throw std::runtime_error{ "free motion time is larger than total simulation time" };
 	}
-	simp.macrostepsFree = static_cast<unsigned int>(ceil(simp.freeMotionTime / simp.expTime / simp.iterationsbetweenSavings / simp.stepsperbuffer));
+	simp.macrostepsFree = static_cast<unsigned int>(ceil(simp.freeMotionTime / simp.expTime / simp.iterationsbetweenSavings / simp.savingsPerMacrostep));
 
 	return simp;
 }
