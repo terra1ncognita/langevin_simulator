@@ -71,7 +71,7 @@ struct SimulationParameters
 	unsigned int trapsUpdateTest = iterationsbetweenTrapsUpdate / iterationsbetweenSavings;
 
 	double freeMotionTime = 5e-3;
-	unsigned int macrostepsFree = static_cast<unsigned int>(ceil(freeMotionTime / iterationsbetweenSavings / stepsperbuffer));
+	unsigned int macrostepsFree = static_cast<unsigned int>(ceil(freeMotionTime / expTime / iterationsbetweenSavings / stepsperbuffer));
 
 	unsigned short rndThreads = 4;
 };
