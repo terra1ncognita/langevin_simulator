@@ -174,7 +174,7 @@ public:
 			double FmtL = calculateMTspringForce(_state.xMT - _state.xBeadl - _mP.MTlength / 2.0, 'L');
 
 			double molSpringForce = 0.0;
-			if (_state.isFree) {
+			if (!_state.isFree) {
 				molSpringForce = calculateMolspringForce(_state.xMT - _state.xMTbinding);
 			}
 
@@ -296,8 +296,6 @@ std::ostream& operator<< (std::ostream& out, MinSec obj) {
 	out << obj.minutes << " min " << obj.seconds << " s";
 	return out;
 }
-
-
 
 int main(int argc, char *argv[])
 {
