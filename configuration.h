@@ -36,10 +36,9 @@ public:
 	RationalFunction(std::vector<double> pp, std::vector<double> qq) : p{ pp }, q{ qq } {}
 
 	static double evaluate_polynomial(const std::vector<double> &coeffs, double x) {
-		double curr_pow = 1.0, res = 0.0;
-		for (int i = 0; i < coeffs.size(); ++i) {
-			res += curr_pow * coeffs[i];
-			curr_pow *= x;
+		double res = coeffs.back();
+		for (int i = coeffs.size() - 2; i >= 0; --i) {
+			res = res * x + coeffs[i];
 		}
 		return res;
 	}
