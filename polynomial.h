@@ -136,10 +136,7 @@ public:
 		right_boundary { points.back() },
 		n { points.size() } 
 	{
-		std::cout << n << " " << left_boundary << " " << right_boundary << std::endl;
-
 		coef.reserve(n - 1);
-
 		for (size_t i = 0; i < 4; ++i) {
 			std::string i_str = std::to_string(i);
 			if (jsObj[i_str].size() != n - 1) {
@@ -147,11 +144,9 @@ public:
 				throw std::runtime_error(err_msg);
 			}
 			for (int j = 0; j < n-1; ++j) {
-				std::cout << jsObj[i_str][j] << std::endl;
 				coef[j][i] = jsObj[i_str][j];
 			}
 		}
-		std::cout << "Zero coeff " << coef[0] << std::endl;
 	}
 
 	int find_domain(double x) const {
