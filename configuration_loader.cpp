@@ -280,7 +280,7 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	}
 
 
-	if (!(jsonobj["ModelParameters"]["MTextensionN"].empty())) {
+	/*if (!(jsonobj["ModelParameters"]["MTextensionN"].empty())) {
 		int n = stoi(jsonobj["ModelParameters"]["MTextensionN"].get<std::string>());
 		int m = stoi(jsonobj["ModelParameters"]["MTextensionM"].get<std::string>());
 		double pole = stod(jsonobj["ModelParameters"]["MTextensionPole"].get<std::string>());
@@ -301,7 +301,9 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 			denominator.emplace_back(stod(s));
 		}
 		conf.modelParameters.MTcompression = RationalFunction(numerator, denominator);
-	}
+	}*/
+
+	conf.modelParameters.fec = ForceExtensionCurve(jsonobj["ModelParameters"], "ForceExtensionCurve");
 
 
 	//// Assign Initial Conditions from json

@@ -27,6 +27,7 @@
 #include "library.h"
 #include "configuration.h"
 #include "configuration_loader.h"
+#include "polynomial.h"
 #include "mkl_gaussian_parallel_generator.h"
 
 #include <fstream>
@@ -146,17 +147,6 @@ public:
 
 	}
 
-	double calculateMTspringForce(double extensionInput, char side) {
-		double extension = fabs(extensionInput);
-
-		if (extensionInput > 0.0) {
-			return _mP.MTextension(extension);
-		}
-		else {
-			return -_mP.MTcompression(extension);
-		}
-	}
-
 
 	void advanceState(int nSteps, const double* const rndNumbersPointer) {
 		const double* rndNumbers = rndNumbersPointer;
@@ -170,8 +160,8 @@ public:
 			double rnd_xBeadl = takeRandomNumber();
 			double rnd_xBeadr = takeRandomNumber();
 
-			double FmtR = calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength / 2.0, 'R');
-			double FmtL = calculateMTspringForce(_state.xMT - _state.xBeadl - _mP.MTlength / 2.0, 'L');
+			double FmtR = _mP.fec(_state.xBeadr - _state.xMT - _mP.MTlength / 2.0); // Right
+			double FmtL = _mP.fec(_state.xMT - _state.xBeadl - _mP.MTlength / 2.0); // Left
 
 			double molSpringForce = 0.0;
 			if (!_state.isFree) {
@@ -297,8 +287,29 @@ std::ostream& operator<< (std::ostream& out, MinSec obj) {
 	return out;
 }
 
+
 int main(int argc, char *argv[])
 {
+	std::ifstream in("D:\\test.json");
+	json js;
+	in >> js;
+	CubicSpline cs(js);
+
+	cout << cs.find_domain(-5.4) << endl;
+	cout << cs.find_domain(-5.29) << endl;
+	cout << cs.find_domain(0.169) << endl;
+	cout << cs.find_domain(0.2) << endl;
+
+	cout << "Boundaries " << cs.left_boundary << " " << cs.right_boundary << endl;
+
+	cout << "Evaluate" << endl;
+
+	for (double x = cs.left_boundary; x <= cs.right_boundary; x += 0.01) {
+		cout << x << " " << cs(x) << endl;
+	}
+
+	return 0;
+
 	auto start_main = std::chrono::system_clock::now();
 
 	if (cmdOptionExists(argv, argv + argc, "-h"))
@@ -359,6 +370,13 @@ int main(int argc, char *argv[])
 			tasks.push_back(std::move(task));
 		}
 		cout << "Created list of tasks" << endl;
+
+		ForceExtensionCurve ff = tasks[0]->_mP.fec;
+
+		for (double x = ff.left_pole(); x < ff.right_pole(); x += 0.001) {
+			cout << x << " " << ff(x) << endl;
+		}
+		return 0;
 
 		cout << "Start computations..." << endl;
 		for (unsigned int macrostep = 0; macrostep < sim.macrostepMax; macrostep++) {

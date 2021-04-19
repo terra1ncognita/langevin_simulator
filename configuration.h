@@ -4,53 +4,63 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include "json.hpp"
+#include "polynomial.h"
 
-class LaurentPolynomial {
+using json = nlohmann::json;
+
+class ForceExtensionCurve {
 public:
-	LaurentPolynomial() : n{ 0 }, m{ 0 }, pole{ 0 }, coeffs{}  {}
-	LaurentPolynomial(int n, int m, double pole, std::vector<double> coeffs) : n(n), m(m), pole(pole), coeffs(coeffs) {
-		if (n - m + 1 != coeffs.size()) {
-			throw std::runtime_error("n, m and coeff size are not in agreement!");
-		}
+
+	ForceExtensionCurve() {};
+
+	ForceExtensionCurve(LaurentPolynomial left, LaurentPolynomial right, double inflection_point) 
+		: left{ left }, right{ right }, inflection_point{inflection_point} 
+	{ check_validity(); }
+
+	ForceExtensionCurve(const json& jsObj, std::string key) {
+		check_key_json(jsObj, key);
+
+		left = LaurentPolynomial(jsObj[key], "left");
+		right = LaurentPolynomial(jsObj[key], "right");
+		inflection_point = static_cast<double>(jsObj[key]["inflection_point"]);
+
+		check_validity();
 	}
 
-	double operator()(double x) const {
-		double res = coeffs[-m];
-		for (int i = 0; i < - m; ++i) {
-			res += coeffs[i] * pow(x - pole, i + m);
+	double operator() (double y) const {
+		double x = y - inflection_point;
+		if (x < left.pole() || x > right.pole()) {
+			std::stringstream ss;
+			ss << "Displacement " << x << " is out of boundaries [" << left.pole() << ", " << right.pole() << "]";
+			throw std::runtime_error(ss.str());
 		}
-		for (int i = 1-m; i < n-m+1; ++i) {
-			res += coeffs[i] * pow(x, i + m);
+		if (x < 0) {
+			return left(x);
 		}
-		return res;
+		return right(x);
 	}
+
+	double left_pole() const {
+		return left.pole();
+	}
+
+	double right_pole() const {
+		return right.pole();
+	}
+
 private:
-	int n, m;
-	double pole;
-	std::vector<double> coeffs;
-};
+	double inflection_point;
+	LaurentPolynomial left, right;
 
-class RationalFunction {
-public:
-	RationalFunction() : p{}, q{} {}
-	RationalFunction(std::vector<double> pp, std::vector<double> qq) : p{ pp }, q{ qq } {}
-
-	static double evaluate_polynomial(const std::vector<double> &coeffs, double x) {
-		double curr_pow = 1.0, res = 0.0;
-		for (int i = 0; i < coeffs.size(); ++i) {
-			res += curr_pow * coeffs[i];
-			curr_pow *= x;
+	void check_validity() {
+		if (left.pole() >= right.pole()) {
+			throw std::runtime_error("Left pole is greater than right pole");
 		}
-		return res;
+		if (inflection_point >= right.pole() || inflection_point <= left.pole()) {
+			throw std::runtime_error("Inflection point is not between poles");
+		}
 	}
-
-	double operator() (double x) const {
-		double num = evaluate_polynomial(p, x);
-		double denom = evaluate_polynomial(q, x);
-		return num / denom;
-	}
-private:
-	std::vector<double> p, q;
 };
 
 
@@ -138,8 +148,7 @@ struct ModelParameters
 	double MTstiffStrongSlopeR;
 	double MTstiffStrongIntersectR;
 
-	LaurentPolynomial MTextension;
-	RationalFunction MTcompression;
+	ForceExtensionCurve fec;
 
 	double molStiffWeakSlope;
 	double molStiffBoundary;
