@@ -9,14 +9,6 @@ using json = nlohmann::json;
 
 void check_key_json(const json& jsObj, std::string key);
 
-//template<typename T, std::size_t N>
-//std::ostream& operator<< (std::ostream& out, const std::array<T, N>& vec);
-//
-//template<typename T>
-//std::ostream& operator<< (std::ostream& out, const std::vector<T>& vec);
-
-
-
 template<typename T>
 std::ostream& operator<< (std::ostream& out, const std::vector<T>& vec) {
 	for (auto c : vec) {
@@ -31,7 +23,6 @@ std::ostream& operator<< (std::ostream& out, const std::array<T, N>& vec) {
 	for (size_t i = 0; i < vec.size(); ++i) {
 		out << vec[i] << " ";
 	}
-	//std::copy(vec.cbegin(), vec.cend(), std::ostream_iterator<T>(out, " "));
 	return out;
 }
 
