@@ -9,16 +9,16 @@
 
 using json = nlohmann::json;
 
-class ForceExtensionCurve {
+class FECLaurentPoly {
 public:
 
-	ForceExtensionCurve() {};
+	FECLaurentPoly() {};
 
-	ForceExtensionCurve(LaurentPolynomial left, LaurentPolynomial right, double inflection_point) 
+	FECLaurentPoly(LaurentPolynomial left, LaurentPolynomial right, double inflection_point) 
 		: left{ left }, right{ right }, inflection_point{inflection_point} 
 	{ check_validity(); }
 
-	ForceExtensionCurve(const json& jsObj, std::string key) {
+	FECLaurentPoly(const json& jsObj, std::string key) {
 		check_key_json(jsObj, key);
 
 		left = LaurentPolynomial(jsObj[key], "left");
@@ -148,7 +148,9 @@ struct ModelParameters
 	double MTstiffStrongSlopeR;
 	double MTstiffStrongIntersectR;
 
-	ForceExtensionCurve fec;
+	//FECLaurentPoly fec;
+
+	CubicSpline fec;
 
 	double molStiffWeakSlope;
 	double molStiffBoundary;

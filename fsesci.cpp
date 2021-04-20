@@ -290,26 +290,6 @@ std::ostream& operator<< (std::ostream& out, MinSec obj) {
 
 int main(int argc, char *argv[])
 {
-	std::ifstream in("D:\\test.json");
-	json js;
-	in >> js;
-	CubicSpline cs(js);
-
-	cout << cs.find_domain(-5.4) << endl;
-	cout << cs.find_domain(-5.29) << endl;
-	cout << cs.find_domain(0.169) << endl;
-	cout << cs.find_domain(0.2) << endl;
-
-	cout << "Boundaries " << cs.left_boundary << " " << cs.right_boundary << endl;
-
-	cout << "Evaluate" << endl;
-
-	for (double x = cs.left_boundary; x <= cs.right_boundary; x += 0.01) {
-		cout << x << " " << cs(x) << endl;
-	}
-
-	return 0;
-
 	auto start_main = std::chrono::system_clock::now();
 
 	if (cmdOptionExists(argv, argv + argc, "-h"))
@@ -370,13 +350,6 @@ int main(int argc, char *argv[])
 			tasks.push_back(std::move(task));
 		}
 		cout << "Created list of tasks" << endl;
-
-		ForceExtensionCurve ff = tasks[0]->_mP.fec;
-
-		for (double x = ff.left_pole(); x < ff.right_pole(); x += 0.001) {
-			cout << x << " " << ff(x) << endl;
-		}
-		return 0;
 
 		cout << "Start computations..." << endl;
 		for (unsigned int macrostep = 0; macrostep < sim.macrostepMax; macrostep++) {

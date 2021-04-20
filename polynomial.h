@@ -28,7 +28,6 @@ std::ostream& operator<< (std::ostream& out, const std::vector<T>& vec) {
 
 template<typename T, std::size_t N>
 std::ostream& operator<< (std::ostream& out, const std::array<T, N>& vec) {
-	out << vec.size() << " " << vec.at(0) << std::endl;
 	for (size_t i = 0; i < vec.size(); ++i) {
 		out << vec[i] << " ";
 	}
@@ -50,7 +49,7 @@ public:
 		n = static_cast<int>(jsObj[key]["n"]);
 		m = static_cast<int>(jsObj[key]["m"]);
 		pole_ = static_cast<double>(jsObj[key]["pole"]);
-		coeffs = static_cast<std::vector<double>>(jsObj[key]["coeffs"]);
+		coeffs = jsObj[key]["coeffs"].get<std::vector<double>>();
 
 		check_validity();
 	}
@@ -124,11 +123,14 @@ public:
 	CubicSpline() : n{ 0 }, left_boundary{ 0.0 }, right_boundary{ 0.0 } {};
 
 	static std::vector<double> _extract_sorted_points(const json& jsObj) {
-		std::cout << "in init" << std::endl;
-		std::vector<double> _points(jsObj["x"]);
+		std::vector<double> _points = jsObj["x"].get<std::vector<double>>();
 		std::sort(_points.begin(), _points.end());
 		return _points;
 	}
+
+	CubicSpline(const std::vector<double> points, const int n, std::vector<std::array<double, 4>> _coef, const double left_boundary, const double right_boundary
+	) : points{ points }, n{ n }, left_boundary{ left_boundary }, right_boundary{ right_boundary }, coef{_coef} {}
+
 
 	CubicSpline(const json& jsObj) :
 		points{ CubicSpline::_extract_sorted_points(jsObj) },
@@ -136,20 +138,21 @@ public:
 		right_boundary { points.back() },
 		n { points.size() } 
 	{
-		coef.reserve(n - 1);
+		coef.resize(n - 1);
 		for (size_t i = 0; i < 4; ++i) {
 			std::string i_str = std::to_string(i);
 			if (jsObj[i_str].size() != n - 1) {
 				std::string err_msg = "coeff size is not equal to n-1";
 				throw std::runtime_error(err_msg);
 			}
+
 			for (int j = 0; j < n-1; ++j) {
 				coef[j][i] = jsObj[i_str][j];
 			}
 		}
 	}
 
-	int find_domain(double x) const {
+	std::size_t find_domain(double x) const {
 		if (x < points[0]){
 			return -1;
 		}
@@ -165,7 +168,7 @@ public:
 	}
 
 	double operator()(double x) const {
-		int pos = find_domain(x);
+		std::size_t pos = find_domain(x);
 		if (pos < 0) {
 			std::string err_msg = "out of boundaries!";
 			throw std::runtime_error(err_msg);
@@ -173,11 +176,99 @@ public:
 		return evaluate_polynomial(coef[pos], x - points[pos]);
 	}
 
-	
+	std::ostream& print_points(std::ostream &out) const {
+		out << points;
+		return out;
+	}
+
+	std::ostream& print_coef(std::ostream &out) const {
+		for (const auto & arr : coef) {
+			out << arr << std::endl;
+		}
+		return out;
+	}
+
+
+	//
+	//CubicSpline & operator=(const CubicSpline& other){
+	//	std::cout << "in copy assignment" << std::endl;
+
+	//	if (this == &other) {
+	//		return *this;
+	//	}
+
+	//	std::cout << "Other coef size " << other.coef.size() << std::endl;
+	//	std::cout << "Other coef " << other.coef << std::endl;
+
+	//	this->points = other.points;
+	//	this->n = other.n;
+	//	this->left_boundary = other.left_boundary;
+	//	this->right_boundary = other.right_boundary;
+
+	//	coef.reserve(other.coef.size());
+
+	//	for (auto i = 0; i < other.coef.size(); i++) {
+	//		//std::unique_ptr<std::array<double, 4>> task = std::make_unique<std::array<double, 4>>(arr);
+	//		//coef.push_back(*std::move(task));
+	//		std::copy(other.coef[i].begin(), other.coef[i].end(), this->coef[i].begin());
+
+	//		std::cout << this->coef[i] << std::endl;
+	//	}
+
+	//	std::cout << "exit copy assignment" << std::endl;
+
+	//	return *this;
+	//}
+
+	//CubicSpline(CubicSpline&& other) :
+	//	n{ other.n },
+	//	left_boundary{ other.left_boundary },
+	//	right_boundary{ other.right_boundary },
+	//	points{other.points}
+	//{
+	//	std::cout << "in move constructor" << std::endl;
+	//	coef.reserve(other.coef.size());
+
+	//	for (auto i = 0; i < other.coef.size(); i++) {
+	//		//std::unique_ptr<std::array<double, 4>> task = std::make_unique<std::array<double, 4>>(arr);
+	//		//coef.push_back(*std::move(task));
+	//		coef[i] = std::move(other.coef[i]);
+	//	}
+
+	//	other.coef = std::vector<std::array<double, 4>>();
+	//	other.points = std::vector<double>();
+	//	other.n = 0;
+	//	other.left_boundary = 0;
+	//	other.right_boundary = 0;
+
+	//	std::cout << "exit move constructor" << std::endl;
+	//}
+
+	//CubicSpline(const CubicSpline& other) :
+	//	n{ other.n },
+	//	left_boundary{ other.left_boundary },
+	//	right_boundary{ other.right_boundary },
+	//	points{other.points}
+	//{
+	//	std::cout << "in copy constructor" << std::endl;
+	//	coef.reserve(other.coef.size());
+
+	//	for (auto i = 0; i < other.coef.size(); i++) {
+	//		//std::unique_ptr<std::array<double, 4>> task = std::make_unique<std::array<double, 4>>(arr);
+	//		//coef.push_back(*std::move(task));
+	//		std::copy(other.coef[i].begin(), other.coef[i].end(), coef[i].begin());
+
+	//		std::cout << coef[i] << std::endl;
+	//	}
+
+	//	std::cout << "exit copy constructor" << std::endl;
+	//}
+
+
 private:
-	const std::vector<double> points;
-	const int n;
-	std::vector<std::array<double, 4>> coef;
+	std::vector<double> points;
 public:
-	const double left_boundary, right_boundary;
+	double left_boundary, right_boundary;
+	int n;
+	std::vector<std::array<double, 4>> coef;
 };

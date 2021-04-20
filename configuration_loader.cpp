@@ -303,7 +303,21 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 		conf.modelParameters.MTcompression = RationalFunction(numerator, denominator);
 	}*/
 
-	conf.modelParameters.fec = ForceExtensionCurve(jsonobj["ModelParameters"], "ForceExtensionCurve");
+	std::string fec_path = jsonobj["ModelParameters"]["ForceExtensionCurvePath"];
+	std::ifstream in_fec(fec_path);
+
+	json json_fec;
+	in_fec >> json_fec;
+	in_fec.close();
+
+	std::cout << "Loaded force-extension with model " << json_fec["model"] << " and meta set to " << json_fec["meta"] << std::endl;
+	if (!(json_fec["pchip"].empty())) {
+		conf.modelParameters.fec = { json_fec["pchip"] };
+	}
+	else {
+		auto err_msg = "Unable to find pchip record in force-extension json";
+		throw std::runtime_error(err_msg);
+	}
 
 
 	//// Assign Initial Conditions from json
