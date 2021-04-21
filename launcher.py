@@ -133,6 +133,14 @@ def assign_initial_conditions(config: Dict[str, Any]) -> None:
             "Configuration->InitialConditions->phi": str(np.pi / 3),
         },
     )
+    
+    
+def flatten(x):
+    for el in x:
+        if isinstance(el, Iterable) and not isinstance(el, (str, dict, bytes)):
+            yield from flatten(el)
+        else:
+            yield el
 
 
 def create_configs(
@@ -154,12 +162,14 @@ def create_configs(
         task = json.load(f)
     with open(parent_config_filename) as f:
         parent_config = json.load(f)
-
+    
+    iterations = int(task["Task"]['Iterations'])
+    
     count = get_starting_number_from_file(counter_file) - 1
     cross_scan_gen = (cross_scan_dict for cross_scan_dict in task["Task"]["CrossScan"] if cross_scan_dict)
     for cross_scan_dict in cross_scan_gen:
         patches = (dict(zip(cross_scan_dict.keys(), comb)) for comb in it.product(*cross_scan_dict.values()))
-        for patch in patches:
+        for patch in flatten(it.repeat(x, iterations) for x in patches):
             count += 1
             config_filename = f"{count}.json"
             save_folder = os.path.join(results_folder, f"{count}_{machine_id}/")
