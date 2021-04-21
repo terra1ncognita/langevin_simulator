@@ -4,7 +4,7 @@ import json
 import os
 from optparse import OptionParser, Values
 from socket import gethostname
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Iterable
 
 import numpy as np
 from scipy.optimize import fsolve
