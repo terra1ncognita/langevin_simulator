@@ -81,9 +81,6 @@ struct SimulationParameters
 	unsigned int macrostepMax = totalsavings / savingsPerMacrostep;
 	unsigned int trapsUpdateTest = iterationsbetweenTrapsUpdate / iterationsbetweenSavings;
 
-	unsigned int delayTicks = 0;
-	bool qpdAverage = true;
-
 	double freeMotionTime = 5e-3;
 	unsigned int macrostepsFree = static_cast<unsigned int>(ceil(freeMotionTime / expTime / iterationsbetweenSavings / savingsPerMacrostep));
 
@@ -183,6 +180,9 @@ struct ModelParameters
 
 	bool bindingDynamics = true;
 	double B = 0.0;
+
+	unsigned int delayTicks = 0;
+	bool qpdAverage = true;
 };
 
 struct SystemState

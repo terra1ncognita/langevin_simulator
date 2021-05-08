@@ -20,13 +20,6 @@ SimulationParameters assign_simulation_parameters_from_json(SimulationParameters
 		simp.iterationsbetweenTrapsUpdate = stoi(jsonobjsimp["iterationsbetweenTrapsUpdate"].get<std::string>());
 	}
 
-	if (!(jsonobjsimp["delayTicks"].empty())) {
-		simp.delayTicks = stoi(jsonobjsimp["delayTicks"].get<std::string>());
-	}
-	if (!(jsonobjsimp["qpdAverage"].empty())) {
-		simp.qpdAverage = bool(stoi(jsonobjsimp["qpdAverage"].get<std::string>()));
-	}
-
 	if (!(jsonobjsimp["totalsavings"].empty())) {
 		simp.totalsavings = stoi(jsonobjsimp["totalsavings"].get<std::string>());
 	}
@@ -229,6 +222,15 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	if (!(jsonobj["ModelParameters"]["molstiff"].empty())) {
 		conf.modelParameters.molstiff = stod(jsonobj["ModelParameters"]["molstiff"].get<std::string>());
 	}
+
+
+	if (!(jsonobj["ModelParameters"]["delayTicks"].empty())) {
+		conf.modelParameters.delayTicks = stoi(jsonobj["ModelParameters"]["delayTicks"].get<std::string>());
+	}
+	if (!(jsonobj["ModelParameters"]["qpdAverage"].empty())) {
+		conf.modelParameters.qpdAverage = bool(stoi(jsonobj["ModelParameters"]["qpdAverage"].get<std::string>()));
+	}
+
 
 	if (!(jsonobj["ModelParameters"]["DmblMoveAmplitude"].empty())) {
 		conf.modelParameters.DmblMoveAmplitude = stod(jsonobj["ModelParameters"]["DmblMoveAmplitude"].get<std::string>());

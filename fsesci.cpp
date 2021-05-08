@@ -118,7 +118,7 @@ public:
 		// _forcefeedbackBuffer(configuration.initialConditions.initialState),
 		expRands(_mP.numStates),
 		livingTimes(_mP.numStates, 0.0),
-		_delayedStates(_sim.delayTicks + 1, _state)
+		_delayedStates(_mP.delayTicks + 1, _state)
 	{
 		loggingBuffertoZero();
 		//forcefeedbackBuffertoZero();
@@ -177,7 +177,7 @@ public:
 			_state.xBeadr = next_xBeadr;
 			_state.Time += _sim.expTime;
 
-			if (_sim.qpdAverage) {
+			if (_mP.qpdAverage) {
 				_loggingBuffer.xMT += _state.xMT;
 				_loggingBuffer.xBeadl += _state.xBeadl;
 				_loggingBuffer.xBeadr += _state.xBeadr;
@@ -214,7 +214,7 @@ public:
 
 	void update_delayed_states() {
 		ticks++;
-		_delayedStates[ticks % (_sim.delayTicks + 1)] = _loggingBuffer;
+		_delayedStates[ticks % (_mP.delayTicks + 1)] = _loggingBuffer;
 	}
 	
 
@@ -238,7 +238,7 @@ public:
 
 
 void write_results(const std::unique_ptr<Task>& task, const SimulationParameters& sim) {
-	if (task->_sim.qpdAverage) {
+	if (task->_mP.qpdAverage) {
 		/*task->_forcefeedbackBuffer.xBeadl += task->_loggingBuffer.xBeadl;
 		task->_forcefeedbackBuffer.xBeadr += task->_loggingBuffer.xBeadr;
 		task->_forcefeedbackBuffer.xTrapl += task->_loggingBuffer.xTrapl;
@@ -283,7 +283,7 @@ void force_clamp_update(const std::unique_ptr<Task>& task, const SimulationParam
 		task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapr / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
 	}*/
 
-	auto _forcefeedbackBuffer = task->_delayedStates[(task->ticks + 1) % (task->_sim.delayTicks + 1)];
+	auto _forcefeedbackBuffer = task->_delayedStates[(task->ticks + 1) % (task->_mP.delayTicks + 1)];
 
 	double tmpDirection = _forcefeedbackBuffer.direction;
 
