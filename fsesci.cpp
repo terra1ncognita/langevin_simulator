@@ -436,11 +436,11 @@ int main(int argc, char *argv[])
 				double total_percentage = (100.0 * batch_id + procent) / tasksperthread;
 
 				auto curr = std::chrono::system_clock::now();
-				double elapsed_seconds = time_diff(curr, start_batch);
-				double eta_seconds = (100.0 / total_percentage - 1) * elapsed_seconds;
-				MinSec elapsed(elapsed_seconds), eta(eta_seconds);
+				double elapsed_batch = time_diff(curr, start_batch), elapsed_total = time_diff(curr, start_main);
+				double eta_seconds = (100.0 / total_percentage - 1) * elapsed_total;
+				MinSec ms_elapsed_batch(elapsed_batch), ms_elapsed_total(elapsed_total), eta(eta_seconds);
 
-				cout << "Batch " << procent << "%, total " << total_percentage << "%, elapsed " << elapsed << ", total ETA " << eta << endl;
+				cout << "Batch " << procent << "%, "<< ms_elapsed_batch << ", total " << total_percentage << "%, " << ms_elapsed_total << ", total ETA " << eta << endl;
 			}
 		}
 
