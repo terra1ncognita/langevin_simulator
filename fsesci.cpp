@@ -330,23 +330,6 @@ double time_diff(const T& curr, const T& start_batch) {
 
 int main(int argc, char *argv[])
 {
-	SystemState a;
-	a.binding = 100.0;
-
-	std::vector<SystemState> b(5, a);
-
-	b[0].binding = 20.0;
-
-	auto c = b[1];
-	c.binding = -3000.0;
-
-	cout << a.binding << endl;
-	cout << b[1].binding << endl;
-	cout << c.binding << endl;
-
-	return 0;
-
-
 	auto start_main = std::chrono::system_clock::now();
 
 	if (cmdOptionExists(argv, argv + argc, "-h"))
