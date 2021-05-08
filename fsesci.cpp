@@ -272,7 +272,6 @@ void write_results(const std::unique_ptr<Task>& task, const SimulationParameters
 	}
 
 	task->writeStateTolog();
-	task->loggingBuffertoZero();
 }
 
 void force_clamp_update(const std::unique_ptr<Task>& task, const SimulationParameters& sim) {
@@ -426,6 +425,8 @@ int main(int argc, char *argv[])
 					if ((savedSampleIter % sim.trapsUpdateTest) == 0) {
 						force_clamp_update(tasks[curr_thread], sim);
 					}
+
+					tasks[curr_thread]->loggingBuffertoZero();
 				}
 			} // end of openmp section
 
