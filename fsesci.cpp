@@ -450,7 +450,7 @@ int main(int argc, char *argv[])
 	}
 
 	auto curr = std::chrono::system_clock::now();
-	MinSec elapsed_start((curr - start_main).count());
+	MinSec elapsed_start(time_diff(curr, start_main));
 	cout << endl << "All simulations finished in " << elapsed_start << " from program start" << endl;
 
 	return 0;
