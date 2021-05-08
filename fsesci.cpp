@@ -115,12 +115,13 @@ public:
 		_initC(configuration.initialConditions),
 		_state(configuration.initialConditions.initialState),
 		_loggingBuffer(configuration.initialConditions.initialState),
-		_forcefeedbackBuffer(configuration.initialConditions.initialState),
+		// _forcefeedbackBuffer(configuration.initialConditions.initialState),
 		expRands(_mP.numStates),
-		livingTimes(_mP.numStates, 0.0)
+		livingTimes(_mP.numStates, 0.0),
+		_delayedStates(_sim.delayTicks + 1, _state)
 	{
 		loggingBuffertoZero();
-		forcefeedbackBuffertoZero();
+		//forcefeedbackBuffertoZero();
 
 		const auto& loggerParameters = configuration.loggerParameters;
 		SystemState::iterateFields([this, &loggerParameters](double(SystemState::* field), std::string fieldName) {
@@ -144,7 +145,6 @@ public:
 		{
 			return sign * (_mP.molStiffStrongSlope*extension + _mP.molStiffBoundary*(_mP.molStiffWeakSlope - _mP.molStiffStrongSlope));
 		}
-
 	}
 
 
@@ -177,12 +177,14 @@ public:
 			_state.xBeadr = next_xBeadr;
 			_state.Time += _sim.expTime;
 
-			_loggingBuffer.xMT    +=  _state.xMT;   
-			_loggingBuffer.xBeadl +=  _state.xBeadl;
-			_loggingBuffer.xBeadr +=  _state.xBeadr;
-			_loggingBuffer.xTrapl += _state.xTrapl;
-			_loggingBuffer.xTrapr += _state.xTrapr;
-			_loggingBuffer.binding += _state.binding;
+			if (_sim.qpdAverage) {
+				_loggingBuffer.xMT += _state.xMT;
+				_loggingBuffer.xBeadl += _state.xBeadl;
+				_loggingBuffer.xBeadr += _state.xBeadr;
+				_loggingBuffer.xTrapl += _state.xTrapl;
+				_loggingBuffer.xTrapr += _state.xTrapr;
+				_loggingBuffer.binding += _state.binding;
+			}
 		}
 		_loggingBuffer.Time = _state.Time;
 	}
@@ -203,11 +205,16 @@ public:
 		_loggingBuffer.binding = 0.0;
 	}
 
-	void forcefeedbackBuffertoZero() {
+	/*void forcefeedbackBuffertoZero() {
 		_forcefeedbackBuffer.xBeadl = 0.0;
 		_forcefeedbackBuffer.xBeadr = 0.0;
 		_forcefeedbackBuffer.xTrapl = 0.0;
 		_forcefeedbackBuffer.xTrapr = 0.0;
+	}*/
+
+	void update_delayed_states() {
+		ticks++;
+		_delayedStates[ticks % (_sim.delayTicks + 1)] = _loggingBuffer;
 	}
 	
 
@@ -215,61 +222,89 @@ private:
 	std::vector<std::unique_ptr<BinaryFileLogger>> _loggers;
 public:
 	SystemState _state;
-	SystemState _loggingBuffer, _forcefeedbackBuffer;
+	SystemState _loggingBuffer; // , _forcefeedbackBuffer;
+
 	const SimulationParameters _sim;
 	const ModelParameters _mP;
 	const InitialConditions _initC;
+
 	std::vector<double> expRands;
 	std::vector<double> livingTimes;
+
+	std::vector<SystemState> _delayedStates; // from _loggingBuffer
+
+	unsigned long ticks = 0;
 };
 
 
 void write_results(const std::unique_ptr<Task>& task, const SimulationParameters& sim) {
-	task->_forcefeedbackBuffer.xBeadl += task->_loggingBuffer.xBeadl;
-	task->_forcefeedbackBuffer.xBeadr += task->_loggingBuffer.xBeadr;
-	task->_forcefeedbackBuffer.xTrapl += task->_loggingBuffer.xTrapl;
-	task->_forcefeedbackBuffer.xTrapr += task->_loggingBuffer.xTrapr;
+	if (task->_sim.qpdAverage) {
+		/*task->_forcefeedbackBuffer.xBeadl += task->_loggingBuffer.xBeadl;
+		task->_forcefeedbackBuffer.xBeadr += task->_loggingBuffer.xBeadr;
+		task->_forcefeedbackBuffer.xTrapl += task->_loggingBuffer.xTrapl;
+		task->_forcefeedbackBuffer.xTrapr += task->_loggingBuffer.xTrapr;*/
 
-	task->_loggingBuffer.xMT = task->_loggingBuffer.xMT / static_cast<double>(sim.iterationsbetweenSavings);
-	task->_loggingBuffer.xBeadl = task->_loggingBuffer.xBeadl / static_cast<double>(sim.iterationsbetweenSavings);
-	task->_loggingBuffer.xBeadr = task->_loggingBuffer.xBeadr / static_cast<double>(sim.iterationsbetweenSavings);
-	task->_loggingBuffer.xTrapl = task->_loggingBuffer.xTrapl / static_cast<double>(sim.iterationsbetweenSavings);
-	task->_loggingBuffer.xTrapr = task->_loggingBuffer.xTrapr / static_cast<double>(sim.iterationsbetweenSavings);
+		task->_loggingBuffer.xMT = task->_loggingBuffer.xMT / static_cast<double>(sim.iterationsbetweenSavings);
+		task->_loggingBuffer.xBeadl = task->_loggingBuffer.xBeadl / static_cast<double>(sim.iterationsbetweenSavings);
+		task->_loggingBuffer.xBeadr = task->_loggingBuffer.xBeadr / static_cast<double>(sim.iterationsbetweenSavings);
+		task->_loggingBuffer.xTrapl = task->_loggingBuffer.xTrapl / static_cast<double>(sim.iterationsbetweenSavings);
+		task->_loggingBuffer.xTrapr = task->_loggingBuffer.xTrapr / static_cast<double>(sim.iterationsbetweenSavings);
 
-	task->_loggingBuffer.Time = task->_loggingBuffer.Time - sim.expTime * static_cast<double>(sim.iterationsbetweenSavings) / 2;
+		task->_loggingBuffer.Time = task->_loggingBuffer.Time - sim.expTime * static_cast<double>(sim.iterationsbetweenSavings) / 2;
 
-	task->_loggingBuffer.binding = task->_loggingBuffer.binding / static_cast<double>(sim.iterationsbetweenSavings);
+		task->_loggingBuffer.binding = task->_loggingBuffer.binding / static_cast<double>(sim.iterationsbetweenSavings);
+	}
+	else {
+		/*task->_loggingBuffer.xMT = task->_state.xMT;
+		task->_loggingBuffer.xBeadl = task->_state.xBeadl;
+		task->_loggingBuffer.xBeadr = task->_state.xBeadr;
+		task->_loggingBuffer.xTrapl = task->_state.xTrapl;
+		task->_loggingBuffer.xTrapr = task->_state.xTrapr;
+		task->_loggingBuffer.Time = task->_state.Time;
+		task->_loggingBuffer.binding = task->_state.binding;*/
+
+		/*task->_forcefeedbackBuffer.xBeadl = task->_state.xBeadl;
+		task->_forcefeedbackBuffer.xBeadr = task->_state.xBeadr;
+		task->_forcefeedbackBuffer.xTrapl = task->_state.xTrapl;
+		task->_forcefeedbackBuffer.xTrapr = task->_state.xTrapr;*/
+
+		task->_loggingBuffer = task->_state;
+	}
 
 	task->writeStateTolog();
 	task->loggingBuffertoZero();
 }
 
 void force_clamp_update(const std::unique_ptr<Task>& task, const SimulationParameters& sim) {
-	task->_forcefeedbackBuffer.xBeadl = task->_forcefeedbackBuffer.xBeadl / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
-	task->_forcefeedbackBuffer.xBeadr = task->_forcefeedbackBuffer.xBeadr / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
-	task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapl / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
-	task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapr / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
+	/*if (task->_sim.qpdAverage) {
+		task->_forcefeedbackBuffer.xBeadl = task->_forcefeedbackBuffer.xBeadl / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
+		task->_forcefeedbackBuffer.xBeadr = task->_forcefeedbackBuffer.xBeadr / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
+		task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapl / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
+		task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapr / static_cast<double>(sim.iterationsbetweenTrapsUpdate);
+	}*/
 
-	int tmpDirection = task->_forcefeedbackBuffer.direction;
+	auto _forcefeedbackBuffer = task->_delayedStates[(task->ticks + 1) % (task->_sim.delayTicks + 1)];
+
+	double tmpDirection = _forcefeedbackBuffer.direction;
 
 	if (tmpDirection == 1.0)
 	{
 		//moving to the right, leading bead right, trailing bead left, positive X increment
-		task->_forcefeedbackBuffer.xTrapr = (task->_initC.initialState.xTrapr - task->_initC.initialState.xBeadr) + task->_forcefeedbackBuffer.xBeadr + (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffR);
-		task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xTrapr - (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
+		_forcefeedbackBuffer.xTrapr = (task->_initC.initialState.xTrapr - task->_initC.initialState.xBeadr) + _forcefeedbackBuffer.xBeadr + (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffR);
+		_forcefeedbackBuffer.xTrapl = _forcefeedbackBuffer.xTrapr - (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
 	}
 	else if (tmpDirection == -1.0)
 	{
 		//moving to the left, leading bead left, trailing bead right, negative X increment
-		task->_forcefeedbackBuffer.xTrapl = task->_forcefeedbackBuffer.xBeadl + (task->_initC.initialState.xTrapl - task->_initC.initialState.xBeadl) - (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffL);
-		task->_forcefeedbackBuffer.xTrapr = task->_forcefeedbackBuffer.xTrapl + (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
+		_forcefeedbackBuffer.xTrapl = _forcefeedbackBuffer.xBeadl + (task->_initC.initialState.xTrapl - task->_initC.initialState.xBeadl) - (0.5*task->_mP.movementTotalForce / task->_mP.trapstiffL);
+		_forcefeedbackBuffer.xTrapr = _forcefeedbackBuffer.xTrapl + (task->_initC.initialState.xTrapr - task->_initC.initialState.xTrapl);
 	}
 
-	task->_state.xTrapl = task->_forcefeedbackBuffer.xTrapl;
-	task->_state.xTrapr = task->_forcefeedbackBuffer.xTrapr;
+	task->_state.xTrapl = _forcefeedbackBuffer.xTrapl;
+	task->_state.xTrapr = _forcefeedbackBuffer.xTrapr;
 
-	task->_loggingBuffer.direction = task->_forcefeedbackBuffer.direction;
-	task->forcefeedbackBuffertoZero();
+	task->_loggingBuffer.direction = _forcefeedbackBuffer.direction;
+	//task->forcefeedbackBuffertoZero();
 }
 
 struct MinSec {
@@ -285,6 +320,11 @@ struct MinSec {
 std::ostream& operator<< (std::ostream& out, MinSec obj) {
 	out << obj.minutes << " min " << obj.seconds << " s";
 	return out;
+}
+
+template<typename T>
+double time_diff(const T& curr, const T& start_batch) {
+	return (std::chrono::duration<double>(curr - start_batch)).count();
 }
 
 
@@ -381,6 +421,8 @@ int main(int argc, char *argv[])
 					tasks[curr_thread]->advanceState(sim.iterationsbetweenSavings, rnd_pointer);
 					write_results(tasks[curr_thread], sim);
 
+					tasks[curr_thread]->update_delayed_states();
+
 					if ((savedSampleIter % sim.trapsUpdateTest) == 0) {
 						force_clamp_update(tasks[curr_thread], sim);
 					}
@@ -393,9 +435,7 @@ int main(int argc, char *argv[])
 				double total_percentage = (100.0 * batch_id + procent) / tasksperthread;
 
 				auto curr = std::chrono::system_clock::now();
-				std::chrono::duration<double> dt = (curr - start_batch);
-
-				double elapsed_seconds = dt.count();
+				double elapsed_seconds = time_diff(curr, start_batch);
 				double eta_seconds = (100.0 / total_percentage - 1) * elapsed_seconds;
 				MinSec elapsed(elapsed_seconds), eta(eta_seconds);
 
@@ -404,26 +444,14 @@ int main(int argc, char *argv[])
 		}
 
 		auto curr = std::chrono::system_clock::now();
-		std::chrono::duration<double> dt = (curr - start_batch);
-		double elapsed_seconds = dt.count();
-		unsigned short minutes = static_cast<unsigned short>(floor(elapsed_seconds / 60));
-		double seconds = elapsed_seconds - 60 * minutes;
-
-		cout << endl << "Finished batch #" << batch_id << " in " << minutes << " min " << seconds << " s" << endl;
-
-		dt = (curr - start_main);
-		elapsed_seconds = dt.count();
-		minutes = static_cast<unsigned short>(floor(elapsed_seconds / 60));
-		seconds = elapsed_seconds - 60 * minutes;
-		cout << "Elapsed " << minutes << " min " << seconds << " s from program start" << endl << endl;
+		MinSec elapsed_batch(time_diff(curr, start_batch)), elapsed_main(time_diff(curr, start_main));
+		cout << endl << "Finished batch #" << batch_id << " in " << elapsed_batch << endl;
+		cout << "Elapsed " << elapsed_main << " from program start" << endl << endl;
 	}
 
 	auto curr = std::chrono::system_clock::now();
-	std::chrono::duration<double> dt = (curr - start_main);
-	double elapsed_seconds = dt.count();
-	unsigned short minutes = static_cast<unsigned short>(floor(elapsed_seconds / 60));
-	double seconds = elapsed_seconds - 60 * minutes;
-	cout << endl << "All simulations finished in " << minutes << " min " << seconds << " s from program start" << endl;
+	MinSec elapsed_start((curr - start_main).count());
+	cout << endl << "All simulations finished in " << elapsed_start << " from program start" << endl;
 
 	return 0;
 }

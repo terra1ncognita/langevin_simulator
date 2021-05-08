@@ -81,6 +81,9 @@ struct SimulationParameters
 	unsigned int macrostepMax = totalsavings / savingsPerMacrostep;
 	unsigned int trapsUpdateTest = iterationsbetweenTrapsUpdate / iterationsbetweenSavings;
 
+	unsigned int delayTicks = 0;
+	bool qpdAverage = true;
+
 	double freeMotionTime = 5e-3;
 	unsigned int macrostepsFree = static_cast<unsigned int>(ceil(freeMotionTime / expTime / iterationsbetweenSavings / savingsPerMacrostep));
 
@@ -158,7 +161,7 @@ struct ModelParameters
 
 	double MTlength;
 	double molstiff;				//(*pN / um| stiffness of the NDC80 *)
-	double feedbackFreq;
+
 	double DmblMoveAmplitude;
 	double prestretchTotalForce;
 	double movementTotalForce;
