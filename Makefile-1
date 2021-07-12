@@ -1,0 +1,29 @@
+#-fopenmp
+Op=-fopenmp
+# Optimization
+O=-O3 -static -simd -xHost -fma -fp-model precise -ip -m64 -parallel -prec-sqrt -ipo
+#-prof-use -prof-dir=/home/Alexey/langevin_simulator-binding/
+
+all: langevin_simulator
+
+langevin_simulator: fsesci.o configuration_loader.o library.o mkl_gaussian_parallel_generator.o vsl_stream_wrapper.o
+	icpc -Wall $(Op) $(O) -mkl fsesci.o configuration_loader.o library.o mkl_gaussian_parallel_generator.o vsl_stream_wrapper.o -o langevin_simulator
+
+fsesci.o: fsesci.cpp
+	icpc -c $(Op) $(O) fsesci.cpp
+
+configuration_loader.o: configuration_loader.cpp
+	icpc -c $(O) configuration_loader.cpp 
+
+library.o: library.cpp
+	icpc -c $(O) library.cpp
+
+mkl_gaussian_parallel_generator.o: mkl_gaussian_parallel_generator.cpp
+	icpc -c $(Op) $(O) mkl_gaussian_parallel_generator.cpp
+
+vsl_stream_wrapper.o: vsl_stream_wrapper.cpp
+	icpc -c $(O) vsl_stream_wrapper.cpp
+
+clean:
+	rm -rf *.o langevin_simulator-binding
+
