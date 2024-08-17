@@ -1,11 +1,11 @@
 #include <memory>
 #include <string>
 #include <iostream>
-# include <cstdlib>
+#include <cstdlib>
 
 #include "logger.h"
 
-
+#pragma warning(disable : 4996)
 
 class ConsoleLogger :public ILogger
 {
