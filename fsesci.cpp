@@ -268,7 +268,7 @@ public:
 			double rnd_xMol = takeRandomNumber();
 			double rnd_phi = takeRandomNumber();
 
-			double MT_Mol_force = potentialForce.asymmetric(_state.xMol - _state.xMT, _state.phi);
+			double MT_Mol_force = potentialForce.asymmetric(_state.xMol - _state.xMT);
 			double pot_torque = 0.0;
 
 			double FmtR = calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength / 2.0, 'R');
