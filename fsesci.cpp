@@ -116,14 +116,13 @@ public:
 	const ModelParameters* mp;
 	SystemState* state;
 	const double powsigma;
-	const double lgs = log(0.5), E = exp(1);
-	const double var1, var2;
+	const double E = exp(1);
+	const double chi;
 	const double pos = 2.0;
 
 	PotentialForce(const ModelParameters& mp_, SystemState& state_) :
 		powsigma ( pow(mp_.sigma, 2) ),
-		var1 ( pow(2.0, log(1.0 + mp_.m) / lgs) ),
-		var2 ( pow(2.0, log(2.0) / lgs) )
+		chi ( log2(1.0 + mp_.m) ),
 	{
 		mp = &mp_;
 		state = &state_;
@@ -152,10 +151,14 @@ public:
 		}
 		else if (state->binding == 1.0) {
 			double x = period_map(unmodvar, mp->L);
-			double tmp1 = pow(1.0 + 2.0 * x / mp->L, log(2.0) / lgs);
 
-			return (log(2.0) * mp->A * mp->G * exp(mp->A * (1.0 - 1.0 / (1.0 - pow((-1.0 + var1 / tmp1), 2)))) * tmp1 * (1.0 / tmp1 - 1.0 / var1) /
-				((mp->L + 2.0*x) * pow(-1.0 + var2 / tmp1, 2) * lgs));
+			double z = (1.0 + 2.0 * x / mp->L);
+			double tmp = pow(z / (1 + mp->m), 1 / (1 - chi)) - 1;
+			double mts = 1 - tmp * tmp;
+
+			double deriv = (4 / (mp->L * (chi - 1)) ) * tmp / (z * mts * (1-tmp));
+			double f = 1 - 1 / mts;
+			return -mp->G * mp->A * exp(mp->A * f) * deriv;
 		}
 	}
 
