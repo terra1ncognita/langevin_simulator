@@ -122,7 +122,7 @@ public:
 
 	PotentialForce(const ModelParameters& mp_, SystemState& state_) :
 		powsigma ( pow(mp_.sigma, 2) ),
-		chi ( log2(1.0 + mp_.m) ),
+		chi ( log2(1.0 + mp_.m) )
 	{
 		mp = &mp_;
 		state = &state_;
