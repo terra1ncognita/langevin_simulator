@@ -6,6 +6,10 @@
 #include <iostream>
 
 
+std::vector <VSLStreamWrapper> MklGaussianParallelGenerator::_streamWrappers;
+std::vector<double> MklGaussianParallelGenerator::_buffer;
+
+
 MklGaussianParallelGenerator::MklGaussianParallelGenerator(double mean, double stDeviation, std::size_t bufferSize, unsigned threadNum)
 	:_mean{ mean }, _stDeviation{ stDeviation }, _bufferSize{ bufferSize }, _threadNum{ threadNum }
 {
@@ -38,7 +42,7 @@ void MklGaussianParallelGenerator::generateNumbers()
 #pragma omp parallel num_threads(_threadNum) default(none) shared(_streamWrappers, _buffer) 
 	{
 #pragma omp for nowait schedule(guided)
-		for (std::size_t i = 0; i < _bufferSize; i += _nPerThread) {
+		for (int i = 0; i < _bufferSize; i += _nPerThread) {
 			const auto begin = _buffer.data() + i;
 			const auto generationResult = vdRngGaussian(
 				VSL_RNG_METHOD_GAUSSIAN_ICDF, _streamWrappers.at(omp_get_thread_num()).get(),

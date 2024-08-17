@@ -11,14 +11,14 @@ public:
 	virtual const double* getNumbersBuffer() const override;
 	virtual std::size_t getNumbersBufferSize() const override;
 private:
-	double _mean;
-	double _stDeviation;
-	std::size_t _bufferSize;
-	unsigned _threadNum;
-	std::vector <VSLStreamWrapper> _streamWrappers;
-	std::vector<double> _buffer;
-	std::size_t _nPerThread;
-	
+	const double _mean;
+	const double _stDeviation;
+	const std::size_t _bufferSize;
+	const unsigned _threadNum;
 
+	static std::vector <VSLStreamWrapper> _streamWrappers;
+	static std::vector<double> _buffer;
+
+	std::size_t _nPerThread;
 };
 
