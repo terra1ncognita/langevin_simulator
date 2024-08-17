@@ -5,9 +5,9 @@
 #include <malloc.h>
 #include <string>
 #include <iostream>
-# include <cstdlib>
-# include <iomanip>
-# include <omp.h>
+#include <cstdlib>
+#include <iomanip>
+#include <omp.h>
 #include <cmath>
 #include <vector>
 #include <algorithm>
@@ -115,33 +115,13 @@ class PotentialForce
 public:
 	const ModelParameters* mp;
 	SystemState* state;
-	const double powsigma;
-	const double E = exp(1);
 	const double chi;
-	const double pos = 2.0;
 
 	PotentialForce(const ModelParameters& mp_, SystemState& state_) :
-		powsigma ( pow(mp_.sigma, 2) ),
 		chi ( log2(1.0 + mp_.m) )
 	{
 		mp = &mp_;
 		state = &state_;
-	}
-	
-	double calc(double unmodvar) const
-	{
-		double var = period_map(unmodvar, mp->L);
-		if (state->binding == 0.0) {
-			return 0.0;
-		}
-		else if (state->binding == 1.0) {
-			return (mp->G * var / powsigma) * pow(E, -pow(var, 2) / (2.0*powsigma));//l1d cache 4096 of doubles -> use 50% of it?
-		}
-		/*
-		else if (state->binding == 2.0) {
-			return (mp->G2 * var / powsigma) * pow(E, -pow(var, 2) / (2.0*powsigma));
-		}
-		*/
 	}
 	
 	double asymmetric(double unmodvar) const
@@ -159,50 +139,6 @@ public:
 			double deriv = (4 / (mp->L * (chi - 1)) ) * tmp / (z * mts * (1-tmp));
 			double f = 1 - 1 / mts;
 			return -mp->G * mp->A * exp(mp->A * f) * deriv;
-		}
-	}
-
-	double morze(double x, double r0, double depth) const
-	{
-		return depth * pow((x / r0), 2) * exp(2 * (1 - x / r0));
-	}
-
-	double morze_angle_derivative(double angle, double r0, double d, double depth) const
-		/*
-		Assume relationship x =  mp->domainsDistance * sin(angle)
-		*/
-	{
-		return -depth * (pow(d, 2) * exp(2 - 2 * d * sin(angle) / r0) *
-			(r0 - d * sin(angle)) * sin(2 * angle)) / pow(r0, 3);
-	}
-
-	double well_barrier_torque(double angle) const
-	{
-		if (angle >= M_PI_2) {
-			return 0.0;
-		}
-		return morze_angle_derivative(angle, mp->rotWellWidth, mp->domainsDistance, mp->rotWellDepth) +
-			morze_angle_derivative(angle, pos * mp->rotWellWidth, mp->domainsDistance, -mp->B * mp->rotWellDepth);
-	}
-
-	double well_barrier_force(double unmodvar, double angle) const
-	{
-		double var = period_map(unmodvar, mp->L);
-		double deltaG = 0.0;
-
-		if (state->binding == 0.0) {
-			return 0.0;
-		}
-
-		if (angle < M_PI_2) {
-			deltaG = morze(mp->domainsDistance * sin(angle), mp->rotWellWidth, mp->rotWellDepth) +
-				morze(mp->domainsDistance * sin(angle), pos * mp->rotWellWidth, -mp->B * mp->rotWellDepth);
-		}
-
-		state->deltaG = deltaG;
-
-		if (state->binding == 1.0) {
-			return ((mp->G + deltaG) * var / powsigma) * pow(E, -pow(var, 2) / (2.0*powsigma));//l1d cache 4096 of doubles -> use 50% of it?
 		}
 	}
 };
@@ -283,7 +219,7 @@ public:
 			{
 				if (extension > _mP.MTstiffWeakBoundaryL && extension < _mP.MTstiffStrongBoundaryL)
 				{
-					return (_mP.MTstiffParabolicAL*pow(extension, 2) + _mP.MTstiffParabolicBL*extension + _mP.MTstiffParabolicCL)*sign;
+					return (_mP.MTstiffParabolicAL*extension*extension + _mP.MTstiffParabolicBL*extension + _mP.MTstiffParabolicCL)*sign;
 				}
 				else
 				{
@@ -301,7 +237,7 @@ public:
 			{
 				if (extension > _mP.MTstiffWeakBoundaryR && extension < _mP.MTstiffStrongBoundaryR)
 				{
-					return (_mP.MTstiffParabolicAR*pow(extension, 2) + _mP.MTstiffParabolicBR*extension + _mP.MTstiffParabolicCR)*sign;
+					return (_mP.MTstiffParabolicAR * extension * extension + _mP.MTstiffParabolicBR*extension + _mP.MTstiffParabolicCR)*sign;
 				}
 				else
 				{
@@ -310,17 +246,6 @@ public:
 			}
 		}
 
-	}
-
-	void log_well_torque(std::string path_prefix) {
-		PotentialForce pf(_mP, _state);
-		std::ofstream out;
-		out.open(path_prefix + "potential_" + _mP.name + ".txt");
-
-		for (double x = 0; x < M_PI_2; x += 0.0001) {
-			out << x << " " << pf.well_barrier_torque(x) << endl;
-		}
-		out.close();
 	}
 
 	void advanceState(int nSteps, const double* const rndNumbersPointer) {
@@ -343,8 +268,8 @@ public:
 			double rnd_xMol = takeRandomNumber();
 			double rnd_phi = takeRandomNumber();
 
-			double MT_Mol_force = potentialForce.well_barrier_force(_state.xMol - _state.xMT, _state.phi);
-			double pot_torque = potentialForce.well_barrier_torque(_state.phi);
+			double MT_Mol_force = potentialForce.asymmetric(_state.xMol - _state.xMT, _state.phi);
+			double pot_torque = 0.0;
 
 			double FmtR = calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength / 2.0, 'R');
 			double FmtL = calculateMTspringForce(_state.xMT - _state.xBeadl - _mP.MTlength / 2.0, 'L');
@@ -354,14 +279,7 @@ public:
 			double next_xBeadl = _state.xBeadl + (_sim.expTime / _mP.gammaBeadL)*((-_mP.trapstiffL)*(_state.xBeadl - _state.xTrapl) + FmtL) + sqrt(2.0*_mP.DBeadL*_sim.expTime) * rnd_xBeadl;
 			double next_xBeadr = _state.xBeadr + (_sim.expTime / _mP.gammaBeadR)*(-FmtR + (-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr)) + sqrt(2.0*_mP.DBeadR*_sim.expTime) * rnd_xBeadr;
 			double next_xMol = _state.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force - molSpringForce) + sqrt(2.0*_mP.DMol*_sim.expTime) * rnd_xMol;
-			double next_phi = _state.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*(_state.phi - _mP.iniPhi) + (_state.binding > 0.0) * (-molSpringForce * _mP.molLength*sin(_state.phi) + pot_torque)) + sqrt(2.0*_mP.kT*_sim.expTime / _mP.rotFriction) * rnd_phi;
-
-			if (next_phi < 0){
-				next_phi = -next_phi;
-			}
-			else if (next_phi > M_PI) {
-				next_phi = 2 * M_PI - next_phi;
-			}
+			double next_phi = 0.0;
 
 			_state.xMT    = next_xMT;
 			_state.xBeadl = next_xBeadl;
