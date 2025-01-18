@@ -55,14 +55,6 @@ struct ModelParameters
 	double molStiffBoundary;
 	double molStiffStrongSlope;
 
-	double rotFriction;
-	double rotStiffness;
-	double molLength;
-	double domainsDistance;
-	double rotWellWidth;
-	double rotWellDepth;
-	double iniPhi;
-
 	int numStates = 2;
 
 	double kOn1, kOff1;
@@ -71,7 +63,6 @@ struct ModelParameters
 	double** transitionMatrix;
 
 	bool bindingDynamics = true;
-	double B = 0.0;
 };
 
 struct SystemState
@@ -84,11 +75,7 @@ struct SystemState
 
 	double binding = 0.0;
 	double currentWell = 0.0;
-
-	double phi = 0.0;
-	double potTorque = 0.0;
-	double deltaG = 0.0;
-
+	
 	//#pragma omp declare simd
 	template <typename F>
 	static void iterateFields(F&& f) {
@@ -99,9 +86,6 @@ struct SystemState
 		f(&SystemState::logpotentialForce, "logpotentialForce");
 
 		f(&SystemState::binding, "binding");
-		f(&SystemState::phi, "phi");
-		f(&SystemState::potTorque, "potTorque");
-		f(&SystemState::deltaG, "deltaG");
 	}
 };
 

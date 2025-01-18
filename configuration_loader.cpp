@@ -130,33 +130,8 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 		conf.modelParameters.kOff2 = stod(jsonobj["ModelParameters"]["kOff2"].get<std::string>());
 	}*/
 
-	if (!(jsonobj["ModelParameters"]["rotFriction"].empty())) {
-		conf.modelParameters.rotFriction = stod(jsonobj["ModelParameters"]["rotFriction"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["rotStiffness"].empty())) {
-		conf.modelParameters.rotStiffness = stod(jsonobj["ModelParameters"]["rotStiffness"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["molLength"].empty())) {
-		conf.modelParameters.molLength = stod(jsonobj["ModelParameters"]["molLength"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["domainsDistance"].empty())) {
-		conf.modelParameters.domainsDistance = stod(jsonobj["ModelParameters"]["domainsDistance"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["rotWellWidth"].empty())) {
-		conf.modelParameters.rotWellWidth = stod(jsonobj["ModelParameters"]["rotWellWidth"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["rotWellDepth"].empty())) {
-		conf.modelParameters.rotWellDepth = (conf.modelParameters.kT) * stod(jsonobj["ModelParameters"]["rotWellDepth"].get<std::string>());
-	}
-	if (!(jsonobj["ModelParameters"]["iniPhi"].empty())) {
-		conf.modelParameters.iniPhi = stod(jsonobj["ModelParameters"]["iniPhi"].get<std::string>());
-	}
 	if (!(jsonobj["ModelParameters"]["bindingDynamics"].empty())) {
 		conf.modelParameters.bindingDynamics = bool(stoi(jsonobj["ModelParameters"]["bindingDynamics"].get<std::string>()));
-	}
-
-	if (!(jsonobj["ModelParameters"]["B"].empty())) {
-		conf.modelParameters.B = stod(jsonobj["ModelParameters"]["B"].get<std::string>());
 	}
 
 
@@ -169,10 +144,6 @@ Configuration assign_config_from_json(Configuration conf, json jsonobj) {
 	if (!(jsonobj["InitialConditions"]["direction"].empty())) {
 		conf.currentState.direction = stod(jsonobj["InitialConditions"]["direction"].get<std::string>());
 		conf.initialConditions.initialState.direction = stod(jsonobj["InitialConditions"]["direction"].get<std::string>());
-	}
-	if (!(jsonobj["InitialConditions"]["phi"].empty())) {
-		conf.currentState.phi = stod(jsonobj["InitialConditions"]["phi"].get<std::string>());
-		conf.initialConditions.initialState.phi = stod(jsonobj["InitialConditions"]["phi"].get<std::string>());
 	}
 
 	

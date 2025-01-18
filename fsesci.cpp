@@ -157,49 +157,6 @@ public:
 		}
 	}
 
-	double morze(double x, double r0, double depth) const
-	{
-		return depth * pow((x / r0), 2) * exp(2 * (1 - x / r0));
-	}
-
-	double morze_angle_derivative(double angle, double r0, double d, double depth) const
-		/*
-		Assume relationship x =  mp->domainsDistance * sin(angle)
-		*/
-	{
-		return -depth * (pow(d, 2) * exp(2 - 2 * d * sin(angle) / r0) *
-			(r0 - d * sin(angle)) * sin(2 * angle)) / pow(r0, 3);
-	}
-
-	double well_barrier_torque(double angle) const
-	{
-		if (angle >= M_PI_2) {
-			return 0.0;
-		}
-		return morze_angle_derivative(angle, mp->rotWellWidth, mp->domainsDistance, mp->rotWellDepth) +
-			morze_angle_derivative(angle, pos * mp->rotWellWidth, mp->domainsDistance, -mp->B * mp->rotWellDepth);
-	}
-
-	double well_barrier_force(double unmodvar, double angle) const
-	{
-		double var = period_map(unmodvar, mp->L);
-		double deltaG = 0.0;
-
-		if (state->binding == 0.0) {
-			return 0.0;
-		}
-
-		if (angle < M_PI_2) {
-			deltaG = morze(mp->domainsDistance * sin(angle), mp->rotWellWidth, mp->rotWellDepth) +
-				morze(mp->domainsDistance * sin(angle), pos * mp->rotWellWidth, -mp->B * mp->rotWellDepth);
-		}
-
-		state->deltaG = deltaG;
-
-		if (state->binding == 1.0) {
-			return ((mp->G + deltaG) * var / powsigma) * pow(E, -pow(var, 2) / (2.0*powsigma));//l1d cache 4096 of doubles -> use 50% of it?
-		}
-	}
 };
 
 class ExponentialGenerator {
@@ -247,17 +204,6 @@ public:
 		}
 	}
 
-	void log_well_torque(std::string path_prefix) {
-		PotentialForce pf(_mP, _state);
-		std::ofstream out;
-		out.open(path_prefix + "potential_" + _mP.name + ".txt");
-
-		for (double x = 0; x < M_PI_2; x += 0.0001) {
-			out << x << " " << pf.well_barrier_torque(x) << endl;
-		}
-		out.close();
-	}
-
 	void advanceState(int nSteps, const double* const rndNumbersPointer) {
 		PotentialForce potentialForce(_mP, _state);
 		bool bound_flg = true;
@@ -275,31 +221,17 @@ public:
 			}
 
 			double rnd_xMol = takeRandomNumber();
-			double rnd_phi = takeRandomNumber();
 
-			double MT_Mol_force = potentialForce.well_barrier_force(_state.xMol - _state.xMT, _state.phi);
-			double pot_torque = potentialForce.well_barrier_torque(_state.phi);
+			double MT_Mol_force = potentialForce.calc(_state.xMol - _state.xMT);
 
 			double next_xMol = _state.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force) + sqrt(2.0*_mP.DMol*_sim.expTime) * rnd_xMol;
-			double next_phi = _state.phi + (_sim.expTime / _mP.rotFriction) * (-_mP.rotStiffness*(_state.phi - _mP.iniPhi) + bound_flg * (pot_torque)) + sqrt(2.0*_mP.kT*_sim.expTime / _mP.rotFriction) * rnd_phi;
-
-			if (next_phi < 0){
-				next_phi = -next_phi;
-			}
-			else if (next_phi > M_PI) {
-				next_phi = 2 * M_PI - next_phi;
-			}
-
+			
 			_state.xMol  = next_xMol;
-			_state.phi   = next_phi;
 			_state.Time += _sim.expTime;
 
 			_loggingBuffer.xMol              += _state.xMol;  
 			_loggingBuffer.logpotentialForce += MT_Mol_force;
 			_loggingBuffer.binding           += _state.binding;
-			_loggingBuffer.phi               += _state.phi;
-			_loggingBuffer.potTorque         += pot_torque;
-			_loggingBuffer.deltaG            += _state.deltaG;
 		}
 		_loggingBuffer.Time = _state.Time;
 	}
@@ -315,9 +247,6 @@ public:
 		_loggingBuffer.logpotentialForce = 0.0;
 		_loggingBuffer.Time = 0.0;
 		_loggingBuffer.binding = 0.0;
-		_loggingBuffer.phi = 0.0;
-		_loggingBuffer.potTorque = 0.0;
-		_loggingBuffer.deltaG = 0.0;
 	}
 
 	
@@ -380,9 +309,6 @@ void write_results(const std::unique_ptr<Task>& task, const SimulationParameters
 	task->_loggingBuffer.Time = task->_loggingBuffer.Time - sim.expTime * static_cast<double>(sim.iterationsbetweenSavings) / 2;
 
 	task->_loggingBuffer.binding = task->_loggingBuffer.binding / static_cast<double>(sim.iterationsbetweenSavings);
-	task->_loggingBuffer.phi = task->_loggingBuffer.phi / static_cast<double>(sim.iterationsbetweenSavings);
-	task->_loggingBuffer.potTorque = task->_loggingBuffer.potTorque / static_cast<double>(sim.iterationsbetweenSavings);
-	task->_loggingBuffer.deltaG = task->_loggingBuffer.deltaG / static_cast<double>(sim.iterationsbetweenSavings);
 
 	task->writeStateTolog();
 	task->loggingBuffertoZero();
