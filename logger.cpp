@@ -14,7 +14,7 @@ public:
 	ConsoleLogger(Args&&... args) {}
 
 	virtual void save(double xBeadl, double xMT, double xBeadr, double xMol) override {
-		std::cout << xBeadl << "	" << xMT << "	" << xBeadr << "	" << xMol << endl;
+		std::cout << xBeadl << "	" << xMT << "	" << xBeadr << "	" << xMol << std::endl;
 	}
 	virtual ~ConsoleLogger() override {
 
@@ -32,7 +32,7 @@ public:
 		throw std::logic_error{ "wrong BinaryFileLogger construct parameter types" };
 	}
 
-	BinaryFileLogger(string filenameTemplate, string filePath)
+	BinaryFileLogger(std::string filenameTemplate, std::string filePath)
 		:pFile{ fopen((filePath + filenameTemplate + std::string{ "file.binary" }).c_str(), "wb") }
 	{
 		if (pFile == nullptr) {
