@@ -115,30 +115,23 @@ class PotentialForce
 public:
 	const ModelParameters* mp;
 	SystemState* state;
-	const double chi;
+	const double powsigma;
 
 	PotentialForce(const ModelParameters& mp_, SystemState& state_) :
-		chi ( log2(1.0 + mp_.m) )
+		powsigma ( pow(mp_.sigma, 2) )
 	{
 		mp = &mp_;
 		state = &state_;
 	}
 	
-	double asymmetric(double unmodvar) const
+	double calc(double unmodvar) const
 	{
+		double var = period_map(unmodvar, mp->L);
 		if (state->binding == 0.0) {
 			return 0.0;
 		}
 		else if (state->binding == 1.0) {
-			double x = period_map(unmodvar, mp->L);
-
-			double z = (1.0 + 2.0 * x / mp->L);
-			double tmp = pow(z / (1 + mp->m), 1 / (1 - chi)) - 1;
-			double mts = 1 - tmp * tmp;
-
-			double deriv = (4 / (mp->L * (chi - 1)) ) * tmp / (z * mts * (1-tmp));
-			double f = 1 - 1 / mts;
-			return -mp->G * mp->A * exp(mp->A * f) * deriv;
+			return (mp->G * var / powsigma) * pow(E, -pow(var, 2) / (2.0*powsigma));
 		}
 	}
 };
@@ -266,10 +259,8 @@ public:
 			double rnd_xBeadl = takeRandomNumber();
 			double rnd_xBeadr = takeRandomNumber();
 			double rnd_xMol = takeRandomNumber();
-			double rnd_phi = takeRandomNumber();
 
-			double MT_Mol_force = potentialForce.asymmetric(_state.xMol - _state.xMT);
-			double pot_torque = 0.0;
+			double MT_Mol_force = potentialForce.calc(_state.xMol - _state.xMT);
 
 			double FmtR = calculateMTspringForce(_state.xBeadr - _state.xMT - _mP.MTlength / 2.0, 'R');
 			double FmtL = calculateMTspringForce(_state.xMT - _state.xBeadl - _mP.MTlength / 2.0, 'L');
@@ -279,13 +270,11 @@ public:
 			double next_xBeadl = _state.xBeadl + (_sim.expTime / _mP.gammaBeadL)*((-_mP.trapstiffL)*(_state.xBeadl - _state.xTrapl) + FmtL) + sqrt(2.0*_mP.DBeadL*_sim.expTime) * rnd_xBeadl;
 			double next_xBeadr = _state.xBeadr + (_sim.expTime / _mP.gammaBeadR)*(-FmtR + (-_mP.trapstiffR)*(_state.xBeadr - _state.xTrapr)) + sqrt(2.0*_mP.DBeadR*_sim.expTime) * rnd_xBeadr;
 			double next_xMol = _state.xMol + (_sim.expTime / _mP.gammaMol) * (MT_Mol_force - molSpringForce) + sqrt(2.0*_mP.DMol*_sim.expTime) * rnd_xMol;
-			double next_phi = 0.0;
 
 			_state.xMT    = next_xMT;
 			_state.xBeadl = next_xBeadl;
 			_state.xBeadr = next_xBeadr;
 			_state.xMol   = next_xMol;
-			_state.phi    = next_phi;
 			_state.Time += _sim.expTime;
 
 			_loggingBuffer.xMT    +=  _state.xMT;   
@@ -296,9 +285,6 @@ public:
 			_loggingBuffer.xMol   +=  _state.xMol;  
 			_loggingBuffer.logpotentialForce += MT_Mol_force;
 			_loggingBuffer.binding += _state.binding;
-			_loggingBuffer.phi += _state.phi;
-			_loggingBuffer.potTorque += pot_torque;
-			_loggingBuffer.deltaG += _state.deltaG;
 		}
 		_loggingBuffer.Time = _state.Time;
 	}
@@ -400,9 +386,9 @@ void write_results(const std::unique_ptr<Task>& task, const SimulationParameters
 	task->_loggingBuffer.Time = task->_loggingBuffer.Time - sim.expTime * static_cast<double>(sim.iterationsbetweenSavings) / 2;
 
 	task->_loggingBuffer.binding = task->_loggingBuffer.binding / static_cast<double>(sim.iterationsbetweenSavings);
-	task->_loggingBuffer.phi = task->_loggingBuffer.phi / static_cast<double>(sim.iterationsbetweenSavings);
-	task->_loggingBuffer.potTorque = task->_loggingBuffer.potTorque / static_cast<double>(sim.iterationsbetweenSavings);
-	task->_loggingBuffer.deltaG = task->_loggingBuffer.deltaG / static_cast<double>(sim.iterationsbetweenSavings);
+	task->_loggingBuffer.phi = 0.0;
+	task->_loggingBuffer.potTorque = 0.0;
+	task->_loggingBuffer.deltaG = 0.0;
 
 	task->writeStateTolog();
 	task->loggingBuffertoZero();

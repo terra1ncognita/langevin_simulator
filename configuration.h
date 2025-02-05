@@ -122,7 +122,7 @@ struct SystemState
 	double xTrapr; 
 	double Time = 0.0;
 	double direction = 1.0;
-	double logpotentialForce;
+	double logpotentialForce = 0.0;
 
 	double binding = 0.0;
 	double currentWell = 0.0;
